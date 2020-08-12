@@ -1,0 +1,29 @@
+# Created by https://www.gitignore.io/api/pawn,sourcepawn
+# Edit at https://www.gitignore.io/?templates=pawn,sourcepawn
+
+### PAWN ###
+# Compiled Bytecode, precompiled output and assembly
+*.amx
+*.lst
+*.asm
+
+# Vendor directory for dependencies
+dependencies/
+
+# Dependency versions lockfile
+pawn.lock
+
+# IDE setting files
+settings.ini
+
+### SourcePawn ###
+# SourcePawn
+*.dll # extensions
+*.so # extensions
+*.smx # plugins
+*.exe # apps
+*.txt # textfiles
+*.cfg # config
+*.ini # savefiles
+
+# End of https://www.gitignore.io/api/pawn,sourcepawn
