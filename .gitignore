@@ -1,5 +1,6 @@
-# Created by https://www.gitignore.io/api/pawn,sourcepawn
-# Edit at https://www.gitignore.io/?templates=pawn,sourcepawn
+
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,pawn,sourcepawn
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,pawn,sourcepawn
 
 ### PAWN ###
 # Compiled Bytecode, precompiled output and assembly
@@ -21,9 +22,17 @@ settings.ini
 *.dll # extensions
 *.so # extensions
 *.smx # plugins
-*.exe # apps
-*.txt # textfiles
-*.cfg # config
-*.ini # savefiles
 
-# End of https://www.gitignore.io/api/pawn,sourcepawn
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pawn,sourcepawn
