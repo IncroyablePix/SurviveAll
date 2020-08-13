@@ -20739,9 +20739,9 @@ public FCNPC_OnRespawn(npcid)
 
 public OnPlayerSpawn(playerid)
 {
+	static pLastSpawn[MAX_PLAYERS] = {0, ...};
 	if(!FCNPC_IsValid(playerid))
 	{
-		static pLastSpawn[MAX_PLAYERS] = {0, ...};
 		/*if(TimePassedSince(pLastSpawn[playerid]) < 3 && pPlayerInfos[playerid][dLogState] == SPAWNED)
 		{
 			return 1;
