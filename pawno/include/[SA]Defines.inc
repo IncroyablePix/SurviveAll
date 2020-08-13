@@ -26,75 +26,6 @@
 #undef MAX_PLAYERS
 #define MAX_PLAYERS                         (160)
 
-//---PLAYERSTATE---//
-#define UNLOGGED                            (0)
-#define UNSPAWNED                           (1)
-#define SPAWNED                            	(2)
-
-//---WEAPON SKILL---//
-#define WEAPON_SIMPLE                       (0)
-#define WEAPON_AKIMBO                       (1)
-
-//---THROW WEAPONS---//
-#define NO_THROW                            (0)
-#define THROW_GRENADE                       (1)
-#define THROW_MOLOTOV	                    (2)
-#define THROW_GAS                       	(3)
-
-//---RAISONS DÉGATS---//
-#define REASON_HEAL                         (55)
-#define REASON_HUNGER                       (56)
-#define REASON_THIRST                       (57)
-#define REASON_BLOODLOSS                    (58)
-
-//ATTACHED OBJECTS
-#define BAG_ID								(0)
-#define HAND_OBJECT_ID						(1)
-#define HAT_OBJECT_ID						(2)
-#define GLASSES_OBJECT_ID					(3)
-#define MASK_OBJECT_ID						(4)
-#define TORSO_OBJECT_ID						(5)
-#define GUN1_OBJECT_ID						(6)
-#define GUN2_OBJECT_ID						(7)
-#define GUN3_OBJECT_ID						(8)
-#define GUN4_OBJECT_ID						(9)
-
-//SACS À DOS
-#define PATROL_PACK                         (1)
-#define CZECH_VEST                          (2)
-#define ASSAULT_PACK                        (3)
-#define ALICE_PACK                          (4)
-#define COYOTE_PACK                         (5)
-
-//---COMPÉTENCES---//
-#define BUTCHER_ID                          (1)
-#define DOCTOR_ID                           (2)
-#define HEALTH_ID                           (3)
-#define CRAFTER_ID                          (4)
-#define TRANSPORTER_ID                      (5)
-#define FISHERMAN_ID                        (6)
-#define MECANIC_ID                          (7)
-#define FARMER_ID                           (8)
-#define ATHLETE_ID                          (9)
-#define SURVIVOR_ID                         (10)
-#define TANK_ID                         	(11)
-#define BOMBERMAN_ID                        (12)
-#define HYDRATATION_ID                      (13)
-
-#define BUTCHER                             (1)
-#define DOCTOR                              (2)
-#define HEALTH                              (2)
-#define CRAFTER                             (3)
-#define TRANSPORTER                         (1)
-#define FISHERMAN                           (2)
-#define MECANIC                             (1)
-#define FARMER                              (3)
-#define ATHLETE                             (1)
-#define SURVIVOR                         	(3)
-#define TANK                         		(1)
-#define BOMBERMAN                           (2)
-#define HYDRATATION                         (1)
-
 //---
 #define INVALID_FLOAT                       (Float:0xFFFFFFFF)
 #define INF_FLOAT                           (Float:0x7F800000)
@@ -102,8 +33,6 @@
 
 #define MAX_ZOMBIES                         (100)
 #define MAX_JOHNS                         	(10)
-
-
 
 //---MOBS---//
 #define MOB_BAMBIKING                       (51)
@@ -131,12 +60,6 @@
 #define LANGUAGE_PG                         (3)
 #define LANGUAGE_IT                         (4)
 #define LANGUAGE_DE                         (5)
-
-//---ADMINISTRATION
-#define PLAYER                              (0)
-#define MODERATOR                           (1)
-#define ADMINISTRATOR						(2)
-#define OWNER                           	(3)
 
 //---EXPLOSIONS---//
 /*#define EXPLOSION_TINY						(12)
@@ -304,73 +227,6 @@
 #define MISSION_THEIR_LAND_DRIVE_2          (1082)
 #define MISSION_THEIR_LAND_DRIVE_3          (1083)
 #define MISSION_THEIR_LAND_END              (1084)
-
-//DIALOGS
-#define DIALOG_LANGUAGE_FIRST				(0)
-#define DIALOG_REGISTER						(1)
-#define DIALOG_LOGIN						(2)
-#define DIALOG_CHOOSE_SKIN					(3)
-#define DIALOG_SPAWN						(4)
-#define DIALOG_MANAGE_ITEMS					(5)
-#define DIALOG_ITEMS_PICKUP					(6)
-#define DIALOG_SAFE_CREATION				(7)
-#define DIALOG_SAFE_OPENING					(8)
-#define DIALOG_GOLD_DROP					(9)
-#define DIALOG_DOOR_CREATION				(10)
-#define DIALOG_DOOR_OPENING					(11)
-#define DIALOG_ADMIN						(12)
-#define DIALOG_PLAYER_ADMIN					(13)
-#define DIALOG_SERVER_ADMIN					(14)
-#define DIALOG_PLAYER_PUNISHMENT			(15)
-#define DIALOG_WEATHER						(16)
-#define DIALOG_TIME							(17)
-#define DIALOG_BAN_UNBAN					(18)
-#define DIALOG_FS_RELOAD					(19)
-#define DIALOG_KICK							(20)
-#define DIALOG_BAN_LENGTH					(21)
-#define DIALOG_BAN_REASON					(22)
-#define DIALOG_FREEZE_LENGTH				(23)
-#define DIALOG_FREEZE_REASON				(24)
-#define DIALOG_MUTE_LENGTH					(25)
-#define DIALOG_MUTE_REASON					(26)
-#define DIALOG_RENAME						(27)
-#define DIALOG_TELEPORT						(28)
-#define DIALOG_TELEPORT_OTHERS				(29)
-#define DIALOG_ITEM_GIVE					(30)
-#define DIALOG_HELP							(31)
-#define DIALOG_CHANGE_SKIN					(32)
-#define DIALOG_DOCTOR						(33)
-#define DIALOG_SKILLS						(34)
-#define DIALOG_SKILLS_UPGRADE				(35)
-#define DIALOG_PICKUP_CONFIRM				(36)
-#define DIALOG_CHANGE_RANK					(37)
-#define DIALOG_GUNRACK						(38)
-#define DIALOG_GARAGE_CREATION				(39)
-#define DIALOG_GARAGE_OPEN					(40)
-#define DIALOG_MECHANICS					(41)
-#define DIALOG_DAY							(42)
-#define DIALOG_ARMOUR_REPAIR				(43)
-#define DIALOG_GROUP_CREATION				(44)
-#define DIALOG_GROUP_ADD					(45)
-#define DIALOG_GROUP_ACCEPT					(46)
-#define DIALOG_GROUP_MANAGE					(47)
-#define DIALOG_GROUP_NAME					(48)
-#define DIALOG_GROUP_LEADER					(49)
-#define DIALOG_GROUP_REMOVE					(50)
-#define DIALOG_KILL							(51)
-#define DIALOG_AUCTION_ADD					(52)
-#define DIALOG_ACTION_TIME					(53)
-#define DIALOG_WORKSHOP_ITEM				(54)
-#define DIALOG_BOARD_CREATION				(55)
-#define DIALOG_DOOR_CHANGE					(57)
-#define DIALOG_FRIDGE_TAKE					(58)
-#define DIALOG_OPTIONS						(59)
-#define DIALOG_STATS						(60)
-#define DIALOG_LANGUAGE_CHANGE				(61)
-#define DIALOG_PASS_CHANGE_CHECK			(62)
-#define DIALOG_PASS_CHANGE_NEW				(63)
-#define DIALOG_GIVE_GOLD					(64)
-#define DIALOG_GET_SEEDS					(65)
 
 //COULEURS
 #define BLANC 								(0xFFFFFFAA)

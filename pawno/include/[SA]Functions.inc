@@ -21,24 +21,16 @@
 #include <[SA]Defines.inc>
 #include <YSI\y_va>
 
-//---MACROS---//
-#define IsMultiple(%0,%1) 					(((%0)%(%1))==0)
-#define GetZAngleBetweenPos(%0,%1,%2,%3)    (atan2(%3 - %1, %2 - %0))
-#define Log	                        		printf
-#define GetName(%0)                         (sPlayerName[%0])
-#define IsValidPlayer(%0)					(MAX_PLAYERS > %0 >= 0)
-#define IsVehicleBicycle(%0)            	((GetVehicleModel(%0) == 481 || GetVehicleModel(%0) == 509 || GetVehicleModel(%0) == 510))
-#define CalculateBarSize(%0,%1)        		(floatdiv(%0, 100) * %1)
-#define IsPlayerInWater(%0)                 ((IsPlayerOnWater(%0) || IsPlayerUnderWater(%0)) && !IsPlayerInFixedZone(%0))
-
 //---PROTOTYPES
 forward Float:GetDistanceToPoint(playerid,Float:x1,Float:y1,Float:z1);
 forward Float:GetDistanceBetweenPoints(Float:x1,Float:y1,Float:z1,Float:x2,Float:y2,Float:z2);
 forward Float:GetDistanceBetweenPlayers(playerid,playerid2);
 forward CreateRemoteExplosionEx(playerid, Float:x, Float:y, Float:z, type, Float:size);
 
-//---VARIABLES---//
-new sPlayerName[MAX_PLAYERS][MAX_PLAYER_NAME + 1];//Nom du joueur
+//---MACROS
+#define IsMultiple(%0,%1) 					(((%0)%(%1))==0)
+#define GetZAngleBetweenPos(%0,%1,%2,%3)    (atan2(%3 - %1, %2 - %0))
+#define Log	                        		printf
 
 //---FONCTIONS
 stock swap(&xp, &yp)
@@ -489,88 +481,4 @@ stock GetWeaponClipSize(weaponid)
 		default: return -1;
 	}
 	return -1;
-}
-
-stock udb_hash(buf[])//Fonction de cryptage
-{
-	new length = strlen(buf);
-	new s1 = 1;
- 	new s2 = 0;
-	for(new n = 0; n < length; n ++)
-	{
-		s1 = (s1 + buf[n]) % 65521;
-		s2 = (s2 + s1)     % 65521;
- 	}
-	return (s2 << 16) + s1;
-}
-
-stock IsPlayerRunning(playerid)//Fonction pour voir si un mec est en train de courir
-{
-	new keys, ud, lr;
-	GetPlayerKeys(playerid, keys, ud, lr);
-	if(!IsPlayerInAnyVehicle(playerid) && !IsPlayerInWater(playerid) && keys & KEY_SPRINT) return true;
-	return false;
-}
-
-stock IsPlayerInFixedZone(playerid)
-{
-	new Float:fFixedZones[][] =
-    {
-        {-203.1050, 	-168.7209, 	235.3995, 	99.1079},
-        {233.5575, 		688.9946,	875.8406, 	1051.009}
-    };
-    for(new t = 0, w = sizeof(fFixedZones); t < w; t ++) if(IsPlayerInArea(playerid, fFixedZones[t][0], fFixedZones[t][1], fFixedZones[t][2], fFixedZones[t][3])) return true;
-	return false;
-}
-
-stock IsPlayerOnWater(playerid)
-{
-	new Float:x, Float:y, Float:z, Float:retx[2], Float:rety[2], Float:retz[2], Float: retdist[2], modelids[2];
-	GetPlayerPos(playerid, x, y, z);
-	new collisions = CA_RayCastMultiLine(x, y, z + 0.7, x, y, z - 0.7, retx, rety, retz, retdist, modelids, 2);
-	//---
-	if (collisions)
-	{
-		for(new i = 0; i < collisions; i++)
-		{
-			if (modelids[i] == 20000)
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-stock IsPlayerUnderWater(playerid)
-{
-	new Float:x, Float:y, Float:z, Float:retx[2], Float:rety[2], Float:retz[2], Float: retdist[2], modelids[2];
-	GetPlayerPos(playerid, x, y, z);
-	new collisions = CA_RayCastMultiLine(x, y, z + 0.7, x, y, z + 150.0, retx, rety, retz, retdist, modelids, 2);
-	//---
-	if (collisions)
-	{
-		for(new i = 0; i < collisions; i++)
-		{
-			if (modelids[i] == 20000)
-			{
-				return (true);
-			}
-		}
-	}
-	return false;
-}
-
-stock IsPositionUnderSomething(Float:x, Float:y, Float:z)
-{
-	new Float:fDump;
-	if(CA_RayCastLine(x, y, z, x, y, z + 500.0, fDump, fDump, fDump) == 0) return false;
-	else return true;
-}
-
-stock IsPointInWater(Float:x, Float:y, Float:z)
-{
-	new Float:fTrash;
-	new modelid = CA_RayCastLine(x, y, z + 1.0, x, y, z - 5.0, fTrash, fTrash, fTrash);
-	return (modelid == 20000);
 }
