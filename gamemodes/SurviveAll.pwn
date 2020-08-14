@@ -372,7 +372,6 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 
 #define FILE_SURVIVEALL                     //Pour dire aux defines dans quel fichier on est (Essaie de le changer hhhh)
 #define MYSQL_SYSTEM						// Pour mettre en place le chargement des données depuis mysql ou non
-#define SECURE_MEMORY_PLUGIN
 
 #include <a_samp.inc>
 //#include <PathFinder.inc>
@@ -1484,7 +1483,7 @@ new Text3D:pPlayerTag[MAX_PLAYERS] = {Text3D:INVALID_3DTEXT_ID, ...};//Nom du jo
 new dRepair[MAX_PLAYERS][4];
 new dVehicleInfos[MAX_SPAWN_VEHICLES][VehicleInfos];
 new dGasStation[19][GasStation];
-
+new LIST_init<gasStationsList>; 
 //STRUCTURES
 new dHouseBuild[MAX_PLAYERS];
 new dHouseID[MAX_PLAYERS];
@@ -5771,37 +5770,68 @@ UpdateRepairTimer(playerid)
 //---STATIONS ESSENCE
 IsPlayerNearGasStation(playerid)
 {
+	#if defined MYSQL_SYSTEM
+	new i = 0;
+	new Pointer: data_ptr;
+	LIST_foreach<my_iterator>(gasStationsList)
+	{
+		data_ptr = LIST_IT_data_ptr(my_iterator);
+		new gas[GasStation];
+		MEM::get_arr(data_ptr, _, gas);
+		if(IsPlayerInRangeOfPoint(playerid, 10.0, gas[xGas], gas[yGas], gas[zGas]))
+			return i;
+		i++;
+	}
+	#else
 	new Float:x, Float:y, Float:z;
 	for(new i = 0; i < 19; i ++)
 	{
 	    GetGasStationPos(i, x, y, z);
 		if(IsPlayerInRangeOfPoint(playerid, 10.0, x, y, z)) return i;
 	}
-	return -1;
+	#endif
+	return -1; // Retourne -1
 }
 
 public GetStationFuel(stationid)
 {
+	#if defined MYSQL_SYSTEM
+	new ListIt: node = GetNodeAt(gasStationsList, stationid);
+	new gas[GasStation];
+	MEM_get_arr(LIST_IT_data_ptr(node), _, gas);
+	return gas[dStationGas];
+	#else
 	return dGasStation[stationid][dStationGas];
+	#endif
 }
 
 public GiveStationFuel(stationid, fuel)//Pour donner de l'essence ou en enlever d'une station essence
 {
+	#if defined MYSQL_SYSTEM
+	new ListIt: node = GetNodeAt(gasStationsList, stationid);
+	new gas[GasStation];
+	MEM_get_arr(LIST_IT_data_ptr(node), _, gas);
+	if(gas[dStationGas] + fuel > 38000) gas[dStationGas] = 38000;//Si ça devient supérieur à 100, on lui met à 100
+	else if(gas[dStationGas] + fuel < 0) gas[dStationGas] = 0;//Si ça devient inférieur à 0, on lui met à 0
+    else gas[dStationGas] += fuel;//Sinon, on respecte la consigne originale
+	UpdateGasStationInfo(gas);
+	return gas[dStationGas];
+	#else
 	if(dGasStation[stationid][dStationGas] + fuel > 38000) dGasStation[stationid][dStationGas] = 38000;//Si ça devient supérieur à 100, on lui met à 100
 	else if(dGasStation[stationid][dStationGas] + fuel < 0) dGasStation[stationid][dStationGas] = 0;//Si ça devient inférieur à 0, on lui met à 0
     else dGasStation[stationid][dStationGas] += fuel;//Sinon, on respecte la consigne originale
 	UpdateGasStationInfo(stationid);
 	return dGasStation[stationid][dStationGas];
+	#endif
 }
 
-UpdateGasStationInfo(stationid)
+UpdateGasStationInfo(const gas[GasStation])
 {
 	new string[10];
-	format(string, sizeof(string), "%.2f l", floatdiv(dGasStation[stationid][dStationGas], 100));
-	UpdateDynamic3DTextLabelText(dGasStation[stationid][tGasText], KAKI, string);
+	format(string, sizeof(string), "%.2f l", floatdiv(gas[dStationGas], 100));
+	UpdateDynamic3DTextLabelText(gas[tGasText], KAKI, string);
 }
 #if defined MYSQL_SYSTEM
-new LIST_init<gasStationsList>; // Declares an empty linked list<gasStationsList>;
 
 public OnGasStationsLoaded()
 {
@@ -5824,10 +5854,11 @@ public OnGasStationsLoaded()
 }
 stock SaveGasStations()
 {
+	new Pointer: data_ptr;
 	LIST_foreach<my_iterator>(gasStationsList)
 	{
 		new string[256];
-		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
+		data_ptr = LIST_IT_data_ptr(my_iterator);
 		new gas[GasStation];
 		MEM_get_arr(data_ptr, _, gas);
 		mysql_format(mysqlPool, string, sizeof(string), "UPDATE gasstation SET quantite = %d WHERE idstation = %d", gas[dStationGas], gas[gasID]);
@@ -6663,14 +6694,12 @@ public OnGoldsLoaded()
 	new string[128];
 	for(new i = 0; i < cache_num_rows(); i++)
 	{
-		new gold[Or], Float:x, Float:y, Float:z, amount = 0;
+		new Float:x, Float:y, Float:z, amount = 0;
 		cache_get_value_name_int(i, "amount", amount);
-		cache_get_value_name_float(i, "xOr", x);
-		cache_get_value_name_float(i, "yOr", y);
-		cache_get_value_name_float(i, "zOr", z);
-		memcpy(gold, CreateGoldIngot(amount, x, y, z), 0, sizeof(gold));
-		cache_get_value_name_int(i, "idgold", gold[orID]);
-		LIST_push_back_arr(goldList, gold);
+		cache_get_value_name_float(i, "xgold", x);
+		cache_get_value_name_float(i, "ygold", y);
+		cache_get_value_name_float(i, "zgold", z);
+		CreateGoldIngot(amount, x, y, z);
 	}
 	format(string, sizeof(string), "[INIT] %d lingots d'or charges", cache_num_rows());
 	LogInfo(true, string);
@@ -6689,6 +6718,7 @@ stock CreateGoldIngot(amount, Float:x, Float:y, Float:z)
 		gold[oOr] = CreateDynamicObject(19941, x, y, z - 1.0, 0.0, 0.0, floatrand(0.0, 360.0), -1, -1, -1, 25.0, 20.0);
 		format(string, sizeof(string), "%.1f g", floatdiv(amount, 10));
 	    gold[OrText] = CreateDynamic3DTextLabel(string, 0xFFD700FF, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
+		LIST_push_back_arr(goldList, gold);
 	}
 	return gold;
 }
@@ -6701,7 +6731,8 @@ stock SaveGold()
 		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
 		new gold[Or];
 		MEM_get_arr(data_ptr, _, gold);
-		mysql_format(mysqlPool, string, sizeof(string), "%s%c('', %d, %f, %f, %f)", string, strlen(string) ? ',' : ' ', gold[dOrAmount], gold[xOr], gold[yOr], gold[zOr]);
+		printf("---> [OR] %d g d'or saved", gold[dOrAmount]);
+		mysql_format(mysqlPool, string, sizeof(string), "%s%s('', %d, %f, %f, %f)", string, strlen(string) ? "," : " ", gold[dOrAmount], gold[xOr], gold[yOr], gold[zOr]);
 	}
 	mysql_format(mysqlPool, string, sizeof(string), "INSERT INTO gold VALUES%s", string);
 	mysql_query(mysqlPool, string);
@@ -14532,6 +14563,7 @@ IsPlayerNearItem(playerid)
 CheckItemsRoundPlayer(playerid)
 {
 	new Float:x, Float:y, Float:z;
+	new ListIt: nodeFound;
 	GetPlayerPos(playerid, x, y, z);
 	new Float:fTrash;
 	//---OBJETS
@@ -14623,6 +14655,7 @@ CheckItemsRoundPlayer(playerid)
 		new gold[Or];
 		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
 		MEM_get_arr(data_ptr, _, gold);
+		printf("[ID %d] %d g d'or", idx, gold[dOrAmount]);
 		if(dSlot == 9) break;
 		if(gold[dOrAmount] == 0) continue;
 		if(IsPlayerInRangeOfPoint(playerid, 3.0, gold[xOr], gold[yOr], gold[zOr]))
@@ -14631,6 +14664,7 @@ CheckItemsRoundPlayer(playerid)
 		    pAroundItems[playerid][dSlot][0] = idx;
 		    pAroundItems[playerid][dSlot][1] = 6;
 			dSlot ++;
+			nodeFound = my_iterator;
 		}
 		idx++;
 	}
@@ -14892,9 +14926,11 @@ CheckItemsRoundPlayer(playerid)
 	    }
 	    else if(pAroundItems[playerid][0][1] == 6)//Si cet objet est de l'or
 	    {
+			new gold[Or];
+			MEM_get_arr(LIST_IT_data_ptr(nodeFound), _, gold);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(dOr[pAroundItems[playerid][0][0]][dOrAmount], 10));
-		    GivePlayerGold(playerid, dOr[pAroundItems[playerid][0][0]][dOrAmount]);
+		    GivePlayerGold(playerid, gold[dOrAmount]);
         	DestroyGold(pAroundItems[playerid][0][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 7)//Si cet objet est un broyeur
@@ -19617,9 +19653,7 @@ public OnGameModeInit()
 	//--- MYSQL DATABASE CONNECTION ---//
 	#if defined MYSQL_SYSTEM
 	mysql_log(ALL);
-	new MySQLOpt:options = mysql_init_options();
- 	mysql_set_option(options, POOL_SIZE, 0); //disable connection pool (and thus mysql_pquery)
-	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB, options);	
+	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB);	
 	if(mysqlPool == MYSQL_INVALID_HANDLE) 
 	{
 		LogInfo(true, "[MYSQL] Unable to connect to MYSQL Database"); 
