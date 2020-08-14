@@ -372,6 +372,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 
 #define FILE_SURVIVEALL                     //Pour dire aux defines dans quel fichier on est (Essaie de le changer hhhh)
 #define MYSQL_SYSTEM						// Pour mettre en place le chargement des données depuis mysql ou non
+#define SECURE_MEMORY_PLUGIN
 
 #include <a_samp.inc>
 //#include <PathFinder.inc>
@@ -418,7 +419,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 //#define ZOMBIE_SPECIAL_WALK                 //Les zombies marchent comme bourrés
 #define MAX_Z_PATH_COLS                     (15)//Le nombre maximum de points de collision pour la recherche d'un point
 //#define UNLAG_JASON
-#define LOAD_DYNAMICS                       //Commenter = Ne pas charger ni sauvegarder les objets dynamiques (Maison, etc.) - À n'utiliser que pour le lancement rapide du serveur (Test)
+//#define LOAD_DYNAMICS                       //Commenter = Ne pas charger ni sauvegarder les objets dynamiques (Maison, etc.) - À n'utiliser que pour le lancement rapide du serveur (Test)
 #define VEHICLE_DISEASE
 
 //DATABASE MYSQL
@@ -664,7 +665,9 @@ new MySQL:mysqlPool;
 
 //---FORWARDS---//
 #if defined MYSQL_SYSTEM
-//forward OnGasStationsLoaded();
+forward OnEnvironmentLoaded();
+forward OnGasStationsLoaded();
+forward OnGoldsLoaded();
 #endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
@@ -1023,7 +1026,8 @@ enum Or
 	Text3D:OrText,
 	Float:xOr,
 	Float:yOr,
-	Float:zOr
+	Float:zOr,
+	orID
 }
 
 enum SafeInfos
@@ -1768,6 +1772,21 @@ new dCheatersBusted = 0;
 
 //---ENVIRONNEMENT
 #if defined MYSQL_SYSTEM
+public 	OnEnvironmentLoaded()
+{
+	if(cache_num_rows() == 1)
+	{
+		cache_get_value_name_int(0, "hours", dEnvironment[dHours]);
+		cache_get_value_name_int(0, "minutes", dEnvironment[dMins]);
+		cache_get_value_name_int(0, "daytime", dEnvironment[dDay]);
+		cache_get_value_name_int(0, "weather", dEnvironment[dMeteo]);
+		cache_get_value_name_int(0, "timeweather", dEnvironment[dMeteoTime]);
+		cache_get_value_name_int(0, "cheatersbusted", dCheatersBusted);
+		LogInfo(true, "[INIT] Infos generales d'environnements chargees !");
+	}
+	else
+		LogInfo(true, "[MYSQL - ERROR] Erreur de chargement des informations generales (%d rows retrieved)", cache_num_rows());
+}
 stock SaveGeneralInfos()
 {
 	new string[512];
@@ -2009,6 +2028,7 @@ GivePlayerExtraGold(playerid)
 
 public LoadPlayerExtraGold(playerid)
 {
+	/*
     new dGoldToGive, rows, fields;
     //cache_get_data(rows, fields, MySQL);
 	if(rows)
@@ -2021,7 +2041,7 @@ public LoadPlayerExtraGold(playerid)
 		    //dGoldToGive = result;
 		}
 	}
-	return dGoldToGive;
+	return dGoldToGive;*/
 }
 
 /*public LoadPlayerExtraGold(playerid)
@@ -5783,11 +5803,9 @@ UpdateGasStationInfo(stationid)
 #if defined MYSQL_SYSTEM
 new LIST_init<gasStationsList>; // Declares an empty linked list<gasStationsList>;
 
-stock LoadGasStations(Cache: result)
+public OnGasStationsLoaded()
 {
-	cache_set_active(result);
 	new string[128];
-	printf("Résultats : %d", cache_num_rows());
 	for(new i = 0; i < cache_num_rows(); i++)
 	{
 		new gas[GasStation];
@@ -5802,14 +5820,21 @@ stock LoadGasStations(Cache: result)
 	}
 	format(string, sizeof(string), "[INIT] %d stations services chargees", cache_num_rows());
 	LogInfo(true, string);
-	cache_delete(result);
 	return 1;
 }
 stock SaveGasStations()
 {
-	
+	LIST_foreach<my_iterator>(gasStationsList)
+	{
+		new string[256];
+		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
+		new gas[GasStation];
+		MEM_get_arr(data_ptr, _, gas);
+		mysql_format(mysqlPool, string, sizeof(string), "UPDATE gasstation SET quantite = %d WHERE idstation = %d", gas[dStationGas], gas[gasID]);
+		mysql_query(mysqlPool, string);
+	}
 }
-/*#else
+#else
 public LoadGasStations_data(name[],value[])
 {
 	new string[50];
@@ -5832,7 +5857,7 @@ SaveGasStations()
 		INI_WriteInt(File,string, dGasStation[i][dStationGas]);
 	}
 	INI_Close(File);
-}*/
+}
 #endif
 //DÉCLARATIONS DE FONCTIONS
 GivePlayerHandObject(playerid, objectid)//Fonction pour give un objet à un mec dans son main
@@ -6631,6 +6656,66 @@ UpdatePlayerInventorySlots(playerid)
 }
 
 //---OR
+#if defined MYSQL_SYSTEM
+new LIST_init<goldList>;
+public OnGoldsLoaded()
+{
+	new string[128];
+	for(new i = 0; i < cache_num_rows(); i++)
+	{
+		new gold[Or], Float:x, Float:y, Float:z, amount = 0;
+		cache_get_value_name_int(i, "amount", amount);
+		cache_get_value_name_float(i, "xOr", x);
+		cache_get_value_name_float(i, "yOr", y);
+		cache_get_value_name_float(i, "zOr", z);
+		memcpy(gold, CreateGoldIngot(amount, x, y, z), 0, sizeof(gold));
+		cache_get_value_name_int(i, "idgold", gold[orID]);
+		LIST_push_back_arr(goldList, gold);
+	}
+	format(string, sizeof(string), "[INIT] %d lingots d'or charges", cache_num_rows());
+	LogInfo(true, string);
+	return 1;
+}
+stock CreateGoldIngot(amount, Float:x, Float:y, Float:z)
+{
+	new gold[Or];
+	if(amount != 0)
+	{
+		new string[16];
+		gold[dOrAmount] = amount;
+		gold[xOr] = x;
+		gold[yOr] = y;
+		gold[zOr] = z;
+		gold[oOr] = CreateDynamicObject(19941, x, y, z - 1.0, 0.0, 0.0, floatrand(0.0, 360.0), -1, -1, -1, 25.0, 20.0);
+		format(string, sizeof(string), "%.1f g", floatdiv(amount, 10));
+	    gold[OrText] = CreateDynamic3DTextLabel(string, 0xFFD700FF, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
+	}
+	return gold;
+}
+stock SaveGold()
+{
+	new string[1024];
+	mysql_query(mysqlPool, "TRUNCATE TABLE gold");
+	LIST_foreach<my_iterator>(goldList)
+	{
+		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
+		new gold[Or];
+		MEM_get_arr(data_ptr, _, gold);
+		mysql_format(mysqlPool, string, sizeof(string), "%s%c('', %d, %f, %f, %f)", string, strlen(string) ? ',' : ' ', gold[dOrAmount], gold[xOr], gold[yOr], gold[zOr]);
+	}
+	mysql_format(mysqlPool, string, sizeof(string), "INSERT INTO gold VALUES%s", string);
+	mysql_query(mysqlPool, string);
+}
+stock DestroyGold(index)
+{	
+	new ListIt: node = GetNodeAt(goldList, index);
+	new gold[Or];
+	MEM_get_arr(LIST_IT_data_ptr(node), _, gold);
+	DestroyDynamicObject(gold[oOr]);
+	DestroyDynamic3DTextLabel(gold[OrText]);
+	LIST_erase(goldList, node);
+}
+#else
 public LoadGold_data(name[],value[])
 {
 	new string[50];
@@ -6669,6 +6754,7 @@ SaveGold()
 
 CreateGoldIngot(amount, Float:x, Float:y, Float:z, load = -1)
 {
+
 	static slotid;
 	if(amount != 0)
 	{
@@ -6700,8 +6786,20 @@ CreateGoldIngot(amount, Float:x, Float:y, Float:z, load = -1)
 	slotid ++;
 	if(slotid == MAX_GOLD_INGOTS) slotid = 0;
     return (slotid == 0) ? MAX_GOLD_INGOTS : slotid - 1;
+	
 }
-
+DestroyGold(goldid)
+{
+	DestroyDynamicObject(dOr[goldid][oOr]);
+	dOr[goldid][oOr] = INVALID_OBJECT_ID;
+	dOr[goldid][dOrAmount] = 0;
+	dOr[goldid][xOr] = 0.0;
+	dOr[goldid][yOr] = 0.0;
+	dOr[goldid][zOr] = 0.0;
+	DestroyDynamic3DTextLabel(dOr[goldid][OrText]);
+	dOr[goldid][OrText] = Text3D:INVALID_3DTEXT_ID;
+}
+#endif
 PlayerDropGold(playerid, amount, Float:distance)//Fonction pour faire qu'un lingot soit drop par un joueur
 {
 	if(!FCNPC_IsValid(playerid)) ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);//La seule fois où un NPC peut drop, c'est quand il meurt, donc on ne met l'animation que si c'est un joueur vivant
@@ -6723,24 +6821,15 @@ PlayerDropGold(playerid, amount, Float:distance)//Fonction pour faire qu'un ling
 	}
 	//---
 	CA_RayCastLine(x, y, z, x, y, z - 500.0, x2, y2, z2);//On regarde où est le sol à partir de la nouvelle position
-	new dSlotID = CreateGoldIngot(amount, x2, y2, z2 + 1.0, -1);//On crée le lingot, là, au sol
+	new gold[Or];
+	memcpy(gold, CreateGoldIngot(amount, x2, y2, z2 + 1.0), 0, sizeof(gold));//On crée le lingot, là, au sol
 	Streamer_Update(playerid);//On actualise le streamer pour que l'objet soit vu en train de tomber
 	//---
-	SetDynamicObjectPos(dOr[dSlotID][oOr], x, y, z);//On remonte l'objet à hauteur du joueur
-	MoveDynamicObject(dOr[dSlotID][oOr], x2, y2, z2, 10.0);//Et on le fait tomber vers le sol
+	SetDynamicObjectPos(gold[oOr], x, y, z);//On remonte l'objet à hauteur du joueur
+	MoveDynamicObject(gold[oOr], x2, y2, z2, 10.0);//Et on le fait tomber vers le sol
 }
 
-DestroyGold(goldid)
-{
-	DestroyDynamicObject(dOr[goldid][oOr]);
-	dOr[goldid][oOr] = INVALID_OBJECT_ID;
-	dOr[goldid][dOrAmount] = 0;
-	dOr[goldid][xOr] = 0.0;
-	dOr[goldid][yOr] = 0.0;
-	dOr[goldid][zOr] = 0.0;
-	DestroyDynamic3DTextLabel(dOr[goldid][OrText]);
-	dOr[goldid][OrText] = Text3D:INVALID_3DTEXT_ID;
-}
+
 //---MÉCANICIEN
 IsPlayerNearMechanic(playerid)
 {
@@ -10673,7 +10762,26 @@ GetClosestPlayerToObjectArea(objectid)
 	}
 	return INVALID_PLAYER_ID;
 }
-
+public OnQueryError(errorid, const error[], const callback[], const query[], MySQL:handle)
+{
+	switch(errorid)
+	{
+		case CR_SERVER_GONE_ERROR:
+		{
+			printf("[MYSQL] Connection to database was interrupted, trying to reconnect...");
+		}
+		case ER_SYNTAX_ERROR:
+		{
+			printf("[MYSQL] Syntax error in SQL Query : `%s` (in %s)",query, callback);
+		}
+		default:
+		{
+			printf("[MYSQL] An error has occurred with a query");
+			printf("|--- Error : %s\n|--- Query : %s\n|-- Callback : %s ", error, query, callback);
+		}
+	}
+	return 1;
+}
 public OnPlayerShootUFO(playerid, ufoid)
 {
 	#pragma unused ufoid
@@ -14508,6 +14616,25 @@ CheckItemsRoundPlayer(playerid)
 		}
 	}
 	//---LINGOTS D'OR
+	#if defined MYSQL_SYSTEM
+	LIST_foreach<my_iterator>(goldList)
+	{
+		static idx = 0;
+		new gold[Or];
+		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
+		MEM_get_arr(data_ptr, _, gold);
+		if(dSlot == 9) break;
+		if(gold[dOrAmount] == 0) continue;
+		if(IsPlayerInRangeOfPoint(playerid, 3.0, gold[xOr], gold[yOr], gold[zOr]))
+		{
+			if(CA_RayCastLine(x, y, z, gold[xOr], gold[yOr], gold[zOr], fTrash, fTrash, fTrash) != 0) continue;
+		    pAroundItems[playerid][dSlot][0] = idx;
+		    pAroundItems[playerid][dSlot][1] = 6;
+			dSlot ++;
+		}
+		idx++;
+	}
+	#else
 	for(new i = 0; i < MAX_GOLD_INGOTS; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -14520,6 +14647,7 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---BROYEURS
 	for(new i = 0; i < MAX_SHREDDERS; i ++)
 	{
@@ -19488,8 +19616,10 @@ public OnGameModeInit()
 	zBlackZone = GangZoneCreate(-4500.0, -4500.0, 4500.0, 4500.0);
 	//--- MYSQL DATABASE CONNECTION ---//
 	#if defined MYSQL_SYSTEM
-	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB);	
 	mysql_log(ALL);
+	new MySQLOpt:options = mysql_init_options();
+ 	mysql_set_option(options, POOL_SIZE, 0); //disable connection pool (and thus mysql_pquery)
+	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB, options);	
 	if(mysqlPool == MYSQL_INVALID_HANDLE) 
 	{
 		LogInfo(true, "[MYSQL] Unable to connect to MYSQL Database"); 
@@ -19499,20 +19629,7 @@ public OnGameModeInit()
 	#endif
 	//---CHARGEMENT MÉTEO & TEMPS---//
 	#if defined MYSQL_SYSTEM
-	new Cache: result = mysql_query(mysqlPool, "SELECT * FROM Environment");
-	if(cache_num_rows() == 1)
-	{
-		cache_get_value_name_int(0, "hours", dEnvironment[dHours]);
-		cache_get_value_name_int(0, "minutes", dEnvironment[dMins]);
-		cache_get_value_name_int(0, "daytime", dEnvironment[dDay]);
-		cache_get_value_name_int(0, "weather", dEnvironment[dMeteo]);
-		cache_get_value_name_int(0, "timeweather", dEnvironment[dMeteoTime]);
-		cache_get_value_name_int(0, "cheatersbusted", dCheatersBusted);
-		LogInfo(true, "[INIT] Infos generales d'environnements chargees !");
-	}
-	else
-		LogInfo(true, "[MYSQL - ERROR] Erreur de chargement des informations generales (%d rows retrieved)", cache_num_rows());
-	cache_delete(result);
+	mysql_tquery(mysqlPool, "SELECT * FROM `environment`", "OnEnvironmentLoaded");
 	#else
 	dEnvironment[dMeteoTime] = 1;
 	if(!fexist(GPATH))
@@ -19551,7 +19668,7 @@ public OnGameModeInit()
 	//---STATIONS SERVICE
 	//---------------------//
 	#if defined MYSQL_SYSTEM
-	LoadGasStations(mysql_query(mysqlPool, "SELECT * FROM gasstation"));
+	mysql_tquery(mysqlPool, "SELECT * FROM `gasstation`", "OnGasStationsLoaded");
 	#else
 	//INITIALISATION
 	for(new i = 0; i < 19; i ++) dGasStation[i][tGasText] = Text3D:INVALID_3DTEXT_ID;
@@ -19571,6 +19688,9 @@ public OnGameModeInit()
 	//---------------------//
 	//---LINGOTS D'OR
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `gold`", "OnGoldsLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	//CHARGEMENT
@@ -19587,6 +19707,7 @@ public OnGameModeInit()
 	}
 	for(new i = dLastLoaded + 1; i < MAX_GOLD_INGOTS; i ++) dOr[i][dOrAmount] = 0;
     LogInfo(true, "[INIT]Lingots d'or charges");
+	#endif
 	//---------------------//
 	//---FAUTEUILS
 	//---------------------//
@@ -19991,7 +20112,7 @@ public OnGameModeInit()
 		dLastLoaded = i;
 	}
 	for(new i = dLastLoaded + 1; i < MAX_GROUND_ITEMS; i ++) dItems[i][ItemID] = 0;
-	SendRconCommand("loadfs [SA]ObjectSpawner");
+	//SendRconCommand("loadfs [SA]ObjectSpawner");
     LogInfo(true, "[INIT]Objets charges");
 	//---------------------//
     //---ARMES
@@ -20170,7 +20291,13 @@ public OnGameModeExit()
  	Profiler_Stop();
 	#endif
 	#if defined MYSQL_SYSTEM
+	SaveGeneralInfos();
+	SaveGasStations();
+	SaveGold();
 	mysql_close(mysqlPool);
+	LIST_clear(gasStationsList);
+	LIST_clear(goldList);
+	
 	#endif
 	return 1;
 }
