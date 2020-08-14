@@ -58,18 +58,18 @@ stock TimePassedSince(tick)
 	return gettime() - tick;
 }
 
-stock SetVehicleEngineState(vehicleid, bool:on)//Pour allumer ou éteindre le véhicule
+stock SetVehicleEngineState(vehicleid, bool:on)//Pour allumer ou ï¿½teindre le vï¿½hicule
 {
 	new engine, lights, alarm, doors, bonnet, boot, objective;
 	GetVehicleParamsEx(vehicleid, engine, lights, alarm, doors, bonnet, boot, objective);
 	SetVehicleParamsEx(vehicleid, on, lights, alarm, doors, bonnet, boot, objective);
 }
 
-stock IsEngineOn(vehicleid)//On regarde si le moteur d'un véhicule est allumé
+stock IsEngineOn(vehicleid)//On regarde si le moteur d'un vï¿½hicule est allumï¿½
 {
 	new engine, other;
 	if(!IsValidVehicle(vehicleid)) return 0;
-	GetVehicleParamsEx(vehicleid, engine, other, other, other, other, other, other);//On récupère la variable de tous les états parce qu'on a pas trop trop le choix, mais on garde que 'engine'
+	GetVehicleParamsEx(vehicleid, engine, other, other, other, other, other, other);//On rï¿½cupï¿½re la variable de tous les ï¿½tats parce qu'on a pas trop trop le choix, mais on garde que 'engine'
 	return engine;
 }
 
@@ -84,7 +84,7 @@ stock Float:GetDistanceToPoint(playerid,Float:x1,Float:y1,Float:z1)//Fonction po
 	return INF_FLOAT;
 }
 
-stock Float:GetDistanceBetweenPoints(Float:x1,Float:y1,Float:z1,Float:x2,Float:y2,Float:z2)//Fonction pour récupérer la taille du vecteur entre deux points
+stock Float:GetDistanceBetweenPoints(Float:x1,Float:y1,Float:z1,Float:x2,Float:y2,Float:z2)//Fonction pour rï¿½cupï¿½rer la taille du vecteur entre deux points
 {
 	new Float:answer;
 	answer = floatadd(floatadd(floatsqroot(floatpower(floatsub(x1,x2),2)),floatsqroot(floatpower(floatsub(y1,y2),2))),floatsqroot(floatpower(floatsub(z1,z2),2)));
@@ -130,8 +130,7 @@ stock GetGasStationPos(stationid, &Float:x, &Float:y, &Float:z)
 	y = fGasPos[stationid][1];
 	z = fGasPos[stationid][2];
 }
-
-stock GetXYInFrontOfPoint(&Float:x, &Float:y, Float:a, Float:distance)//Pour déterminer trigonométriquement la position sur les axes X & Y d'une position en fonction de ses angles
+stock GetXYInFrontOfPoint(&Float:x, &Float:y, Float:a, Float:distance)//Pour dï¿½terminer trigonomï¿½triquement la position sur les axes X & Y d'une position en fonction de ses angles
 {
 	x += (distance * floatsin(-a, degrees));
 	y += (distance * floatcos(-a, degrees));

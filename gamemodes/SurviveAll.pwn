@@ -371,12 +371,13 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 */
 
 #define FILE_SURVIVEALL                     //Pour dire aux defines dans quel fichier on est (Essaie de le changer hhhh)
-
+#define MYSQL_SYSTEM						// Pour mettre en place le chargement des données depuis mysql ou non
 
 #include <a_samp.inc>
 //#include <PathFinder.inc>
 //#include <mapandreas.inc>
 //#include <rnpc>
+#include <list> 							// À inclure en premier, sinon on se tappe des erreurs
 #include <FCNPC>
 #include <streamer>
 #include <colandreas>
@@ -385,7 +386,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #include <FloodControl.inc>
 #include <crashdetect.inc>
 #include <easybmp.inc>
-//#include <a_mysql.inc>
+#include <a_mysql.inc>
 #include <[SA]Defines.inc>
 #include <[SA]Functions.inc>
 #if defined PROFILING
@@ -421,10 +422,12 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #define VEHICLE_DISEASE
 
 //DATABASE MYSQL
-#define SQL_HOST                            "c4nn4.com.mysql:3306"
+/*#define SQL_HOST                            "c4nn4.com.mysql:3306"
 #define SQL_USER                            "c4nn4_com"
 #define SQL_PASS                            "105805"
 #define SQL_DB                              "c4nn4_com"
+*/
+new MySQL:mysqlPool;
 
 //---ADMINISTRATION
 #define PLAYER                              (0)
@@ -660,6 +663,9 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #define IsPlayerOnSpectate(%0)              (pAdminInfos[%0][dSpec] != INVALID_PLAYER_ID)
 
 //---FORWARDS---//
+#if defined MYSQL_SYSTEM
+//forward OnGasStationsLoaded();
+#endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
 forward LoadGasStations_data(name[], value[]);
@@ -1004,9 +1010,12 @@ enum VehicleInfos
 enum GasStation
 {
 	Text3D:tGasText,
-	dStationGas
-}
-
+	dStationGas,
+	Float:xGas,
+	Float:yGas,
+	Float:zGas,
+	gasID
+};
 enum Or
 {
 	dOrAmount,
@@ -1754,11 +1763,24 @@ new const bool:bLangue[] = {true, true, false, false, false, false};//Disponibil
 new sDownloadServer[] = "http://www.c4nn4.com/samp/models";
 new pAdminInfos[MAX_PLAYERS][Admin];//Administration
 new bool:bKick[MAX_PLAYERS];
-new MySQL;
 new dMaxPlayers = -1;
 new dCheatersBusted = 0;
 
 //---ENVIRONNEMENT
+#if defined MYSQL_SYSTEM
+stock SaveGeneralInfos()
+{
+	new string[512];
+	mysql_format(mysqlPool, string, sizeof(string), "UPDATE environment SET \
+		hours = %d,\
+		minutes = %d,\
+		daytime = %d,\
+		weather = %d,\
+		timeweather = %d,\
+		cheatersbusted = %d", dEnvironment[dHours], dEnvironment[dMins], dEnvironment[dDay], dEnvironment[dMeteo], dEnvironment[dMeteoTime], dCheatersBusted);
+	mysql_query(mysqlPool, string, false);
+}
+#else
 public LoadGeneral_data(name[],value[])
 {
 	INI_Int("Heures", dEnvironment[dHours]);
@@ -1783,7 +1805,7 @@ SaveGeneralInfos()
 	INI_WriteInt(File,"CheatersBusted", dCheatersBusted);
     INI_Close(File);
 }
-
+#endif
 ChangeWeather(weather, time)
 {
 	new dMeteos[] = {1, 8, 5, 9, 10, 17};
@@ -5758,7 +5780,36 @@ UpdateGasStationInfo(stationid)
 	format(string, sizeof(string), "%.2f l", floatdiv(dGasStation[stationid][dStationGas], 100));
 	UpdateDynamic3DTextLabelText(dGasStation[stationid][tGasText], KAKI, string);
 }
+#if defined MYSQL_SYSTEM
+new LIST_init<gasStationsList>; // Declares an empty linked list<gasStationsList>;
 
+stock LoadGasStations(Cache: result)
+{
+	cache_set_active(result);
+	new string[128];
+	printf("Résultats : %d", cache_num_rows());
+	for(new i = 0; i < cache_num_rows(); i++)
+	{
+		new gas[GasStation];
+		cache_get_value_name_int(i, "idstation", gas[gasID]);
+		cache_get_value_name_int(i, "quantite", gas[dStationGas]);
+		cache_get_value_name_float(i, "xstation", gas[xGas]);
+		cache_get_value_name_float(i, "ystation", gas[yGas]);
+		cache_get_value_name_float(i, "zstation", gas[zGas]);
+		format(string, sizeof(string), "%d l", gas[dStationGas]);
+		gas[tGasText] = CreateDynamic3DTextLabel(string, KAKI, gas[xGas], gas[yGas], gas[zGas], 40.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 1, -1, -1, -1, 50.0);
+		LIST_push_back_arr(gasStationsList, gas);
+	}
+	format(string, sizeof(string), "[INIT] %d stations services chargees", cache_num_rows());
+	LogInfo(true, string);
+	cache_delete(result);
+	return 1;
+}
+stock SaveGasStations()
+{
+	
+}
+/*#else
 public LoadGasStations_data(name[],value[])
 {
 	new string[50];
@@ -5781,8 +5832,8 @@ SaveGasStations()
 		INI_WriteInt(File,string, dGasStation[i][dStationGas]);
 	}
 	INI_Close(File);
-}
-
+}*/
+#endif
 //DÉCLARATIONS DE FONCTIONS
 GivePlayerHandObject(playerid, objectid)//Fonction pour give un objet à un mec dans son main
 {
@@ -19397,11 +19448,6 @@ public OnPlayerRequestDownload(playerid, type, crc)
 
 public OnGameModeInit()
 {
-	//MySQL = mysql_connect(SQL_HOST, SQL_USER, SQL_PASS, SQL_DB);
-	//if(MySQL == MYSQL_INVALID_HANDLE) printf("MySQL CONNECTION ERROR");
-	//else printf("MySQL CONNECTION SUCCESS");
-	if(MySQL == 0) printf("MySQL CONNECTION ERROR");
-	else printf("MySQL CONNECTION SUCCESS");
 	//---RNPC UPDATE RATE---//
 	//RNPC_SetUpdateRate(180);
 	//---CHARGEMENT BITMAP---//
@@ -19440,7 +19486,34 @@ public OnGameModeInit()
 	CreateBloodScreen();
 	//---BLACKZONE---//
 	zBlackZone = GangZoneCreate(-4500.0, -4500.0, 4500.0, 4500.0);
+	//--- MYSQL DATABASE CONNECTION ---//
+	#if defined MYSQL_SYSTEM
+	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB);	
+	mysql_log(ALL);
+	if(mysqlPool == MYSQL_INVALID_HANDLE) 
+	{
+		LogInfo(true, "[MYSQL] Unable to connect to MYSQL Database"); 
+		return 0;
+	}
+	LogInfo(true, "[MYSQL] Connected to MYSQL Database !");
+	#endif
 	//---CHARGEMENT MÉTEO & TEMPS---//
+	#if defined MYSQL_SYSTEM
+	new Cache: result = mysql_query(mysqlPool, "SELECT * FROM Environment");
+	if(cache_num_rows() == 1)
+	{
+		cache_get_value_name_int(0, "hours", dEnvironment[dHours]);
+		cache_get_value_name_int(0, "minutes", dEnvironment[dMins]);
+		cache_get_value_name_int(0, "daytime", dEnvironment[dDay]);
+		cache_get_value_name_int(0, "weather", dEnvironment[dMeteo]);
+		cache_get_value_name_int(0, "timeweather", dEnvironment[dMeteoTime]);
+		cache_get_value_name_int(0, "cheatersbusted", dCheatersBusted);
+		LogInfo(true, "[INIT] Infos generales d'environnements chargees !");
+	}
+	else
+		LogInfo(true, "[MYSQL - ERROR] Erreur de chargement des informations generales (%d rows retrieved)", cache_num_rows());
+	cache_delete(result);
+	#else
 	dEnvironment[dMeteoTime] = 1;
 	if(!fexist(GPATH))
 	{
@@ -19455,9 +19528,10 @@ public OnGameModeInit()
 		INI_ParseFile(GPATH, "LoadGeneral_data");
 		#endif
 	}
+
+	#endif		
     SetWorldTime(dEnvironment[dHours]);
     ChangeWeather(dEnvironment[dMeteo], dEnvironment[dMeteoTime]);
-    LogInfo(true, "[INIT]Informations generales chargees");
 	//---GAMEMODE---//
 	ChangeHostName();
 	SetGameModeText(VERSION);
@@ -19476,6 +19550,9 @@ public OnGameModeInit()
 	//---------------------//
 	//---STATIONS SERVICE
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	LoadGasStations(mysql_query(mysqlPool, "SELECT * FROM gasstation"));
+	#else
 	//INITIALISATION
 	for(new i = 0; i < 19; i ++) dGasStation[i][tGasText] = Text3D:INVALID_3DTEXT_ID;
 	//CHARGEMENT
@@ -19489,7 +19566,8 @@ public OnGameModeInit()
 	    dGasStation[i][tGasText] = CreateDynamic3DTextLabel("0 l", KAKI, x, y, z, 40.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 1, -1, -1, -1, 50.0);
 	    UpdateGasStationInfo(i);
 	}
-    LogInfo(true, "[INIT]Stations services chargees");
+	LogInfo(true, "[INIT]Stations services chargees");
+	#endif
 	//---------------------//
 	//---LINGOTS D'OR
 	//---------------------//
@@ -20090,6 +20168,9 @@ public OnGameModeExit()
 	SendRconCommand("unloadfs [SA]Shops");
 	#if defined PROFILING
  	Profiler_Stop();
+	#endif
+	#if defined MYSQL_SYSTEM
+	mysql_close(mysqlPool);
 	#endif
 	return 1;
 }
