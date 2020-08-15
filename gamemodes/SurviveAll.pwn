@@ -1835,6 +1835,8 @@ ChangeWeather(weather, time)
 	new dMeteos[] = {1, 8, 5, 9, 10, 17};
 	SetWeather(dMeteos[weather]);
     dEnvironment[dMeteo] = weather;
+	if(time <= 0)
+		time = 1;
     dEnvironment[dMeteoTime] = time;
 }
 
@@ -6723,10 +6725,20 @@ stock CreateGoldIngot(amount, Float:x, Float:y, Float:z, id = -1)
 		gold[xOr] = x;
 		gold[yOr] = y;
 		gold[zOr] = z;
-		gold[orID] = id;
+		
 		gold[oOr] = CreateDynamicObject(19941, x, y, z - 1.0, 0.0, 0.0, floatrand(0.0, 360.0), -1, -1, -1, 25.0, 20.0);
 		format(string, sizeof(string), "%.1f g", floatdiv(amount, 10));
 	    gold[OrText] = CreateDynamic3DTextLabel(string, 0xFFD700FF, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
+		gold[orID] = id;
+		if(id == -1)
+		{
+			new query[512], Cache: result;
+			mysql_format(mysqlPool, query, sizeof(query), "CALL `insertGold`(%d, %f, %f, %f)", amount, x, y, z);
+			result = mysql_query(mysqlPool, query);
+			cache_set_active(result);
+			cache_get_value_name_int(0, "nextID", gold[orID]);
+			cache_delete(result);
+		}
 		LIST_push_back_arr(goldList, gold);
 	}
 	return gold;
@@ -6747,13 +6759,14 @@ stock SaveGold()
 	LogInfo(true, "[SAVE] Lingots d'or sauvegardes");
 
 }
-stock DestroyGold(index)
+stock DestroyGold(ListIt: node)
 {	
-	new ListIt: node = GetNodeAt(goldList, index);
-	new gold[Or];
+	new gold[Or], query[256];
 	MEM_get_arr(LIST_IT_data_ptr(node), _, gold);
 	DestroyDynamicObject(gold[oOr]);
 	DestroyDynamic3DTextLabel(gold[OrText]);
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `gold` WHERE idgold = %d", gold[orID]);
+	mysql_tquery(mysqlPool, query);
 	LIST_erase(goldList, node);
 }
 #else
@@ -8682,8 +8695,7 @@ public OnBoardsLoaded()
 		cache_get_value_name_float(i, "aboard", angle);
 		cache_get_value_name_int(i, "idboard", boardid);
 		cache_get_value_name(i, "text", text);
-		CreateBoard(x, y, z, angle, boardid);
-		SetBoardText(i, text);
+		CreateBoard(x, y, z, angle, boardid, text);
 	}
 	format(string, sizeof(string), "[INIT] %d panneaux charges", cache_num_rows());
 	LogInfo(true, string);
@@ -8697,21 +8709,23 @@ stock CreateBoard(Float:x, Float:y, Float:z, Float:angle, id = -1, const text[] 
 	board[yBoard] = y;
 	board[zBoard] = z;
 	board[aBoard] = angle;
+	board[boardResistance] = 5;
+	board[oBoard][0] = CreateDynamicObject(3927, x, y, z, 0.0, 0.0, angle, -1, -1, -1, 50.0, 45.0);
+    angle -= 77.38;
+	board[oBoard][1] = CreateDynamicObject(19805, x - (0.13 * floatsin(-angle, degrees)), y - (0.13 * floatcos(-angle, degrees)), z + 0.7601, 0.0, 0.0, angle + 77.39, -1, -1, -1, 25.0, 20.0);
+    if(strlen(text))
+	    SetDynamicObjectMaterialText(board[oBoard][1], 0, text, OBJECT_MATERIAL_SIZE_256x128, "Olde English", 30, 1, 0xFFCC0000, 0x00000000, OBJECT_MATERIAL_TEXT_ALIGN_CENTER);
+	//---
 	board[boardID] = id;
 	if(id == -1)
 	{
 		new string[512], Cache: result;
 		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertBoard`(%b, %f, %f, %f, %f, \"%e\")", board[bBoard], x, y, z, angle, text);
 		result = mysql_query(mysqlPool, string);
+		cache_set_active(result);
 		cache_get_value_name_int(0, "nextID", board[boardID]);
 		cache_delete(result);
 	}
-	board[oBoard][0] = CreateDynamicObject(3927, x, y, z, 0.0, 0.0, angle, -1, -1, -1, 50.0, 45.0);
-    angle -= 77.38;
-	board[oBoard][1] = CreateDynamicObject(19805, x - (0.13 * floatsin(-angle, degrees)), y - (0.13 * floatcos(-angle, degrees)), z + 0.7601, 0.0, 0.0, angle + 77.39, -1, -1, -1, 25.0, 20.0);
-    SetDynamicObjectMaterialText(board[oBoard][1], 0, " ", OBJECT_MATERIAL_SIZE_256x128, "Century Gothic", 48, 0, 0xCC0000FF, 0x00000000, OBJECT_MATERIAL_TEXT_ALIGN_CENTER);
-	//---
-
 	LIST_push_back_arr(boardList, board);
     return LIST_count_nodes(boardList) - 1;
 }
@@ -8741,19 +8755,21 @@ SetBoardText(boardid, const text[])
     //---
 
 	format(board[sBoardText], 128, "%s", text);
-	mysql_format(mysqlPool, query, sizeof(query), "UPDATE board SET text = %e WHERE idboard = %d", text, board[boardID]);
     SetDynamicObjectMaterialText(board[oBoard][1], 0, string, OBJECT_MATERIAL_SIZE_256x128, "Olde English", 30, 1, 0xFFCC0000, 0x00000000, OBJECT_MATERIAL_TEXT_ALIGN_CENTER);
+	mysql_format(mysqlPool, query, sizeof(query), "UPDATE board SET text = \"%e\" WHERE idboard = %d", text, board[boardID]);
+	mysql_tquery(mysqlPool, query);
 	return true;
 }
 
-DestroyBoard(boardid)
+DestroyBoard(ListIt: node)
 {
-	new ListIt: node = GetNodeAt(boardList, boardid);
 	new Pointer: pt = LIST_IT_data_ptr(node);
-	new board[Board];
+	new board[Board], query[256];
 	MEM_get_arr(pt, _, board);
 	DestroyDynamicObject(board[oBoard][0]);
 	DestroyDynamicObject(board[oBoard][1]);
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `board` WHERE idboard = %d", board[boardID]);
+	mysql_tquery(mysqlPool, query);
 	LIST_erase(boardList, node);
 }
 #else
@@ -13751,22 +13767,30 @@ stock CreateSeat(modelid, Float:x, Float:y, Float:z, Float:angle, id = -1, &obje
 		seat[zSeat] = z;
 		seat[aSeat] = angle;
 		seat[dSeatType] = modelid;
-		seat[seatID] = id;
-		if(modelid == 1729)
-			seat[zSeat] -= 1.0;
-		seat[oSeat] = CreateDynamicObject(seat[dSeatType], x, y, z, 0.0, 0.0, angle);
+		seat[oSeat] = CreateDynamicObject(seat[dSeatType], x, y, z - 1.0, 0.0, 0.0, angle);
 		objectCreated = seat[oSeat];
+		seat[seatID] = id;
+		if(id == -1)
+		{
+			new string[512], Cache: result;
+			mysql_format(mysqlPool, string, sizeof(string), "CALL `insertSeat`(%f, %f, %f, %f, %d)", x, y, z, angle, modelid);
+			result = mysql_query(mysqlPool, string);
+			cache_set_active(result);
+			cache_get_value_name_int(0, "nextID", seat[seatID]);
+			cache_delete(result);
+		}
 		LIST_push_back_arr(seatList, seat);
 		return LIST_count_nodes(seatList) - 1;
 	}
 	return INVALID_OBJECT_ID;
 }
-stock DestroySeat(index)
+stock DestroySeat(ListIt: node)
 {	
-	new ListIt: node = GetNodeAt(seatList, index);
-	new seat[Seat];
+	new seat[Seat], query[256];
 	MEM_get_arr(LIST_IT_data_ptr(node), _, seat);
 	DestroyDynamicObject(seat[oSeat]);
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `seat` WHERE idseat = %d", seat[seatID]);
+	mysql_tquery(mysqlPool, query);
 	LIST_erase(seatList, node);
 }
 stock IsPlayerNearSeat(playerid)
@@ -14918,7 +14942,7 @@ CheckItemsRoundPlayer(playerid)
 	}
 	//---SIEGES
 	#if defined MYSQL_SYSTEM
-	LIST_foreach<my_iterator>(goldList)
+	LIST_foreach<my_iterator>(seatList)
 	{
 		static idx = 0;
 		new seat[Seat];
@@ -15129,9 +15153,9 @@ CheckItemsRoundPlayer(playerid)
 			new gold[Or];
 			MEM_get_arr(LIST_IT_data_ptr(nodeFound), _, gold);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(dOr[pAroundItems[playerid][0][0]][dOrAmount], 10));
+			LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(gold[dOrAmount], 10));
 		    GivePlayerGold(playerid, gold[dOrAmount]);
-        	DestroyGold(pAroundItems[playerid][0][0]);
+        	DestroyGold(nodeFound);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 7)//Si cet objet est un broyeur
 	    {
@@ -15217,7 +15241,7 @@ CheckItemsRoundPlayer(playerid)
 					GivePlayerSlotObject(playerid, 155, dFreeSlot);
 				}
 		    }
-        	DestroySeat(pAroundItems[playerid][0][0]);
+        	DestroySeat(nodeFound);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 12)//Si cet objet est un refrigerateur
 	    {
@@ -20542,8 +20566,8 @@ public OnGameModeExit()
 	#if defined MYSQL_SYSTEM
 	SaveGeneralInfos();
 	SaveGasStations();
-	SaveGold();
-	SaveSeats();
+	//SaveGold();
+	//SaveSeats();
 	mysql_close(mysqlPool);
 	LIST_clear(gasStationsList);
 	LIST_clear(goldList);
@@ -23181,14 +23205,13 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
             if(GetPlayerWeapon(playerid) == 9)
             {
 				#if defined MYSQL_SYSTEM
-				new idx = 0;
 				LIST_foreach<my_iterator>(boardList)
 				{
 					new board[Board];
 					new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
 					MEM_get_arr(data_ptr, _, board);
 					if(!board[bBoard]) continue;
-			        if(IsPlayerInRangeOfPoint(playerid, 1.5, board[xBoard], board[yBoard], board[zBoard]) && board[boardResistance] != 0)
+			        if(IsPlayerInRangeOfPoint(playerid, 1.5, board[xBoard], board[yBoard], board[zBoard]) && board[boardResistance] > 0)
 			        {
 			            board[boardResistance] --;
 			            if(board[boardResistance] <= 0)
@@ -23203,8 +23226,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 								CA_RayCastLine(board[xBoard], board[yBoard], board[zBoard], x, y, z - 2.0, x2, y2, z2);
 		                        CreateItem(71, x2, y2, z2 + 1.0, false, -1);
 		                    }
-		                    board[boardResistance] = 5;
-			                DestroyBoard(idx);
+			                DestroyBoard(my_iterator);
 			            }
 			            else
 			            {
@@ -23214,7 +23236,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 							for(new j = 0; j < board[boardResistance]; j ++) strcat(string, "|");
 							GameTextForPlayer(playerid, string, 3000, 3);
 						}
-						idx++;
+						MEM_set_arr(data_ptr, _, board);
 						return 1;
 					}
 				}
@@ -24651,15 +24673,19 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 6)//Si cet objet est de l'or
 			    {
-			        if(dOr[pAroundItems[playerid][listitem][0]][dOrAmount] == 0)
+					new gold[Or];
+					new ListIt: nodeFound = GetNodeAt(goldList, pAroundItems[playerid][listitem][0]);
+					MEM_get_arr(LIST_IT_data_ptr(nodeFound), _, gold);
+			        if(gold[dOrAmount] == 0)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
 			        }
+					
 					ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-					LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(dOr[pAroundItems[playerid][listitem][0]][dOrAmount], 10));
-				    GivePlayerGold(playerid, dOr[pAroundItems[playerid][listitem][0]][dOrAmount]);
-		        	DestroyGold(pAroundItems[playerid][listitem][0]);
+					LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(gold[dOrAmount], 10));
+				    GivePlayerGold(playerid, gold[dOrAmount]);
+		        	DestroyGold(nodeFound);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 7)//Si cet objet est un broyeur
 			    {
@@ -24745,7 +24771,11 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 11)//Si cet objet est un fauteuil
 			    {
-			        if(dSeat[pAroundItems[playerid][listitem][0]][dSeatType] == 0)
+					new ListIt: nodeFound = GetNodeAt(seatList, pAroundItems[playerid][listitem][0]);
+					new Pointer: pt = LIST_IT_data_ptr(nodeFound);
+					new seat[Seat];
+					MEM_get_arr(pt, _, seat);
+			        if(seat[dSeatType] == 0)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
@@ -24756,11 +24786,11 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
-				    switch(dSeat[pAroundItems[playerid][listitem][0]][dSeatType])
+				    switch(seat[dSeatType])
 				    {
-				        case 1: GivePlayerSlotObject(playerid, 155, dFreeSlot);
+				        case 1729: GivePlayerSlotObject(playerid, 155, dFreeSlot);
 				    }
-					DestroySeat(pAroundItems[playerid][listitem][0]);
+					DestroySeat(nodeFound);
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 12)//Si cet objet est un frigo
@@ -27984,7 +28014,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			}
 			else if(!response)
 			{
-				DestroyBoard(pBoard[playerid]);
+				DestroyBoard(GetNodeAt(boardList, pBoard[playerid]));
 				pBoard[playerid] = -1;
 				GivePlayerSlotObject(playerid, 156, GetPlayerNextFreeSlot(playerid));
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
@@ -28339,11 +28369,12 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
-			new Pointer: pt = LIST_IT_data_ptr(GetNodeAt(seatList, pSeat[playerid]));
+			new ListIt: node = GetNodeAt(seatList, pSeat[playerid]);
+			new Pointer: pt = LIST_IT_data_ptr(node);
 			new seat[Seat];
 			MEM_get_arr(pt, _, seat);
 	        new dSeatID = seat[dSeatType];
-			DestroySeat(pSeat[playerid]);
+			DestroySeat(node);
 			CreateSeat(dSeatID, x, y, z + 1.0, rz);
 			pSeat[playerid] = -1;
 	    }
@@ -28388,7 +28419,7 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
-			DestroyBoard(pBoard[playerid]);
+			DestroyBoard(GetNodeAt(boardList, pBoard[playerid]));
 			CreateBoard(x, y, z, rz);
 			//---
 		    switch(pPlayerInfos[playerid][pLangue])
@@ -30137,7 +30168,7 @@ public OnMinutePassed()
 	}
 	CheckTime(dEnvironment[dDay], dEnvironment[dHours], dEnvironment[dMins]);
 	dEnvironment[dMeteoTime] --;
-	if(dEnvironment[dMeteoTime] == 0) RandomWeather();
+	if(dEnvironment[dMeteoTime] <= 0) RandomWeather();
 	//---
     SetWorldTime(dEnvironment[dHours]);
 	//---
