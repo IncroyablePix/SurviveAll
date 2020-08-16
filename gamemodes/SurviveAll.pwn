@@ -669,6 +669,7 @@ forward OnGasStationsLoaded();
 forward OnGoldsLoaded();
 forward OnSeatsLoaded();
 forward OnBoardsLoaded();
+forward OnFurnituresLoaded();
 #endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
@@ -1305,6 +1306,7 @@ enum Board
 enum Furniture
 {
 	dFurnitureID,
+	dFurnitureType,
 	oFurniture,
 	Float:xFurn,
 	Float:yFurn,
@@ -1494,7 +1496,7 @@ new dHouseBuild[MAX_PLAYERS];
 new dHouseID[MAX_PLAYERS];
 new pGarage[MAX_PLAYERS] = {-1, ...};
 new pTank[MAX_PLAYERS] = {-1, ...};
-new pFurn[MAX_PLAYERS] = {-1, ...};
+new ListIt:pFurn[MAX_PLAYERS];
 new dGarage[MAX_GARAGES][Garage];
 new dTanks[MAX_TANKS][Tank];
 new dTent[MAX_TENTS][Tent];
@@ -1549,6 +1551,7 @@ forward ClearOutMothership();
 new dSpawnedItems = 0;
 new dGuns[MAX_GROUND_WEAPONS][Guns];
 new dItems[MAX_GROUND_ITEMS][Items];
+new ListIt: nodeFound[MAX_PLAYERS];
 new pAroundItems[MAX_PLAYERS][9][2];
 new dUsingItem[MAX_PLAYERS] = {-1, ...};
 new pAcc[MAX_PLAYERS][10][AccessoriesInfos];
@@ -13934,6 +13937,82 @@ SaveSeats()
 }
 #endif
 //---DÉCORATION
+#if defined MYSQL_SYSTEM
+new LIST_init<furnitureList>;
+
+ListIt:CreateFurniture(objectid, Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz, id = -1)
+{
+	new furniture[Furniture], ListIt: res;
+	if(objectid != 0)
+	{
+		//---
+		furniture[xFurn] = x;
+		furniture[yFurn] = y;
+		furniture[zFurn] = z;
+		furniture[rxFurn] = rx;
+		furniture[ryFurn] = ry;
+		furniture[rzFurn] = rz;
+		//---
+		furniture[dFurnitureType] = objectid;
+		//---
+		furniture[oFurniture] = CreateDynamicObject(GetFurnitureObjectID(objectid, false), x, y, z, rx, ry, rz);
+		furniture[dFurnitureID] = id;
+		if(id == -1)
+		{
+			new string[512], Cache: result;
+			mysql_format(mysqlPool, string, sizeof(string), "CALL `insertFurniture`(%d, %f, %f, %f, %f, %f, %f)", objectid, x, y, z, rx, ry, rz);
+			result = mysql_query(mysqlPool, string);
+			cache_set_active(result);
+			cache_get_value_name_int(0, "nextID", furniture[dFurnitureID]);
+			cache_delete(result);
+		}
+		res = LIST_push_back_arr(furnitureList, furniture);
+    }
+	return res;
+}
+public OnFurnituresLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new modelid, furnitureid;
+			new Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz;
+			cache_get_value_name_int(i, "type", modelid);
+			cache_get_value_name_float(i, "xfurniture", x);
+			cache_get_value_name_float(i, "yfurniture", y);
+			cache_get_value_name_float(i, "zfurniture", z);
+			cache_get_value_name_float(i, "rxfurniture", rx);
+			cache_get_value_name_float(i, "ryfurniture", ry);
+			cache_get_value_name_float(i, "rzfurniture", rz);
+			cache_get_value_name_int(i, "idfurniture", furnitureid);
+			CreateFurniture(modelid, x, y, z, rx, ry, rz, furnitureid);
+		}
+	}
+	LogInfo(true, "[INIT] %d meubles charges", cache_num_rows());
+	return 1;	
+}
+PlayerSetFurniture(playerid, furnitureid)
+{
+	new Float:x, Float:y, Float:z, Float:angle, Pointer:pt, furn[Furniture];
+	GetPlayerPos(playerid, x, y, z);
+	GetPlayerFacingAngle(playerid, angle);
+	pFurn[playerid] = CreateFurniture(furnitureid, x, y, z, 0.0, 0.0, angle);
+	pt = LIST_IT_data_ptr(pFurn[playerid]);
+	MEM_get_arr(pt, _, furn);
+	EditDynamicObject(playerid, furn[oFurniture]);
+}
+DestroyFurniture(ListIt: node)
+{
+	new Pointer: pt = LIST_IT_data_ptr(node), query[256];
+	new furn[Furniture];
+	MEM_get_arr(pt, _, furn);
+	DestroyDynamicObject(furn[oFurniture]);
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `furniture` WHERE idfurniture = %d", furn[dFurnitureID]);
+	mysql_tquery(mysqlPool, query);
+	LIST_erase(furnitureList, node);
+}
+#else
 public LoadFurniture_data(name[],value[])
 {
 	new string[50];
@@ -14040,6 +14119,7 @@ DestroyFurniture(furnid)
 	dFurn[furnid][ryFurn] = 0.0;
 	dFurn[furnid][rzFurn] = 0.0;
 }
+#endif
 
 /*IsPlayerNearFurniture(playerid)
 {
@@ -14066,7 +14146,6 @@ GetFurnitureObjectID(furnid, bool:item)
 	}
 	return 0;
 }
-
 //---COLLECTEURS D'EAU
 CreateCollector(Float:x, Float:y, Float:z, Float:angle, water, load = -1)
 {
@@ -14768,7 +14847,6 @@ IsPlayerNearItem(playerid)
 CheckItemsRoundPlayer(playerid)
 {
 	new Float:x, Float:y, Float:z;
-	new ListIt: nodeFound;
 	GetPlayerPos(playerid, x, y, z);
 	new Float:fTrash;
 	//---OBJETS
@@ -14856,7 +14934,6 @@ CheckItemsRoundPlayer(playerid)
 	#if defined MYSQL_SYSTEM
 	LIST_foreach<my_iterator>(goldList)
 	{
-		static idx = 0;
 		new gold[Or];
 		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
 		MEM_get_arr(data_ptr, _, gold);
@@ -14865,12 +14942,11 @@ CheckItemsRoundPlayer(playerid)
 		if(IsPlayerInRangeOfPoint(playerid, 3.0, gold[xOr], gold[yOr], gold[zOr]))
 		{
 			if(CA_RayCastLine(x, y, z, gold[xOr], gold[yOr], gold[zOr], fTrash, fTrash, fTrash) != 0) continue;
-		    pAroundItems[playerid][dSlot][0] = idx;
+		    //pAroundItems[playerid][dSlot][0] = idx;
 		    pAroundItems[playerid][dSlot][1] = 6;
 			dSlot ++;
-			nodeFound = my_iterator;
+			nodeFound[playerid] = my_iterator;
 		}
-		idx++;
 	}
 	#else
 	for(new i = 0; i < MAX_GOLD_INGOTS; i ++)
@@ -14928,6 +15004,24 @@ CheckItemsRoundPlayer(playerid)
 	}
 	#endif
 	//---DÉCORATION
+	#if defined MYSQL_SYSTEM
+	LIST_foreach<my_iterator>(furnitureList)
+	{
+		new furn[Furniture];
+		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
+		MEM_get_arr(data_ptr, _, furn);
+		if(dSlot == 9) break;
+	    if(furn[dFurnitureType] == 0) continue;
+	    if(IsPlayerInRangeOfPoint(playerid, 3.0, furn[xFurn], furn[yFurn], furn[zFurn]))
+		{
+			if(CA_RayCastLine(x, y, z, furn[xFurn], furn[yFurn], furn[zFurn], fTrash, fTrash, fTrash) != 0) continue;
+		    //pAroundItems[playerid][dSlot][0] = idx;
+		    pAroundItems[playerid][dSlot][1] = 10;
+			nodeFound[playerid] = my_iterator;
+			dSlot ++;
+		}
+	}
+	#else
 	for(new i = 0; i < MAX_FURN; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -14940,11 +15034,11 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---SIEGES
 	#if defined MYSQL_SYSTEM
 	LIST_foreach<my_iterator>(seatList)
 	{
-		static idx = 0;
 		new seat[Seat];
 		new Pointer:data_ptr = LIST_IT_data_ptr(my_iterator);
 		MEM_get_arr(data_ptr, _, seat);
@@ -14953,9 +15047,9 @@ CheckItemsRoundPlayer(playerid)
 		if(IsPlayerInRangeOfPoint(playerid, 3.0, seat[xSeat], seat[ySeat], seat[zSeat]))
 		{
 			if(CA_RayCastLine(x, y, z, seat[xSeat], seat[ySeat], seat[zSeat], fTrash, fTrash, fTrash) != 0) continue;
-		    pAroundItems[playerid][dSlot][0] = idx;
+		    //pAroundItems[playerid][dSlot][0] = idx;
 		    pAroundItems[playerid][dSlot][1] = 11;
-			nodeFound = my_iterator;
+			nodeFound[playerid] = my_iterator;
 			dSlot ++;
 		}
 	}
@@ -15151,11 +15245,11 @@ CheckItemsRoundPlayer(playerid)
 	    else if(pAroundItems[playerid][0][1] == 6)//Si cet objet est de l'or
 	    {
 			new gold[Or];
-			MEM_get_arr(LIST_IT_data_ptr(nodeFound), _, gold);
+			MEM_get_arr(LIST_IT_data_ptr(nodeFound[playerid]), _, gold);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(gold[dOrAmount], 10));
 		    GivePlayerGold(playerid, gold[dOrAmount]);
-        	DestroyGold(nodeFound);
+        	DestroyGold(nodeFound[playerid]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 7)//Si cet objet est un broyeur
 	    {
@@ -15218,14 +15312,17 @@ CheckItemsRoundPlayer(playerid)
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "O senhor não pode carregar mais objetos", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
+			new Pointer:pt = LIST_IT_data_ptr(nodeFound[playerid]);
+			new furn[Furniture];
+			MEM_get_arr(pt, _, furn);
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, GetFurnitureObjectID(dFurn[pAroundItems[playerid][0][0]][dFurnitureID], true), dFreeSlot);
-        	DestroyFurniture(pAroundItems[playerid][0][0]);
+		    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot);
+        	DestroyFurniture(nodeFound[playerid]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 11)//Si cet objet est un Fauteuil
 	    {
 	        new dFreeSlot = GetPlayerNextFreeSlot(playerid);
-			new Pointer: pt = LIST_IT_data_ptr(nodeFound);
+			new Pointer: pt = LIST_IT_data_ptr(nodeFound[playerid]);
 			new seat[Seat];
 			MEM_get_arr(pt, _, seat);
 	        if(dFreeSlot == -1)
@@ -15241,7 +15338,7 @@ CheckItemsRoundPlayer(playerid)
 					GivePlayerSlotObject(playerid, 155, dFreeSlot);
 				}
 		    }
-        	DestroySeat(nodeFound);
+        	DestroySeat(nodeFound[playerid]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 12)//Si cet objet est un refrigerateur
 	    {
@@ -20027,6 +20124,9 @@ public OnGameModeInit()
 	//---------------------//
 	//---MEUBLES
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `furniture`", "OnFurnituresLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	//CHARGEMENT
@@ -20043,6 +20143,7 @@ public OnGameModeInit()
 	}
 	for(new i = dLastLoaded + 1; i < MAX_FURN; i ++) dFurn[i][dFurnitureID] = 0;
     LogInfo(true, "[INIT]Decorations charges");
+	#endif
 	//---------------------//
 	//---ÉTAGÈRES À ARMES
 	//---------------------//
@@ -20887,10 +20988,10 @@ public OnPlayerDisconnect(playerid, reason)
 		    pTank[playerid] = -1;
 		}
 		//---DÉCORATION
-		if(pFurn[playerid] != -1)
+		/*if(pFurn[playerid] != -1)
 		{
 		    pFurn[playerid] = -1;
-		}
+		}*/
 		//---NAMETAG
 		Delete3DTextLabel(pPlayerTag[playerid]);
 		pPlayerTag[playerid] = Text3D:INVALID_3DTEXT_ID;
@@ -24674,8 +24775,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    else if(pAroundItems[playerid][listitem][1] == 6)//Si cet objet est de l'or
 			    {
 					new gold[Or];
-					new ListIt: nodeFound = GetNodeAt(goldList, pAroundItems[playerid][listitem][0]);
-					MEM_get_arr(LIST_IT_data_ptr(nodeFound), _, gold);
+					MEM_get_arr(LIST_IT_data_ptr(nodeFound[playerid]), _, gold);
 			        if(gold[dOrAmount] == 0)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
@@ -24685,7 +24785,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 					LogInfo(true, "[JOUEUR]%s ramasse %.1fg d'or", GetName(playerid), floatdiv(gold[dOrAmount], 10));
 				    GivePlayerGold(playerid, gold[dOrAmount]);
-		        	DestroyGold(nodeFound);
+		        	DestroyGold(nodeFound[playerid]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 7)//Si cet objet est un broyeur
 			    {
@@ -24759,20 +24859,21 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 				else if(pAroundItems[playerid][listitem][1] == 10)//Si cet objet est une décoration
 			    {
+					new furn[Furniture];
 			        new dFreeSlot = GetPlayerNextFreeSlot(playerid);
+					MEM_get_arr(LIST_IT_data_ptr(nodeFound[playerid]), _, furn);
 			        if(dFreeSlot == -1)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "O senhor não pode carregar mais objetos", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, GetFurnitureObjectID(dFurn[pAroundItems[playerid][listitem][0]][dFurnitureID], true), dFreeSlot);
-		        	DestroyFurniture(pAroundItems[playerid][listitem][0]);
+				    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot);
+		        	DestroyFurniture(nodeFound[playerid]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 11)//Si cet objet est un fauteuil
 			    {
-					new ListIt: nodeFound = GetNodeAt(seatList, pAroundItems[playerid][listitem][0]);
-					new Pointer: pt = LIST_IT_data_ptr(nodeFound);
+					new Pointer: pt = LIST_IT_data_ptr(nodeFound[playerid]);
 					new seat[Seat];
 					MEM_get_arr(pt, _, seat);
 			        if(seat[dSeatType] == 0)
@@ -24790,7 +24891,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				    {
 				        case 1729: GivePlayerSlotObject(playerid, 155, dFreeSlot);
 				    }
-					DestroySeat(nodeFound);
+					DestroySeat(nodeFound[playerid]);
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 12)//Si cet objet est un frigo
@@ -28345,14 +28446,16 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 			pTank[playerid] = -1;
 	    }
 	}
-	if(pFurn[playerid] != -1)
+	if(pFurn[playerid])
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
-	        new dFurnID = dFurn[pFurn[playerid]][dFurnitureID];
+			new Pointer:pt = LIST_IT_data_ptr(pFurn[playerid]);
+	        new furn[Furniture];
+			MEM_get_arr(pt, _, furn);
 			DestroyFurniture(pFurn[playerid]);
-			CreateFurniture(dFurnID, x, y, z, rx, ry, rz, pFurn[playerid]);
-			pFurn[playerid] = -1;
+			CreateFurniture(furn[dFurnitureType], x, y, z, rx, ry, rz);
+			//pFurn[playerid] = -1;
 	    }
 	}
 	if(pBed[playerid] != -1)
