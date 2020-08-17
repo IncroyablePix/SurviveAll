@@ -4,7 +4,7 @@
 #define HOST "localhost"
 #define USERNAME "surviveall"
 #define DBNAME "surviveall"
-#define DBPASSWORD "dr411k31lg3r3tr0pd3s4r4c3"
+#define DBPASSWORD "surv1v3@ll 4 cr@sh"
 
 #define TYPE_NOSELL                         (0)
 #define TYPE_TOOL                           (1)
@@ -51,17 +51,16 @@ enum ObjectsInfos
 #define MAX_ITEMS                       	(159)
 
 new MySQL:dbMYSQL;
-
 static aObjects[MAX_ITEMS][ObjectsInfos] =
 {   //ID OBJET	//AFFICHAGE             //DANS LA MAIN                          			//POSITION AU SOL   			//PRIX-HDV				//NOM OBJET
 	{19300, 	0.0, 0.0, 0.0, 1.0, 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 					0.0, 0.0, 0.0, 0.0, 			0, TYPE_NOSELL,	false,	"Nothing", "Rien", "Nada", "Nada", "Niente", "Nichts"},//0
 	{3082, 		0.0, 0.0, 0.0, 1.0, 	0.0867, 0.0127, -0.0767, 0.0, 0.0, 0.0, 0.5,		90.0, 0.0, 90.0, -0.714, 		5, TYPE_OTHER, false,	"Tent", "Tente", "Espagnol", "Portugais", "Tenda", "Zelt"},
 	{11738, 	0.0, 0.0, 0.0, 1.0, 	0.2680, 0.0111, 0.0, 0.0, 270.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.953, 			3, TYPE_MEDIC, false,	"Medikit", "Medikit", "Medikit", "Medikit", "Medikit", "Medikit"},
-	{334,		0.0, 315.0, 0.0, 1.5,	0.0036, 0.0111, 0.0, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		3, TYPE_WEAP, false,	"Nitestick", "Matraque", "Espagnol", "Portugais", "Sfollagente", "Knï¿½ppel"},
+	{334,		0.0, 315.0, 0.0, 1.5,	0.0036, 0.0111, 0.0, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		3, TYPE_WEAP, false,	"Nitestick", "Matraque", "Espagnol", "Portugais", "Sfollagente", "Knüppel"},
 	{335,		0.0, 315.0, 0.0, 1.0,	0.0036, 0.0111, 0.0, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		3, TYPE_WEAP, false,	"Knife", "Couteau", "Espagnol", "Portugais", "Coltello", "Messer"},
-	{336,		0.0, 315.0, 0.0, 2.0,	0.0036, 0.0056, -0.336, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		3, TYPE_WEAP, false,	"Bat", "Batte", "Espagnol", "Portugais", "Italien", "Schlï¿½ger"},
+	{336,		0.0, 315.0, 0.0, 2.0,	0.0036, 0.0056, -0.336, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		3, TYPE_WEAP, false,	"Bat", "Batte", "Espagnol", "Portugais", "Italien", "Schläger"},
 	{339,		0.0, 315.0, 0.0, 2.0,	0.0036, 0.0056, -0.336, 0.0, 0.0, 0.0, 1.0,			90.0, 0.0, 100.0, -0.958,		4, TYPE_WEAP, false,	"Katana", "Katana", "Espagnol", "Portugais", "Katana", "Schwert"},
-	{341,		0.0, 0.0, 60.0, 2.0,	0.0036, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0, 		90.0, 0.0, 100.0, -0.958,		5, TYPE_WEAP, false,	"Chainsaw", "Tronconneuse", "Espagnol", "Portugais", "Italien", "Motor-~n~sï¿½ge"},
+	{341,		0.0, 0.0, 60.0, 2.0,	0.0036, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0, 		90.0, 0.0, 100.0, -0.958,		5, TYPE_WEAP, false,	"Chainsaw", "Tronconneuse", "Espagnol", "Portugais", "Italien", "Motor-~n~säge"},
 	{342,		0.0, 0.0, 60.0, 1.0,	0.0332, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0,		0.0, 0.0, 100.0, -0.958,		5, TYPE_WEAP, false,	"Grenade", "Grenade", "Espagnol", "Portugais", "Italien", "Granate"},
 	{344,		0.0, 0.0, 60.0, 1.0,	0.0332, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0,		0.0, 0.0, 100.0, -0.792,		3, TYPE_WEAP, false,	"Molotovs", "Molotovs", "Molotovs", "Molotovs", "Molotovs", "Molotovs"},
 	{346,		0.0, 0.0, 0.0, 1.0,		0.1705, 0.0056, -0.1698, 0.0, 270.0, 0.0, 1.0,		90.0, 0.0, 100.0, -1.026,		8, TYPE_WEAP, false,	"Pistol", "Pistolet", "Espagnol", "Portugais", "Italien", "Pistole"},//10
@@ -93,7 +92,7 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
 	{11736,		0.0, 0.0, 0.0, 1.0,		0.2648, 0.0556, 0.0, 90.0, 0.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.973,			1, TYPE_MEDIC, false,	"Bandages", "Bandages", "Espagnol", "Portugais", "Italien", "Binden"},
 	{2709,		0.0, 0.0, 0.0, 1.0,		0.0684, 0.0556, 0.0, 180.0, 0.0, 0.0, 0.5,			0.0, 0.0, 0.0, -0.973,			1, TYPE_MEDIC, false,	"Painkiller", "Anti-douleur", "Espagnol", "Portugais", "Italien", "Medikament"},
 	{1580,		90.0, 0.0, 0.0, 1.0,	0.0119, 0.0072, 0.0, 270.0, 0.0, 270.0, 0.5,		0.0, 0.0, 0.0, -1.022,			1, TYPE_MEDIC, false,	"Bloodbag", "Poche de~n~sang", "Espagnol", "Portugais", "Italien", "Blutbeutel"},
-	{1241,		0.0, 135.0, 180.0, 1.0,	0.0895, 0.058, 0.0, 165.0, 0.0, 132.0, 0.5,			0.0, 120.0, 0.0, -0.943,		2, TYPE_MEDIC, false,	"Cofein pill", "Cafeine", "Cafeina", "Portugais", "Italien", "Koffeï¿½n"},
+	{1241,		0.0, 135.0, 180.0, 1.0,	0.0895, 0.058, 0.0, 165.0, 0.0, 132.0, 0.5,			0.0, 120.0, 0.0, -0.943,		2, TYPE_MEDIC, false,	"Cofein pill", "Cafeine", "Cafeina", "Portugais", "Italien", "Koffeïn"},
 	//#if defined DOWNLOAD
 	//{-1000,		0.0, 0.0, 0.0, 1.0, 	0.0528, 0.0483, 0.0688, 180.0, 0.0, 0.0, 0.7,		0.0, 0.0, 0.0, -1.0,			1, TYPE_OTHER, false,	"Empty bottle", "Bouteille~n~vide", "Espagnol", "Portugais", "Italien", "Leere~n~Flasche"},//40
 	//#else
@@ -107,9 +106,9 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
 	{18924,		85.0, 25.0, 45.0, 1.0,	0.1703, 0.0649, 0.0, 54.149, 270.0, 180.0, 1.0,		0.0, 270.0, 0.0, -0.961,		2, TYPE_CLOTHE,	false,	"Beret", "Beret", "Espagnol", "Portugais", "Italien", "Berett"},
 	{19106, 	0.0, 270.0, 0.0, 1.0,	0.185, 0.0804, 0.0, 0.0, 0.0, 90.0, 1.0,			0.0, 270.0, 0.0, -0.961, 		5, TYPE_CLOTHE,	false,	"Soldier~n~helmet", "Casque~n~militaire", "Espagnol", "Portugais", "Italien", "Soldatenhelm"},
 	{19107, 	0.0, 270.0, 0.0, 1.0,	0.185, 0.0804, 0.0, 0.0, 0.0, 90.0, 1.0,			0.0, 180.0, 0.0, -0.961, 		5, TYPE_CLOTHE,	false,	"Marine~n~helmet", "Casque~n~de marin", "Espagnol", "Portugais", "Italien", "Marinehelm"},
-	{18927,		270.0, 0.0, 270.0, 1.0,	0.158, 0.0608, 0.0, 180.0, 0.0, 270.0, 1.0,			0.0, 270.0, 0.0, -0.95,			2, TYPE_CLOTHE,	false,	"Blue cap", "Casquette~n~bleue", "Espagnol", "Portugais", "Italien", "Blaue~n~Schirmmï¿½tze"},
-	{18930,		270.0, 0.0, 270.0, 1.0,	0.158, 0.0608, 0.0, 180.0, 0.0, 270.0, 1.0,			0.0, 270.0, 0.0, -0.95,			2, TYPE_CLOTHE,	false,	"Red cap", "Casquette~n~rouge", "Espagnol", "Portugais", "Italien", "Rote~n~Schirmmï¿½tze"},//50
-	{18949, 	270.0, 0.0, 270.0, 1.0,	0.1956, 0.0261, 0.0, 180.0, 90.0, 70.0, 1.0,		0.0, 270.0, 0.0, -0.95,			1, TYPE_CLOTHE,	false,	"Green~n~bowler", "Chapeau~n~melon vert", "Espagnol", "Portugais", "Italien", "Grï¿½ne~n~melone"},
+	{18927,		270.0, 0.0, 270.0, 1.0,	0.158, 0.0608, 0.0, 180.0, 0.0, 270.0, 1.0,			0.0, 270.0, 0.0, -0.95,			2, TYPE_CLOTHE,	false,	"Blue cap", "Casquette~n~bleue", "Espagnol", "Portugais", "Italien", "Blaue~n~Schirmmütze"},
+	{18930,		270.0, 0.0, 270.0, 1.0,	0.158, 0.0608, 0.0, 180.0, 0.0, 270.0, 1.0,			0.0, 270.0, 0.0, -0.95,			2, TYPE_CLOTHE,	false,	"Red cap", "Casquette~n~rouge", "Espagnol", "Portugais", "Italien", "Rote~n~Schirmmütze"},//50
+	{18949, 	270.0, 0.0, 270.0, 1.0,	0.1956, 0.0261, 0.0, 180.0, 90.0, 70.0, 1.0,		0.0, 270.0, 0.0, -0.95,			1, TYPE_CLOTHE,	false,	"Green~n~bowler", "Chapeau~n~melon vert", "Espagnol", "Portugais", "Italien", "Grüne~n~melone"},
 	{19006,		0.0, 0.0, 90.0, 1.0,	0.1719, 0.0548, 0.0, 67.5, 0.0, 270.0, 1.0,			90.0, 90.0, 0.0, -0.95,			1, TYPE_CLOTHE,	false,	"Red~n~Predators", "Predators~n~rouges", "Espagnol", "Portugais", "Italien", "Allemand"},
 	{19007,		0.0, 0.0, 90.0, 1.0,	0.1719, 0.0548, 0.0, 67.5, 0.0, 270.0, 1.0,			90.0, 90.0, 0.0, -0.95,			1, TYPE_CLOTHE,	false,	"Yellow~n~Predators", "Predators~n~jaunes", "Espagnol", "Portugais", "Italien", "Allemand"},
 	{19008,		0.0, 0.0, 90.0, 1.0,	0.1719, 0.0548, 0.0, 67.5, 0.0, 270.0, 1.0,			90.0, 90.0, 0.0, -0.95,			1, TYPE_CLOTHE,	false,	"Green~n~Predators", "Predators~n~vertes", "Espagnol", "Portugais", "Italien", "Allemand"},
@@ -125,7 +124,7 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
 	{19917,		330.0, 0.0, 25.0, 1.0,	0.0652, -0.0213, 0.1633, 102.6, 180.0, 18.35, 0.5,	0.0, 0.0, 0.0, -1.0189,			5, TYPE_VEH, true,		"Engine", "Moteur", "Espagnol", "Portugais", "Italien", "Motor"},
 	{19472,		0.0, 90.0, 0.0, 1.0,	0.0571, 0.0111, 0.0, 0.0, 247.0, 310.0, 1.0,		90.0, 0.0, 90.0, -0.95,			1, TYPE_CLOTHE, false,	"Gas mask", "Masque a~n~gaz", "Espagnol", "Portugais", "Italien", "Gasmaske"},
 	{2880,		0.0, 0.0, 0.0, 1.0,		0.159, 0.0719, 0.1024, 90.0, 0.0, 180.0, 1.0,		335.0, 270.0, 0.0, -0.9335,		2, TYPE_FOOD, false,	"Burger", "Burger", "Espagnol", "Portugais", "Hamburger", "Hamburger"},
-	{2881,		180.0,315.0,270.0,1.0,	0.159, 0.1728, 0.0607, 90.0, 90.0, 180.0, 1.0,		335.0, 270.0, 0.0, -0.9335,		2, TYPE_FOOD, false,	"Pizza slice", "Part de~n~pizza", "Espagnol", "Portugais", "Pezzo di~n~pizza", "Stï¿½ck~n~pizza"},
+	{2881,		180.0,315.0,270.0,1.0,	0.159, 0.1728, 0.0607, 90.0, 90.0, 180.0, 1.0,		335.0, 270.0, 0.0, -0.9335,		2, TYPE_FOOD, false,	"Pizza slice", "Part de~n~pizza", "Espagnol", "Portugais", "Pezzo di~n~pizza", "Stück~n~pizza"},
 	{19582, 	90.0, 0.0, 0.0, 1.0, 	0.1284, 0.0594, 0.0, 90.0, 0.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.9925,			3, TYPE_FOOD, false,	"Raw steak", "Steak cru", "Espagnol", "Portugais", "Italien", "Rohes~n~Steak"},
 	{19882, 	90.0, 0.0, 0.0, 1.0, 	0.1284, 0.0594, 0.0, 90.0, 0.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.9925,			3, TYPE_FOOD, false,	"Cooked~n~steak", "Steak cuit", "Espagnol", "Portugais", "Italien", "Gebratenes~n~Steak"},
 	{19570, 	0.0, 0.0, 0.0, 1.0, 	0.0528, 0.0483, 0.0688, 180.0, 0.0, 0.0, 0.7,		0.0, 0.0, 0.0, -1.0,			1, TYPE_FOOD, false,	"Milk", "Lait", "Leche", "Portugais", "Latte", "Milch"},//70
@@ -167,7 +166,7 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
 	//#endif
 	{19602, 	90.0, 0.0, 0.0, 1.0, 	0.1686, 0.0486, 0.0, 90.0, 0.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.7,			5, TYPE_WEAP, false,	"Landmine",	"Mine", "Espagnol", "Portugais", "Italien", "Mine"},
 	{1252, 		0.0, 0.0, 0.0, 1.0, 	0.1686, 0.0486, 0.0, 0.0, 0.0, 0.0, 0.7,			90.0, 0.0, 0.0, -0.9,			5, TYPE_WEAP, false,	"Timerbomb", "Bombe a~n~timer", "Espagnol", "Portugais", "Italien", "Zeitbombe"},//100
-	{19801,		0.0, 0.0, 0.0, 1.0,		0.1808, 0.0216, 0.0, 0.0, 90.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.886,			2, TYPE_CLOTHE, false, 	"Hood", "Cagoule", "Capucha", "Capï¿½", "Cappuccio", "Kapuze"},
+	{19801,		0.0, 0.0, 0.0, 1.0,		0.1808, 0.0216, 0.0, 0.0, 90.0, 0.0, 1.0,			0.0, 0.0, 0.0, -0.886,			2, TYPE_CLOTHE, false, 	"Hood", "Cagoule", "Capucha", "Capô", "Cappuccio", "Kapuze"},
 	{11718,		0.0, 0.0, 0.0, 1.0,		0.3206, -0.0131, -0.265, 270.0, 230.0, 43.38, 1.0,	0.0, 0.0, 0.0, -1.0,			8, TYPE_TOOL, false, 	"Pan", "Casserole", "Espagnol", "Portugais", "Italien", "Kochtopf"},
 	{19846,		90.0, 0.0, 0.0, 1.0,	0.1418, 0.0251, 0.0, 71.8962, 0.0, 90.0, 0.5,		0.0, 90.0, 0.0, -1.1611,		3, TYPE_RSRC, false, 	"Metal", "Metal", "Espagnol", "Portugais", "Italien", "Schrott"},
 	{19843,		90.0, 0.0, 0.0, 1.0,	-0.05, 0.2573, 0.1691, 270.3665, 55.3, 193.0, 0.7,	0.0, 90.0, 0.0, -1.1611,		5, TYPE_RSRC, true,		"Metal plate", "Plaque de~n~metal", "Espagnol", "Portugais", "Italien", "Metallplatte"},
@@ -180,10 +179,10 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
 	{19366, 	90.0, 90.0, 0.0, 1.0,	0.6666, 0.0585, 0.0, 11.2624, 0.0, 90.0, 0.5, 		0.0, 90.0, 0.0, -1.089,			5, TYPE_OTHER, true,	"Wall", "Mur", "Espagnol", "Portugais", "Paretto", "Mauer"},
 	{19802, 	90.0, 0.0, 90.0, 1.0,	-0.0415, 0.1514, -0.7014, 11.7901, 0.0, 20.0, 0.5,	90.0, 0.0, 90.0, -0.998,		10,	TYPE_OTHER,	true,	"Door", "Porte", "Puerta", "Porta", "Porta", "Tur"},
 	{3017, 		0.0, 0.0, 0.0, 1.0,		0.1654, 0.1, 0.0, 0.0, 270.0, 0.0, 0.7, 			0.0, 0.0, 0.0, -0.985,			15, TYPE_OTHER,	false,	"Construction~n~plans", "Plans", "Espagnol", "Portugais", "Italien", "Allemand"},
-	{19621,		0.0, 0.0, 0.0, 1.0, 	0.0981, 0.0275, 0.0, 330.0, 180.0, 270.0, 1.0,		0.0, 0.0, 0.0, -0.906,			0, TYPE_NOSELL,	false,	"Can", "Burette", "Espagnol", "Portugais", "Italien", "ï¿½lkanne"},
+	{19621,		0.0, 0.0, 0.0, 1.0, 	0.0981, 0.0275, 0.0, 330.0, 180.0, 270.0, 1.0,		0.0, 0.0, 0.0, -0.906,			0, TYPE_NOSELL,	false,	"Can", "Burette", "Espagnol", "Portugais", "Italien", "Ölkanne"},
 	{19837,		0.0, 0.0, 0.0, 1.0,		0.0921, -0.0223, 0.0516, 180.0, 0.0, 0.0, 0.5,		0.0, 0.0, 0.0, -1.0,			1, TYPE_OTHER, false,	"Wheat seeds", "Graines~n~de ble", "Semillas de~n~trigo", "Portugais", "Semi di~n~grano", "Weizen~n~saat"},
 	{1453,		0.0, 90.0, 0.0, 1.0,	0.0935, 0.0277, 0.0, 0.0, 0.0, 0.0, 0.3,			0.0, 0.0, 0.0, -2.018,			1, TYPE_OTHER, false,	"Wheat", "Ble", "Trigo", "Portugais", "Grano", "Weizen"},
-	{920,		0.0, 0.0, 0.0, 1.0,		0.0593, 0.2803, 0.3084, 98.0, 180.0, 113.38, 0.6,	0.0, 0.0, 270.0, -0.516,		30, TYPE_TOOL, true,	"Shredder", "Broyeur", "Espagnol", "Portugais", "Italien", "Mï¿½hle"},
+	{920,		0.0, 0.0, 0.0, 1.0,		0.0593, 0.2803, 0.3084, 98.0, 180.0, 113.38, 0.6,	0.0, 0.0, 270.0, -0.516,		30, TYPE_TOOL, true,	"Shredder", "Broyeur", "Espagnol", "Portugais", "Italien", "Mühle"},
 	{19563,		0.0, 0.0, 0.0, 1.0,		0.1243, 0.0455, 0.1193, 0.0, 180.0, 0.0, 1.0,		0.0, 0.0, 270.0, -1.0,			1, TYPE_FOOD, false,	"Orange~n~juice", "Jus d'orange", "Espagnol", "Portugais", "Italien", "Orangesaft"},
 	{19564,		0.0, 0.0, 0.0, 1.0,		0.1243, 0.0455, 0.1193, 0.0, 180.0, 0.0, 1.0,		0.0, 0.0, 270.0, -1.0,			1, TYPE_FOOD, false,	"Apple~n~juice", "Jus de~n~pomme", "Espagnol", "Portugais", "Italien", "Apfelsaft"},
 	{19585,		0.0, 0.0, 0.0, 1.0,		0.0837, -0.0482, 0.0, 90.0, 270.0, 0.0, 0.7,		0.0, 0.0, 0.0, -0.759,			3, TYPE_FOOD, false,	"Fish soup", "Soupe au~n~poisson", "Espagnol", "Portugais", "Minestre~n~di pesce", "Fischsuppe"},//120
@@ -208,7 +207,7 @@ static aObjects[MAX_ITEMS][ObjectsInfos] =
  	{19904, 	0.0, 270.0, 0.0, 1.0,	0.2796, 0.0, 0.0, 0.0, 180.0, 0.0, 1.0,				0.0, 0.0, 0.0, -1.0118,			10, TYPE_CLOTHE, false,	"Rain Coat", "Gilet thermique", "Espagnol", "Portugais", "Italien", "Wasserdichtweste"},
  	{1210, 		0.0, 0.0, 0.0, 1.0,		0.2873, 0.107, 0.0807, 0.0, 253.1701, 0.0, 1.0,		0.0, 0.0, 0.0, -0.8519,			10, TYPE_CLOTHE, false,	"Suitcase", "Valise", "Espagnol", "Portugais", "Italien", "Allemand"},
  	{19279,		0.0, 0.0, 0.0, 1.0,		0.0, 0.15, 0.2, 0.0, 110.0, 0.0, 1.0,				0.0, 90.0, 0.0, -0.7559,		4, TYPE_TOOL, true,		"Light", "Lampe", "Espagnol", "Portugais", "Italien", "Lampe"},
-	{343,		0.0, 0.0, 60.0, 1.0,	0.0332, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0,		0.0, 0.0, 100.0, -0.792,		3, TYPE_WEAP, false,	"Tear gas", "LacrymogÃ¨ne", "Espagnol", "Portugais", "Italien", "Allemand"},
+	{343,		0.0, 0.0, 60.0, 1.0,	0.0332, -0.0053, -0.0065, 0.0, 0.0, 0.0, 1.0,		0.0, 0.0, 100.0, -0.792,		3, TYPE_WEAP, false,	"Tear gas", "Lacrymogène", "Espagnol", "Portugais", "Italien", "Allemand"},
 	{2247,		0.0, 0.0, 0.0, 1.0, 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,					0.0, 0.0, 0.0, -0.5359,			1, TYPE_OTHER, false, 	" ", " ", "Espagnol", "Portugais", "Italien", "Allemand"},
 	{857,		0.0, 0.0, 0.0, 1.0,		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3,					0.0, 0.0, 0.0, -0.653,/*-0.407*/1, TYPE_OTHER, false,	"Belladonna", "Belladone", "Belladonna", "Portugais", "Italien", "Tollkirsche"},//140
 	{19106, 	0.0, 270.0, 0.0, 1.0,	0.185, 0.0804, 0.0, 0.0, 0.0, 90.0, 1.0,			0.0, 270.0, 0.0, -0.961, 		5, TYPE_CLOTHE,	false,	"Shot soldier~n~helmet", "Casque troue~n~militaire", "Espagnol", "Portugais", "Italien", "Zerschossene~n~soldatenhelm"},
@@ -244,7 +243,7 @@ public OnFilterScriptInit()
         for(new i = 0; i < sizeof(aObjects); i++)
         {
             new mysqlquery[1024];
-            mysql_format(dbMYSQL, mysqlquery, sizeof(mysqlquery), "INSERT INTO Object (idmodel,orotx,oroty,orotz,ozoom,ohoffsetx,ohoffsety,ohoffsetz,ohrotx,ohroty,ohrotz,ohoffzoom,ogroundrotx,ogroundroty,ogroundrotz,ogroundoffsetz,sellprice,typeobject,heavy,name_en,name_fr,name_es,name_pg,name_it,name_de) VALUES(%d", _:aObjects[i][0]);
+            mysql_format(dbMYSQL, mysqlquery, sizeof(mysqlquery), "INSERT INTO `object` (idmodel,orotx,oroty,orotz,ozoom,ohoffsetx,ohoffsety,ohoffsetz,ohrotx,ohroty,ohrotz,ohoffzoom,ogroundrotx,ogroundroty,ogroundrotz,ogroundoffsetz,sellprice,typeobject,heavy,name_en,name_fr,name_es,name_pg,name_it,name_de) VALUES(%d", _:aObjects[i][0]);
             for(new j = 1; j < 19; j++)
             {
                 new little_query[64];

@@ -18909,7 +18909,7 @@ public OnPlayerEnterRaceCheckpoint(playerid)
 			//---
 		 	SetVehicleVelocity(GetPlayerVehicleID(playerid), 0.0, 0.0, 0.0);
 			OnCinematicGoesOn(playerid, 0, 8, pMissionInfos[playerid][dInfo][0]);
-			CallRemoteFunction("GiveStationFuel", "ii", dStation, 10000);
+			CallRemoteFunction("GiveStationFuelEx", "ii", dStation, 10000);
 		}
 	    case MISSION_LIGHT_UP_BACK://Light up the livid dead
 		{

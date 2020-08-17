@@ -672,6 +672,10 @@ forward OnSeatsLoaded();
 forward OnBoardsLoaded();
 forward OnFurnituresLoaded();
 forward OnGunRacksLoaded();
+forward OnFridgesLoaded();
+forward OnDataObjectsLoaded();
+forward OnSafesLoaded();
+forward OnCollectorsLoaded();
 #endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
@@ -811,6 +815,7 @@ forward ShowPlayerBloodScreen(playerid, step);
 forward ExplodeBomb(bombid);
 forward GetBombMission(bombid);
 forward CreateBomb(type, time, vehicleid, Float:x, Float:y, Float:z, Float:angle, load, missionid);
+forward GiveStationFuelEx(stationid, fuel);
 forward GiveStationFuel(Pointer:stationid, fuel);
 forward GetStationFuel(Pointer:stationid);
 forward GetPlayerLanguage(playerid);
@@ -1044,7 +1049,8 @@ enum SafeInfos
 	Float:ySafe,
 	Float:zSafe,
 	Float:aSafe,
-	dItem[12]
+	dItem[12],
+	dSafeID
 }
 
 enum GunRackInfo
@@ -1070,7 +1076,8 @@ enum FridgeInfo
 	Float:zFridge,
 	Float:aFridge,
 	dFood[5],
-	dFoodAmount[5]
+	dFoodAmount[5],
+	fridgeID
 }
 
 enum Zombie
@@ -1327,7 +1334,8 @@ enum Collecteur
 	Float:xEau,
 	Float:yEau,
 	Float:zEau,
-	Float:aEau
+	Float:aEau,
+	dCollectorID
 }
 
 enum Broyeur
@@ -1449,7 +1457,7 @@ new Text:tBloodSplat;
 //
 new pUseInventory[MAX_PLAYERS] = {-1, ...};
 new pVehicleInventory[MAX_PLAYERS] = {-1, ...};
-new pCreateSafe[MAX_PLAYERS] = {-1, ...};//Création de mot de passe pour le coffre fort
+new Pointer:pCreateSafe[MAX_PLAYERS];//Création de mot de passe pour le coffre fort
 new pBed[MAX_PLAYERS] = {-1, ...};
 new Pointer:pSeat[MAX_PLAYERS];
 new Pointer:pBoard[MAX_PLAYERS];
@@ -1458,8 +1466,8 @@ new pBrasero[MAX_PLAYERS] = {-1, ...};
 new pShredder[MAX_PLAYERS] = {-1, ...};
 //---
 new Pointer:pGunRack[MAX_PLAYERS];
-new pFridge[MAX_PLAYERS] = {-1, ...};
-new pPlayerSafe[MAX_PLAYERS] = {-1, ...};
+new Pointer:pFridge[MAX_PLAYERS];
+new Pointer:pPlayerSafe[MAX_PLAYERS];
 new dInfoTimer[MAX_PLAYERS];
 new dHelpTimer[MAX_PLAYERS];
 new pChooseSkin[MAX_PLAYERS];
@@ -1559,6 +1567,9 @@ new pAroundItems[MAX_PLAYERS][9][2];
 new dUsingItem[MAX_PLAYERS] = {-1, ...};
 new pAcc[MAX_PLAYERS][10][AccessoriesInfos];
 new dBomb[MAX_BOMBS][Bomb];
+#if defined MYSQL_SYSTEM
+new aObjects[MAX_ITEMS][ObjectsInfos];
+#else
 new aObjects[MAX_ITEMS][ObjectsInfos] =
 {   //ID OBJET	//AFFICHAGE             //DANS LA MAIN                          			//POSITION AU SOL   			//PRIX-HDV				//NOM OBJET
 	{19300, 	0.0, 0.0, 0.0, 1.0, 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 					0.0, 0.0, 0.0, 0.0, 			0, TYPE_NOSELL,	false,	"Nothing", "Rien", "Nada", "Nada", "Niente", "Nichts"},//0
@@ -1737,7 +1748,7 @@ new aObjects[MAX_ITEMS][ObjectsInfos] =
 	{918, 		0.0, 0.0, 0.0, 1.0,		0.029, 0.0413, -0.4417, 0.0, 180.0, 0.0, 0.3,		0.0, 0.0, 0.0, -0.6,			10, TYPE_TOOL,	false,	"Compressor", "Compresseur", "Espagnol", "Portugais", "Italien", "Allemand"},
 	{964,		0.0, 0.0, 0.0, 1.0,		0.2, 0.0, 0.1, 280.0, 0.0, 20.0, 0.5,				0.0, 0.0, 0.0, -0.1,			0, TYPE_OTHER, true,	"Return to~n~sender", "Retour a~n~l'envoyeur", "Espagnol", "Portugais", "Italien", "Allemand"}
 };
-
+#endif
 public GetObjectName(playerid, objectid, language)
 {
 	switch(language)
@@ -1780,8 +1791,45 @@ new bool:bKick[MAX_PLAYERS];
 new dMaxPlayers = -1;
 new dCheatersBusted = 0;
 
-//---ENVIRONNEMENT
+//---ENVIRONNEMENT & DATA OBJECTS
 #if defined MYSQL_SYSTEM
+public OnDataObjectsLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			cache_get_value_name_int(i, "idmodel", aObjects[i][ObjectModelID]);
+			cache_get_value_name_float(i, "orotx", aObjects[i][ObjectRotX]);
+			cache_get_value_name_float(i, "oroty", aObjects[i][ObjectRotY]);
+			cache_get_value_name_float(i, "orotz", aObjects[i][ObjectRotZ]);
+			cache_get_value_name_float(i, "ozoom", aObjects[i][ObjectZoom]);
+			cache_get_value_name_float(i, "ohoffsetx", aObjects[i][HandOffSetX]);
+			cache_get_value_name_float(i, "ohoffsety", aObjects[i][HandOffSetY]);
+			cache_get_value_name_float(i, "ohoffsetz", aObjects[i][HandOffSetZ]);
+			cache_get_value_name_float(i, "ohrotx", aObjects[i][HandRotX]);
+			cache_get_value_name_float(i, "ohroty", aObjects[i][HandRotY]);
+			cache_get_value_name_float(i, "ohrotz", aObjects[i][HandRotZ]);
+			cache_get_value_name_float(i, "ohoffzoom", aObjects[i][HandZoom]);
+			cache_get_value_name_float(i, "ogroundrotx", aObjects[i][GroundRotX]);
+			cache_get_value_name_float(i, "ogroundroty", aObjects[i][GroundRotY]);
+			cache_get_value_name_float(i, "ogroundrotz", aObjects[i][GroundRotZ]);
+			cache_get_value_name_float(i, "ogroundoffsetz", aObjects[i][GroundOffSetZ]);
+			cache_get_value_name_int(i, "sellprice", aObjects[i][dSellPrice]);
+			cache_get_value_name_int(i, "typeobject", aObjects[i][dObjectType]);
+			cache_get_value_name_bool(i, "heavy", aObjects[i][bHeavy]);
+			cache_get_value_name(i, "name_en", aObjects[i][ObjectEnName]);
+			cache_get_value_name(i, "name_fr", aObjects[i][ObjectFrName]);
+			cache_get_value_name(i, "name_es", aObjects[i][ObjectEsName]);
+			cache_get_value_name(i, "name_pg", aObjects[i][ObjectPgName]);
+			cache_get_value_name(i, "name_it", aObjects[i][ObjectItName]);
+			cache_get_value_name(i, "name_de", aObjects[i][ObjectDeName]);
+			LogInfo(true, "[%d] - %s", i, aObjects[i][ObjectFrName]);
+		}
+	}
+	LogInfo(true, "[INIT] Donnees de %d objets chargees !", cache_num_rows());
+	return 1;
+}
 public 	OnEnvironmentLoaded()
 {
 	if(cache_num_rows() == 1)
@@ -1792,6 +1840,9 @@ public 	OnEnvironmentLoaded()
 		cache_get_value_name_int(0, "weather", dEnvironment[dMeteo]);
 		cache_get_value_name_int(0, "timeweather", dEnvironment[dMeteoTime]);
 		cache_get_value_name_int(0, "cheatersbusted", dCheatersBusted);
+		SetWorldTime(dEnvironment[dHours]);
+		ChangeWeather(dEnvironment[dMeteo], dEnvironment[dMeteoTime]);
+		ChangeHostName();
 		LogInfo(true, "[INIT] Infos generales d'environnements chargees !");
 	}
 	else
@@ -5813,17 +5864,32 @@ public GetStationFuel(Pointer:stationid)
 	return dGasStation[stationid][dStationGas];
 	#endif
 }
-
+public GiveStationFuelEx(stationid, fuel)
+{
+	new idx = 0, Pointer: res;
+	LIST_foreach(data_ptr : gasStationsList)
+	{
+		if(stationid == idx)
+		{
+			res = data_ptr;
+			break;
+		}
+		idx++;
+	}
+	return GiveStationFuel(res, fuel);
+}
 public GiveStationFuel(Pointer:stationid, fuel)//Pour donner de l'essence ou en enlever d'une station essence
 {
 	#if defined MYSQL_SYSTEM
-//	new ListIt: node = GetNodeAt(gasStationsList, stationid);
-	new gas[GasStation];
+	new gas[GasStation], query[256];
 	MEM_get_arr(stationid, _, gas);
 	if(gas[dStationGas] + fuel > 38000) gas[dStationGas] = 38000;//Si ça devient supérieur à 100, on lui met à 100
 	else if(gas[dStationGas] + fuel < 0) gas[dStationGas] = 0;//Si ça devient inférieur à 0, on lui met à 0
     else gas[dStationGas] += fuel;//Sinon, on respecte la consigne originale
 	UpdateGasStationInfo(gas);
+	MEM_set_arr(stationid, _, gas);
+	mysql_format(mysqlPool, query, sizeof(query), "UPDATE `gasstation` SET quantite = %d WHERE idstation = %d", gas[dStationGas], gas[gasID]);
+	mysql_tquery(mysqlPool, query);
 	return gas[dStationGas];
 	#else
 	if(dGasStation[stationid][dStationGas] + fuel > 38000) dGasStation[stationid][dStationGas] = 38000;//Si ça devient supérieur à 100, on lui met à 100
@@ -6000,8 +6066,8 @@ public GivePlayerSlotObject(playerid, objectid, slot)
 		}
 	    case 44 .. 55:
 		{
-			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s du coffre %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]), pPlayerSafe[playerid]);
-			else LogInfo(true, "[ADMIN]%s met %s dans le coffre %d.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]), pPlayerSafe[playerid]);
+			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s d'un coffre'.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]));
+			else LogInfo(true, "[ADMIN]%s met %s dans un coffre.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]));
 			GivePlayerSafeObject(playerid, pPlayerSafe[playerid], objectid, slot - 44);
 		}
 	}
@@ -8297,6 +8363,165 @@ ClearMarkers()
 }
 
 //---FRIGO
+//---FRIGO
+#if defined MYSQL_SYSTEM
+new List: fridgeList;
+stock Pointer: CreateFridge(Float:x, Float:y, Float:z, Float:angle, id = -1)
+{
+	new fridge[FridgeInfo];
+	new Pointer: res;
+	fridge[bFridge] = true;
+	fridge[xFridge] = x;
+	fridge[yFridge] = y;
+	fridge[zFridge] = z;
+	fridge[aFridge] = angle;
+	fridge[oFridge] = CreateDynamicObject(2144, x, y, z - 1.0, 0.0, 0.0, angle, -1, -1, -1, 25.0, 20.0);
+	fridge[fridgeID] = id;
+	if(id == -1)
+	{
+		new string[512], Cache: result;
+		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertFridge`(%f, %f, %f, %f, '')", x, y, z, angle);
+		result = mysql_query(mysqlPool, string);
+		cache_set_active(result);
+		cache_get_value_name_int(0, "nextID", fridge[fridgeID]);
+		cache_delete(result);
+	}
+	LIST_push_back_arr(fridgeList, fridge);
+	LIST_iter_end(fridgeList, res);
+	return res;
+}
+public OnFridgesLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new fridgeid, Pointer: pt;
+			new Float:x, Float:y, Float:z, Float:a, content[64], tuples[5][10];
+			cache_get_value_name_int(i, "idfridge", fridgeid);
+			cache_get_value_name_float(i, "xfridge", x);
+			cache_get_value_name_float(i, "yfridge", y);
+			cache_get_value_name_float(i, "zfridge", z);
+			cache_get_value_name_float(i, "afridge", a);
+			cache_get_value_name(i, "content", content);
+			pt = CreateFridge(x, y, z, a, fridgeid);
+			strexplode(tuples, content, " ");
+			for(new idx = 0; idx < 5; idx++)
+			{
+				new indexDelimiter = strfind(tuples[idx], ",");
+				new food[4], amount[4];
+				strmid(food, tuples[idx], 0, indexDelimiter);
+				strmid(amount, tuples[idx], indexDelimiter + 1, strlen(tuples[idx]));
+				AddFridgeFood(pt, strval(food), strval(amount), true);
+			}		
+		}
+	}
+	LogInfo(true, "[INIT] %d frigos charges", cache_num_rows());
+	return 1;
+}
+AddFridgeFood(Pointer:fridgeid, food, amount, bool:loading = false)
+{
+	new fridge[FridgeInfo];
+	new slotid = HasFridgeFood(fridgeid, food);
+	MEM_get_arr(fridgeid, _, fridge);
+	if(slotid == -1)
+	{
+		slotid = GetFridgeNextFreeSlot(fridgeid);
+		if(slotid != -1)
+		{
+			fridge[dFood][slotid] = food;
+			fridge[dFoodAmount][slotid] += amount;
+		}
+	}
+	else
+	{
+		fridge[dFoodAmount][slotid] += amount;
+		if(fridge[dFoodAmount][slotid] == 0)
+		{
+			fridge[dFood][slotid] = 0;
+		}
+	}
+	if(!loading)
+	{
+		new query[256], string[64];
+		for(new i = 0; i < 5; i++)
+		{
+			new tmp[10];
+			format(tmp, sizeof(tmp), "%d,%d ", fridge[dFood][i], fridge[dFoodAmount][i]);
+			strcat(string, tmp);
+		}
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `fridge` SET content = \"%s\" WHERE idfridge = %d", string, fridge[fridgeID]);
+		mysql_tquery(mysqlPool, query);
+	}
+	MEM_set_arr(fridgeid, _, fridge);
+	return fridge[dFoodAmount][slotid];
+}
+DestroyFridge(Pointer:fridgeid)
+{
+	new fridge[FridgeInfo], query[256];
+	MEM_get_arr(fridgeid, _, fridge);
+	DestroyDynamicObject(fridge[oFridge]);
+	LIST_remove_arr(fridgeList, fridge);
+	fridge[oFridge] = INVALID_OBJECT_ID;
+	for(new i = 0; i < 5; i ++)
+	{
+	    if(fridge[dFood][i] != 0)
+	    {
+			fridge[dFood][i] = 0;
+			fridge[dFoodAmount][i] = 0;
+		}
+	}
+	fridge[xFridge] = 0.0;
+	fridge[yFridge] = 0.0;
+	fridge[zFridge] = 0.0;
+	fridge[aFridge] = 0.0;
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `fridge` WHERE idfridge = %d", fridge[fridgeID]);
+	mysql_tquery(mysqlPool, query);
+}
+HasFridgeFood(Pointer:fridgeid, food)
+{
+	new fridge[FridgeInfo];
+	MEM_get_arr(fridgeid, _, fridge);
+	for(new i = 0; i < 5; i ++) if(fridge[dFood][i] == food) return i;
+	return -1;
+}
+GetFridgeFood(Pointer:fridgeid, slotid, &food, &amount)
+{
+	new fridge[FridgeInfo];
+	MEM_get_arr(fridgeid, _, fridge);
+	if(4 >= slotid >= 0)
+	{
+		food = fridge[dFood][slotid];
+		amount = fridge[dFoodAmount][slotid];
+	}
+}
+
+Pointer:IsPlayerNearFridge(playerid)
+{
+	new Float:x, Float:y, Float:z, Float:fTrash;
+	GetPlayerPos(playerid, x, y, z);
+	LIST_foreach(data_ptr : fridgeList)
+	{
+		new fridge[FridgeInfo];
+		MEM_get_arr(data_ptr, _, fridge);
+		if(fridge[bFridge] && IsPlayerInRangeOfPoint(playerid, 1.5, fridge[xFridge], fridge[yFridge], fridge[zFridge]))
+		{
+			if(CA_RayCastLine(x, y, z, fridge[xFridge], fridge[yFridge], fridge[zFridge], fTrash, fTrash, fTrash) != 0) continue;
+			return data_ptr;
+		}
+	}
+	return MEM_NULLPTR;
+}
+
+GetFridgeNextFreeSlot(Pointer:fridgeid)
+{
+	new fridge[FridgeInfo];
+	MEM_get_arr(fridgeid, _, fridge);
+	if(IsNull(fridgeid)) return -1;
+	for(new i = 0; i < 5; i ++) if(fridge[dFood][i] == 0) return i;
+	return -1;
+}
+#else
 CreateFridge(Float:x, Float:y, Float:z, Float:angle, load = -1)
 {
 	static slotid;
@@ -8470,7 +8695,7 @@ SaveFridges()
 	}
 	INI_Close(File);
 }
-
+#endif
 //---ÉTAGÈRES ARMES---//
 #if defined MYSQL_SYSTEM
 new List: gunrackList;
@@ -8914,7 +9139,7 @@ stock Pointer: CreateBoard(Float:x, Float:y, Float:z, Float:angle, id = -1, cons
 	if(id == -1)
 	{
 		new string[512], Cache: result;
-		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertBoard`(%b, %f, %f, %f, %f, \"%e\")", board[bBoard], x, y, z, angle, text);
+		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertBoard`(%b, %f, %f, %f, %f, \"%e\")", board[bBoard], x, y, z, board[aBoard], text);
 		result = mysql_query(mysqlPool, string);
 		cache_set_active(result);
 		cache_get_value_name_int(0, "nextID", board[boardID]);
@@ -9119,6 +9344,178 @@ SaveBoards()
 }
 #endif
 //---COFFRES FORTS---//
+#if defined MYSQL_SYSTEM
+new List: safeList;
+stock Pointer: CreateSafe(Float:x, Float:y, Float:z, Float:angle, id = -1)
+{
+	new safe[SafeInfos], Pointer: res;
+	safe[bSafe] = true;
+	safe[bOpenSafe] = false;
+	safe[xSafe] = x;
+	safe[ySafe] = y;
+	safe[zSafe] = z;
+	safe[aSafe] = angle;
+
+    angle += 119.01892652;
+	safe[oSafe][0] = CreateDynamicObject(19618, x, y, z - 0.539, 0.0, 0.0, angle - 119.01892652, -1, -1, -1, 25.0, 20.0);
+	safe[oSafe][1] = CreateDynamicObject(19619, x + (0.4128 * floatsin(-angle, degrees)), y + (0.4128 * floatcos(-angle, degrees)), z - 0.539, 0.0, 0.0, angle - 119.01892652, -1, -1, -1, 25.0, 20.0);
+	safe[dSafeID] = id;
+	if(id == -1)
+	{
+		new string[512], Cache: result;
+		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertSafe`(%f, %f, %f, %f)", x, y, z, safe[aSafe]);
+		result = mysql_query(mysqlPool, string);
+		cache_set_active(result);
+		cache_get_value_name_int(0, "nextID", safe[dSafeID]);
+		cache_delete(result);
+	}
+	LIST_push_back_arr(safeList, safe);
+	LIST_iter_end(safeList, res);
+	return res;
+}
+public OnSafesLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new Float:x, Float:y, Float:z, Float:a, safeid, Pointer: pt, content[64], itemsExploded[12][4], safeCreated[SafeInfos];
+			cache_get_value_name_int(i, "idsafe", safeid);
+			cache_get_value_name_float(i, "xsafe", x);
+			cache_get_value_name_float(i, "ysafe", y);
+			cache_get_value_name_float(i, "zsafe", z);
+			cache_get_value_name_float(i, "asafe", a);
+			cache_get_value_name(i, "content", content);
+			pt = CreateSafe(x, y, z, a, safeid);
+			MEM_get_arr(pt, _, safeCreated);
+			strexplode(itemsExploded, content, " ");
+			for(new j = 0; j < 12; j++)
+				safeCreated[dItem][j] = strval(itemsExploded[i]);
+			MEM_set_arr(pt, _, safeCreated);
+		}
+
+	}
+	LogInfo(true, "[INIT] %d coffres charges", cache_num_rows());
+	return 1;
+}
+DestroySafe(&Pointer:safeid)
+{
+	new safe[SafeInfos], query[256];
+	MEM_get_arr(safeid, _, safe);
+	DestroyDynamicObject(safe[oSafe][0]);
+	DestroyDynamicObject(safe[oSafe][1]);
+	LIST_remove_arr(safeList, safe);
+	safe[oSafe][0] = INVALID_OBJECT_ID;
+	safe[oSafe][1] = INVALID_OBJECT_ID;
+	for(new i = 0; i < 12; i ++) safe[dItem][i] = 0;
+	safe[xSafe] = 0.0;
+	safe[ySafe] = 0.0;
+	safe[zSafe] = 0.0;
+	safe[aSafe] = 0.0;
+	safeid = MEM_NULLPTR;
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `safe` WHERE idsafe = %d", 	safe[dSafeID]);
+	mysql_tquery(mysqlPool, query);
+	safe[dSafeID] = 0;
+}
+Pointer:IsPlayerNearSafe(playerid)
+{
+	new Float:x, Float:y, Float:z, Float:fTrash;
+	GetPlayerPos(playerid, x, y, z);
+	LIST_foreach(data_ptr : safeList)
+	{
+		new safe[SafeInfos];
+		MEM_get_arr(data_ptr, _, safe);
+		if(safe[bSafe] && IsPlayerInRangeOfPoint(playerid, 1.5, safe[xSafe], safe[ySafe], safe[zSafe]))
+		{
+			if(CA_RayCastLine(x, y, z, safe[xSafe], safe[ySafe], safe[zSafe], fTrash, fTrash, fTrash) != 0) continue;
+			return data_ptr;
+		}
+	}
+	return MEM_NULLPTR;
+}
+
+bool:IsSafeEmpty(Pointer:safeid)
+{
+	new safe[SafeInfos];
+	MEM_get_arr(safeid, _, safe);
+	for(new i = 0; i < 12; i ++) if(safe[dItem][i] != 0) return false;
+	return true;
+}
+
+ChangeSafeDoorState(Pointer:safeid, bool:open)
+{
+	new safe[SafeInfos];
+	MEM_get_arr(safeid, _, safe);
+	for(new i = 0, j = GetPlayerPoolSize(); i <= j; i ++) 
+		if(IsPlayerInRangeOfPoint(i, 20.0, safe[xSafe], safe[ySafe], safe[zSafe])) 
+			PlayerPlaySound(i, 11200, safe[xSafe], safe[ySafe], safe[zSafe]);
+	MoveDynamicObject(safe[oSafe][1], safe[xSafe] + (0.4128 * floatsin(-(safe[aSafe] + 119.01892652), degrees)), safe[ySafe] + (0.4128 * floatcos(-(safe[aSafe] + 119.01892652), degrees)), open ? safe[zSafe] - 0.539 : safe[zSafe] - 0.529, 0.005, 0.0, 0.0, open ? safe[aSafe] - 90.0 : safe[aSafe]);
+	safe[bOpenSafe] = open;
+	MEM_set_arr(safeid, _, safe);
+}
+
+GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid)//Fonction pour foutre un objet dans un coffre fort
+{
+
+	if(!IsNull(safeid))
+	{
+		new safe[SafeInfos];
+		MEM_get_arr(safeid, _, safe);
+		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
+		{
+		    if(playerid != INVALID_PLAYER_ID && safe[dItem][slotid] != 0) UpdateSafe(playerid, safeid, slotid, 0);
+			safe[dItem][slotid] = 0;
+		}
+		else
+		{
+			if(playerid != INVALID_PLAYER_ID && safe[dItem][slotid] != objectid) UpdateSafe(playerid, safeid, slotid, objectid);
+			safe[dItem][slotid] = objectid;
+		}
+		new string[64];
+		for(new i = 0; i < 12; i++)
+			format(string, sizeof(string), "%s%d ",string, safe[dItem][i]);
+		new query[256];
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `safe` SET content = \"%s\" WHERE idsafe = %d", string, safe[dSafeID]);
+		mysql_tquery(mysqlPool, query);
+		MEM_set_arr(safeid, _, safe);
+	}
+	return 1;
+}
+
+UpdateSafe(playerid, Pointer:safeid, slotid, objectid)//Fonction pour update une case du coffre fort
+{
+	if(!IsNull(safeid))
+	{
+		PlayerTextDrawSetPreviewModel(playerid, tSafe[playerid][slotid][0], aObjects[objectid][ObjectModelID]);
+		PlayerTextDrawSetPreviewRot(playerid, tSafe[playerid][slotid][0], aObjects[objectid][ObjectRotX], aObjects[objectid][ObjectRotY], aObjects[objectid][ObjectRotZ], aObjects[objectid][ObjectZoom]);
+		PlayerTextDrawSetSelectable(playerid, tSafe[playerid][slotid][0], true);
+		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][0]);
+		//---
+		if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
+		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
+		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
+		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
+		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectItName]);
+		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][1]);
+	}
+}
+
+GetPlayerSlotObject(playerid, slot)
+{
+	new safe[SafeInfos];
+	MEM_get_arr(pPlayerSafe[playerid], _, safe);
+	switch(slot)
+	{
+	    case 0, 37: return pPlayerInfos[playerid][HandObject];
+	    case 1 .. 36: return pPlayerInfos[playerid][BagObject][slot - 1];
+		case 38 .. 43: return (pVehicleInventory[playerid] != -1) ? dVehicleInfos[pVehicleInventory[playerid]][TrunkObject][slot - 38] : 0;
+	    case 44 .. 55: return (!IsNull(pPlayerSafe[playerid]) ? safe[dItem][slot - 44] : 0);
+	}
+	return 0;
+}
+
+#else
 CreateSafe(Float:x, Float:y, Float:z, Float:angle, load = -1)
 {
 	static slotid;
@@ -9307,7 +9704,7 @@ SaveSafes()
 	}
 	INI_Close(File);
 }
-
+#endif
 //---MOBS
 //JOHNS
 public CreateJohn(id)
@@ -14380,6 +14777,122 @@ GetFurnitureObjectID(furnid, bool:item)
 	return 0;
 }
 //---COLLECTEURS D'EAU
+#if defined MYSQL_SYSTEM
+new List: collectorList;
+stock Pointer:CreateCollector(Float:x, Float:y, Float:z, Float:angle, water, id = -1)
+{
+	new collector[Collecteur], Pointer: res;
+	//---
+	collector[oCollector][0] = CreateDynamicObject(3134, x, y, z - 0.4619, 90.0, 0.0, angle);
+	collector[oCollector][1] = CreateDynamicObject(18633, x, y, z + 0.2581, 90.0, 180.0, angle);
+	SetDynamicObjectMaterial(collector[oCollector][0], 0, 17067, "cw2_logcabins", "cw2_logwall", 0xFFFFFFFF);
+	//---
+	collector[CollectorText] = CreateDynamic3DTextLabel("0.0 l", BLEU, x, y, z, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 5.0);
+	//---
+	collector[xEau] = x;
+	collector[yEau] = y;
+	collector[zEau] = z;
+	collector[aEau] = angle;
+	collector[dEau] = water;
+	collector[dCollectorID] = id;
+	//---
+	if(id == -1)
+	{
+		new string[512], Cache: result;
+		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertCollector`(%f, %f, %f, %f)", x, y, z, angle);
+		result = mysql_query(mysqlPool, string);
+		cache_set_active(result);
+		cache_get_value_name_int(0, "nextID", collector[dCollectorID]);
+		cache_delete(result);
+	}
+	LIST_push_back_arr(collectorList, collector);
+	LIST_iter_end(collectorList, res);
+	return res;
+}
+
+GiveCollectorWater(Pointer: collectorid, water, loading = false)
+{
+	new string[10], collector[Collecteur];
+	MEM_get_arr(collectorid, _, collector);
+    if(collector[dEau] + water < 0) collector[dEau] = 0;//Si la flotte est inférieure à 0, on la met à 0 l
+	else if(collector[dEau] + water > 100) collector[dEau] = 100;//Si la flotte devient supérieure à 10 l, on la met à 10
+    else collector[dEau] += water;//Sinon, c'est bon
+    format(string, sizeof(string), "%.1f l", floatdiv(collector[dEau], 10));
+    UpdateDynamic3DTextLabelText(collector[CollectorText], BLEU, string);
+	MEM_set_arr(collectorid, _, collector);
+	if(!loading)
+	{
+		new query[256];
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `collector` SET water = %d WHERE idcollector = %d", collector[dEau], collector[dCollectorID]);
+		mysql_tquery(mysqlPool, query);
+	}
+	return collector[dEau];
+}
+
+GetCollectorWater(Pointer:collectorid)
+{
+	new collector[Collecteur];
+	MEM_get_arr(collectorid, _, collector);
+	return collector[dEau];
+}
+
+Pointer: IsPlayerNearCollector(playerid)
+{
+	LIST_foreach(data_ptr : collectorList)
+	{
+		new collector[Collecteur];
+		MEM_get_arr(data_ptr, _, collector);
+		if(collector[dEau] != -1 && IsPlayerInRangeOfPoint(playerid, 2.0, collector[xEau], collector[yEau], collector[zEau])) 
+			return data_ptr;
+
+	} 	
+	return MEM_NULLPTR;
+}
+
+DestroyCollector(&Pointer:collectid)
+{
+	new collector[Collecteur], query[256];
+	MEM_get_arr(collectid, _, collector);
+	DestroyDynamicObject(collector[oCollector][0]);
+	DestroyDynamicObject(collector[oCollector][1]);
+	DestroyDynamic3DTextLabel(collector[CollectorText]);
+	LIST_remove_arr(collectorList, collector);
+	collector[oCollector][0] = INVALID_OBJECT_ID;
+	collector[oCollector][1] = INVALID_OBJECT_ID;
+	collector[CollectorText] = Text3D:INVALID_3DTEXT_ID;
+	collector[dEau] = 0;
+	collector[xEau] = 0.0;
+	collector[yEau] = 0.0;
+	collector[zEau] = 0.0;
+	collector[aEau] = 0.0;
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `collector` WHERE idcollector = %d", collector[dCollectorID]);
+	mysql_tquery(mysqlPool, query);
+	collector[dCollectorID] = 0;
+	collectid = MEM_NULLPTR;
+}
+
+public OnCollectorsLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new Float:x, Float:y, Float:z, Float:a, collectorid, Pointer:pt, water;
+			cache_get_value_name_int(i, "idcollector", collectorid);
+			cache_get_value_name_float(i, "xcollector", x);
+			cache_get_value_name_float(i, "ycollector", y);
+			cache_get_value_name_float(i, "zcollector", z);
+			cache_get_value_name_float(i, "acollector", a);
+			cache_get_value_name_int(i, "water", water);
+			pt = CreateCollector(x, y, z, a, collectorid);
+			GiveCollectorWater(pt, water, true);
+		}
+
+	}
+	LogInfo(true, "[INIT] %d collecteurs d'eau charges", cache_num_rows());
+	return 1;
+}
+#else
 CreateCollector(Float:x, Float:y, Float:z, Float:angle, water, load = -1)
 {
 	static slotid;
@@ -14493,7 +15006,7 @@ SaveCollectors()
 	}
 	INI_Close(File);
 }
-
+#endif
 //---BROYEUR
 CreateShredder(Float:x, Float:y, Float:z, Float:angle, shredstate, load = -1)
 {
@@ -15138,6 +15651,23 @@ CheckItemsRoundPlayer(playerid)
 		}
 	}
 	//---COLLECTEURS D'EAU
+	#if defined MYSQL_SYSTEM
+	LIST_foreach(data_ptr : collectorList)
+	{
+		new collector[Collecteur];
+		MEM_get_arr(data_ptr, _, collector);
+		if(dSlot == 9) break;
+		if(collector[dEau] == -1) continue;
+		if(IsPlayerInRangeOfPoint(playerid, 3.0, collector[xEau], collector[yEau], collector[zEau]))
+		{
+			if(CA_RayCastLine(x, y, z, collector[xEau], collector[yEau], collector[zEau], fTrash, fTrash, fTrash) != 0) continue;
+		    //pAroundItems[playerid][dSlot][0] = i;
+			nodeFound[playerid][dSlot] = data_ptr;
+		    pAroundItems[playerid][dSlot][1] = 4;
+			dSlot ++;
+		}
+	}
+	#else
 	for(new i = 0; i < MAX_COLLECTORS; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -15150,7 +15680,25 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---COFFRES FORTS
+	#if defined MYSQL_SYSTEM
+	LIST_foreach(data_ptr : safeList)
+	{
+		new safe[SafeInfos];
+		MEM_get_arr(data_ptr, _, safe);
+		if(dSlot == 9) break;
+		if(!safe[bSafe]) continue;
+		if(IsPlayerInRangeOfPoint(playerid, 3.0, safe[xSafe], safe[ySafe], safe[zSafe]))
+		{
+			if(CA_RayCastLine(x, y, z, safe[xSafe], safe[ySafe], safe[zSafe], fTrash, fTrash, fTrash) != 0) continue;
+		    //pAroundItems[playerid][dSlot][0] = i;
+			nodeFound[playerid][dSlot] = data_ptr;
+		    pAroundItems[playerid][dSlot][1] = 5;
+			dSlot ++;
+		}
+	}
+	#else
 	for(new i = 0; i < MAX_SAFES; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -15163,6 +15711,7 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---LINGOTS D'OR
 	#if defined MYSQL_SYSTEM
 	LIST_foreach(data_ptr : goldList)
@@ -15214,7 +15763,7 @@ CheckItemsRoundPlayer(playerid)
 		new gunrack[GunRackInfo];
 		MEM_get_arr(data_ptr, _, gunrack);
 		if(dSlot == 9) break;
-	    if(gunrack[bRack]) continue;
+	    if(!gunrack[bRack]) continue;
 	    if(IsPlayerInRangeOfPoint(playerid, 3.0, gunrack[xRack], gunrack[yRack], gunrack[zRack]))
 		{
 			if(CA_RayCastLine(x, y, z, gunrack[xRack], gunrack[yRack],gunrack[zRack], fTrash, fTrash, fTrash) != 0) continue;
@@ -15318,6 +15867,23 @@ CheckItemsRoundPlayer(playerid)
 	}
 	#endif
 	//---FRIDGES
+	#if defined MYSQL_SYSTEM
+	LIST_foreach(data_ptr : fridgeList)
+	{
+		new fridge[FridgeInfo];
+		MEM_get_arr(data_ptr, _, fridge);
+	    if(dSlot == 9) break;
+	    if(!fridge[bFridge]) continue;
+	    if(IsPlayerInRangeOfPoint(playerid, 3.0, fridge[xFridge], fridge[yFridge], fridge[zFridge]))
+		{
+			if(CA_RayCastLine(x, y, z, fridge[xFridge], fridge[yFridge], fridge[zFridge], fTrash, fTrash, fTrash) != 0) continue;
+		    //pAroundItems[playerid][dSlot][0] = i;
+			nodeFound[playerid][dSlot] = data_ptr;
+		    pAroundItems[playerid][dSlot][1] = 12;
+			dSlot ++;
+		}
+	}
+	#else
 	for(new i = 0; i < MAX_FRIDGES; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -15330,6 +15896,7 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---
 	if(dSlot == 0 && CallRemoteFunction("GetPlayerMission", "i", playerid) != MISSION_FLIGHT_INTRO)//S'il n'y a pas d'objet près du mec
 	{
@@ -15467,30 +16034,32 @@ CheckItemsRoundPlayer(playerid)
 			#else
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerSlotObject(playerid, 95, dFreeSlot);
-        	DestroyCollector(pAroundItems[playerid][0][0]);
+        	DestroyCollector(nodeFound[playerid][0]);
 			#endif
 	    }
 	    else if(pAroundItems[playerid][0][1] == 5)//Si cet objet est un coffre fort
 	    {
+			new safe[SafeInfos];
+			MEM_get_arr(nodeFound[playerid][0], _, safe);
 	        new dFreeSlot = GetPlayerNextFreeSlot(playerid);
 	        if(dFreeSlot == -1)
 	        {
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "O senhor não pode carregar mais objetos", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
-	        if(!dSafeInfos[pAroundItems[playerid][0][0]][bOpenSafe])
+	        if(!safe[bOpenSafe])
 	        {
 	            ShowPlayerTextInfo(playerid, 5000, "~r~Open the safe before you pick it up.", "~r~Ouvrez ce coffre avant de le ramasser.", "Espagnol", "O senhor tem que abrir essa caixa forte antes de apanha-lo !", "Italien", "Allemand");
 	            return 1;
 	        }
-	        if(!IsSafeEmpty(pAroundItems[playerid][0][0]))
+	        if(!IsSafeEmpty(nodeFound[playerid][0]))
 	        {
 	            ShowPlayerTextInfo(playerid, 5000, "~r~Take all the items out before you pick the safe up.", "~r~Videz ce coffre avant de le ramasser.",  "Espagnol", "O senhor tem que esvaziar este cofre antes de apanha-lo.", "Italien", "Allemand");
 	            return 1;
 	        }
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerSlotObject(playerid, 97, dFreeSlot);
-        	DestroySafe(pAroundItems[playerid][0][0]);
+        	DestroySafe(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 6)//Si cet objet est de l'or
 	    {
@@ -15609,7 +16178,7 @@ CheckItemsRoundPlayer(playerid)
 			#else
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerSlotObject(playerid, 130, dFreeSlot);
-	     	DestroyFridge(pAroundItems[playerid][0][0]);
+	     	DestroyFridge(nodeFound[playerid][0]);
 			#endif
 	    }
 	}
@@ -17094,13 +17663,13 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				return 1;
 			}
 			//---
-		    new dCollectorID = IsPlayerNearCollector(playerid);
 		    new Pointer:dStation = IsPlayerNearGasStation(playerid);
-			if(dCollectorID != -1)
+			new Pointer:CollectorID = IsPlayerNearCollector(playerid);
+			if(!IsNull(CollectorID))
 		    {
-		        if(GetCollectorWater(dCollectorID) >= 3)
+		        if(GetCollectorWater(CollectorID) >= 3)
 		        {
-			        GiveCollectorWater(dCollectorID, -3);
+			        GiveCollectorWater(CollectorID, -3);
 					GivePlayerSlotObject(playerid, 81, slot);
 					return 1;
 				}
@@ -17836,11 +18405,13 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				return 1;
 			}
 			//---
+			new safe[SafeInfos];
 			GetXYInFrontOfPoint(x, y, angle, 0.4);
 			pCreateSafe[playerid] = CreateSafe(x, y, z, angle);
+			MEM_get_arr(pCreateSafe[playerid], _, safe);
 			GivePlayerSlotObject(playerid, -1, slot);
 			//---
-			EditDynamicObject(playerid, dSafeInfos[pCreateSafe[playerid]][oSafe][0]);
+			EditDynamicObject(playerid, safe[oSafe][0]);
 		}
 		case 98://BOUTEILLE D'ESSENCE
 		{
@@ -18264,7 +18835,10 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			//---
 			GetXYInFrontOfPoint(x, y, angle, 0.9);
 			pFridge[playerid] = CreateFridge(x, y, z, angle);
-			EditDynamicObject(playerid, dFridgeInfos[pFridge[playerid]][oFridge]);
+
+			new fridge[FridgeInfo];
+			MEM_get_arr(pFridge[playerid], _, fridge);
+			EditDynamicObject(playerid, fridge[oFridge]);
 			GivePlayerSlotObject(playerid, -1, slot);
 		}
 		case 132://EXP
@@ -20245,9 +20819,10 @@ public OnGameModeInit()
 	}
 	LogInfo(true, "[MYSQL] Connected to MYSQL Database !");
 	#endif
-	//---CHARGEMENT MÉTEO & TEMPS---//
+	//---CHARGEMENT MÉTEO & TEMPS & OBJETS DATA---//
 	#if defined MYSQL_SYSTEM
 	mysql_tquery(mysqlPool, "SELECT * FROM `environment`", "OnEnvironmentLoaded");
+	mysql_tquery(mysqlPool, "SELECT * FROM `object`", "OnDataObjectsLoaded");
 	#else
 	dEnvironment[dMeteoTime] = 1;
 	if(!fexist(GPATH))
@@ -20265,10 +20840,9 @@ public OnGameModeInit()
 	}
 
 	#endif		
-    SetWorldTime(dEnvironment[dHours]);
-    ChangeWeather(dEnvironment[dMeteo], dEnvironment[dMeteoTime]);
+
 	//---GAMEMODE---//
-	ChangeHostName();
+	
 	SetGameModeText(VERSION);
     //---SKINS---//
 	//---MODÈLES
@@ -20440,6 +21014,9 @@ public OnGameModeInit()
 	//---------------------//
 	//---RÉFRIGÉRATEURS
 	//---------------------//
+    #if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `fridge`", "OnFridgesLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	for(new i = 0; i < MAX_FRIDGES; i ++) dFridgeInfos[i][bFridge] = false;
@@ -20466,9 +21043,13 @@ public OnGameModeInit()
 	    }
 	}
     LogInfo(true, "[INIT]Frigos charges");
+    #endif
 	//---------------------//
 	//---COFFRES FORTS
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `safe`", "OnSafesLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	//CHARGEMENT
@@ -20495,9 +21076,13 @@ public OnGameModeInit()
 	    }
 	}
     LogInfo(true, "[INIT]Coffres forts charges");
+	#endif
 	//---------------------//
 	//---COLLECTEURS D'EAU
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `collector`", "OnCollectorsLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	for(new i = 0; i < MAX_COLLECTORS; i ++) dCollector[i][dEau] = -1;
@@ -20516,6 +21101,7 @@ public OnGameModeInit()
 	}
 	for(new i = dLastLoaded + 1; i < MAX_COLLECTORS; i ++) dCollector[i][dEau] = -1;
     LogInfo(true, "[INIT]Collecteurs d'eaux charges");
+	#endif
 	//---------------------//
 	//---CITERNES
 	//---------------------//
@@ -21227,15 +21813,15 @@ public OnPlayerDisconnect(playerid, reason)
 	  	    pGunRack[playerid] = MEM_NULLPTR;
 	  	}
 	  	//---FRIDGES
-	  	if(pFridge[playerid] != -1)
+	  	if(!IsNull(pFridge[playerid]))
 	  	{
-	  	    pFridge[playerid] = -1;
+	  	    pFridge[playerid] = MEM_NULLPTR;
 	  	}
 		//---COFFRE FORT
-		if(pCreateSafe[playerid] != -1)
+		if(!IsNull(pCreateSafe[playerid]))
 		{
 			DestroySafe(pCreateSafe[playerid]);
-			pCreateSafe[playerid] = -1;
+			pCreateSafe[playerid] = MEM_NULLPTR;
 		}
 		//---GARAGES
 		if(pGarage[playerid] != -1)
@@ -23010,19 +23596,21 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 				}
 				//---
 				pPlayerSafe[playerid] = IsPlayerNearSafe(playerid);
-				if(pPlayerSafe[playerid] != -1)
+				if(!IsNull(pPlayerSafe[playerid]))
 				{
-					if(dSafeInfos[pPlayerSafe[playerid]][bOpenSafe])
+					new safe[SafeInfos];
+					MEM_get_arr(pPlayerSafe[playerid], _, safe);
+					if(safe[bOpenSafe])
 					{
 						TextDrawShowForPlayer(playerid, tFondHUD[4]);
 						#if !defined KEEP_PLAYERTEXT
 						CreatePlayerSafe(playerid);
 						#endif
-						for(new i = 0; i < 12; i ++) UpdateSafe(playerid, pPlayerSafe[playerid], i, dSafeInfos[pPlayerSafe[playerid]][dItem][i]);
+						for(new i = 0; i < 12; i ++) UpdateSafe(playerid, pPlayerSafe[playerid], i, safe[dItem][i]);
 					}
 					else
 					{
-					    pPlayerSafe[playerid] = -1;
+					    pPlayerSafe[playerid] = MEM_NULLPTR;
 					}
 				}
 				//---
@@ -23383,7 +23971,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 			}
 			//---
 			pFridge[playerid] = IsPlayerNearFridge(playerid);
-			if(pFridge[playerid] != -1)
+			if(!IsNull(pFridge[playerid]))
 			{
 			    new string[256];
 			    new sFood[50];
@@ -23408,9 +23996,11 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 			}
 			//---
 			pPlayerSafe[playerid] = IsPlayerNearSafe(playerid);
-			if(!dHelp[playerid] && pPlayerSafe[playerid] != -1)
+			if(!dHelp[playerid] && !IsNull(pPlayerSafe[playerid]))
 			{
-			    if(!dSafeInfos[pPlayerSafe[playerid]][bOpenSafe])
+				new safe[SafeInfos];
+				MEM_get_arr(pPlayerSafe[playerid], _, safe);
+			    if(!safe[bOpenSafe])
 			    {
 					switch(pPlayerInfos[playerid][pLangue])
 					{
@@ -24714,14 +25304,14 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 							}
-			    	        else if(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dObjectType] ==  TYPE_FOOD && IsPlayerNearFridge(playerid) != -1)
+			    	        else if(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dObjectType] ==  TYPE_FOOD && !IsNull(IsPlayerNearFridge(playerid)))
 			    	        {
 								if(CallRemoteFunction("OnPlayerDropMissionItem", "ii", playerid, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)))
 								{
 									CloseTextDraws(playerid);
 									return 1;
 								}
-								new dFridge = IsPlayerNearFridge(playerid);
+								new Pointer:dFridge = IsPlayerNearFridge(playerid);
 								//---
 								if(HasFridgeFood(dFridge, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)) == -1 && GetFridgeNextFreeSlot(dFridge) == -1)
 								{
@@ -24730,7 +25320,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								}
 								//---
                                 new dAmount = AddFridgeFood(dFridge, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8), 1);
-								LogInfo(true, "[JOUEUR]%s met %s dans le réfrigérateur %d: %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]), dFridge, dAmount);
+								LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur : %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]), dAmount);
 								GivePlayerSlotObject(playerid, -1, pUseInventory[playerid] - 8);
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
@@ -24816,14 +25406,14 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 							}
-			    	        else if(aObjects[GetPlayerSlotObject(playerid, 0)][dObjectType] ==  TYPE_FOOD && IsPlayerNearFridge(playerid) != -1)
+			    	        else if(aObjects[GetPlayerSlotObject(playerid, 0)][dObjectType] ==  TYPE_FOOD && !IsNull(IsPlayerNearFridge(playerid)))
 			    	        {
 								if(CallRemoteFunction("OnPlayerDropMissionItem", "ii", playerid, GetPlayerSlotObject(playerid, 0)))
 								{
 									CloseTextDraws(playerid);
 									return 1;
 								}
-								new dFridge = IsPlayerNearFridge(playerid);
+								new Pointer:dFridge = IsPlayerNearFridge(playerid);
 								//---
 								if(HasFridgeFood(dFridge, GetPlayerSlotObject(playerid, 0)) == -1 && GetFridgeNextFreeSlot(dFridge) == -1)
 								{
@@ -24831,7 +25421,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 									return 1;
 								}
 								//---
-								LogInfo(true, "[JOUEUR]%s met %s dans le réfrigérateur %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, 0)][ObjectFrName]), dFridge);
+								LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, 0)][ObjectFrName]));
                                 AddFridgeFood(dFridge, GetPlayerSlotObject(playerid, 0), 1);
 								GivePlayerSlotObject(playerid, -1, 0);
 								SelectTextDraw(playerid, VERT);
@@ -24974,7 +25564,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 4)//Si cet objet est un collecteur d'eau
 			    {
-			        if(dCollector[pAroundItems[playerid][listitem][0]][dEau] == -1)
+					new collector[Collecteur];
+					MEM_get_arr(nodeFound[playerid][listitem], _, collector);
+			        if(collector[dEau] == -1)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
@@ -24995,17 +25587,19 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						case LANGUAGE_IT: ShowPlayerDialog(playerid, 36, DIALOG_STYLE_MSGBOX, "Italien", "Italien", "Ok", "");
 						case LANGUAGE_DE: ShowPlayerDialog(playerid, 36, DIALOG_STYLE_MSGBOX, "Allemand", "Allemand" , "Ok", "");
 					}
-		        	pAroundItems[playerid][0][0] = pAroundItems[playerid][listitem][0];
+		        	nodeFound[playerid][0] = nodeFound[playerid][listitem];
 		        	pAroundItems[playerid][0][1] = pAroundItems[playerid][listitem][1];
 					#else
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 95, dFreeSlot);
-		        	DestroyCollector(pAroundItems[playerid][listitem][0]);
+		        	DestroyCollector(nodeFound[playerid][listitem]);
 		        	#endif
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 5)//Si cet objet est un coffre fort
 			    {
-			        if(!dSafeInfos[pAroundItems[playerid][listitem][0]][bSafe])
+					new safe[SafeInfos];
+					MEM_get_arr(nodeFound[playerid][listitem], _, safe);
+			        if(!safe[bSafe])
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
@@ -25016,19 +25610,19 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
-			        if(!dSafeInfos[pAroundItems[playerid][listitem][0]][bOpenSafe])
+			        if(!safe[bOpenSafe])
 			        {
 			            ShowPlayerTextInfo(playerid, 5000, "~r~Open the safe before you pick it up.", "~r~Ouvrez ce coffre avant de le ramasser.", "Espagnol", "Portugais", "Italien", "Allemand");
 			            return 1;
 			        }
-			        if(!IsSafeEmpty(pAroundItems[playerid][listitem][0]))
+			        if(!IsSafeEmpty(nodeFound[playerid][listitem]))
 			        {
 			            ShowPlayerTextInfo(playerid, 5000, "~r~Take all the items out before you pick the safe up.", "~r~Videz ce coffre avant de le ramasser.",  "Espagnol", "Portugais", "Italien", "Allemand");
 			            return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 97, dFreeSlot);
-		        	DestroySafe(pAroundItems[playerid][listitem][0]);
+		        	DestroySafe(nodeFound[playerid][listitem]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 6)//Si cet objet est de l'or
 			    {
@@ -25155,7 +25749,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 12)//Si cet objet est un frigo
 			    {
-			        if(!dFridgeInfos[pAroundItems[playerid][listitem][0]][bFridge])
+					new fridge[FridgeInfo];
+					MEM_get_arr(nodeFound[playerid][listitem], _, fridge);
+			        if(!fridge[bFridge])
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
@@ -25176,12 +25772,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						case LANGUAGE_IT: ShowPlayerDialog(playerid, 36, DIALOG_STYLE_MSGBOX, "Italien", "Italien", "Ok", "");
 						case LANGUAGE_DE: ShowPlayerDialog(playerid, 36, DIALOG_STYLE_MSGBOX, "Allemand", "Allemand" , "Ok", "");
 					}
-		        	pAroundItems[playerid][0][0] = pAroundItems[playerid][listitem][0];
+		        	nodeFound[playerid][0] = nodeFound[playerid][listitem];
 		        	pAroundItems[playerid][0][1] = pAroundItems[playerid][listitem][1];
 					#else
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 130, dFreeSlot);
-		        	DestroyFridge(pAroundItems[playerid][listitem][0]);
+		        	DestroyFridge(nodeFound[playerid][listitem]);
 		        	#endif
 			    }
 	        }
@@ -25204,15 +25800,20 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					return 1;
 			    }
 			    //---
-			    format(dSafeInfos[pCreateSafe[playerid]][sSafeCode], 5, "%s", inputtext);
+				new safe[SafeInfos], query[256];
+				MEM_get_arr(pCreateSafe[playerid], _, safe);
+			    format(safe[sSafeCode], 5, "%s", inputtext);
 				ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
 				ChangeSafeDoorState(pCreateSafe[playerid], true);
-				pCreateSafe[playerid] = -1;
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `safe` SET code = \"%s\" WHERE idsafe = %d", safe[sSafeCode], safe[dSafeID]);
+				mysql_tquery(mysqlPool, query);
+				MEM_set_arr(pCreateSafe[playerid], _, safe);
+				pCreateSafe[playerid] = MEM_NULLPTR;
 			}
 			else if(!response)
 			{
 				DestroySafe(pCreateSafe[playerid]);
-				pCreateSafe[playerid] = -1;
+				pCreateSafe[playerid] = MEM_NULLPTR;
 				GivePlayerSlotObject(playerid, 97, GetPlayerNextFreeSlot(playerid));
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			}
@@ -25221,20 +25822,22 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 	    {
 	        if(response)
 			{
-			    if(!strlen(inputtext) || strcmp(inputtext, dSafeInfos[pPlayerSafe[playerid]][sSafeCode], true) != 0)
+				new safe[SafeInfos];
+				MEM_get_arr(pPlayerSafe[playerid], _, safe);
+			    if(!strlen(inputtext) || strcmp(inputtext, safe[sSafeCode], true) != 0)
 			    {
-					LogInfo(true, "[JOUEUR]%s s'est trompe de code pour ouvrir le coffre %d.", GetName(playerid), pPlayerSafe[playerid]);
+					LogInfo(true, "[JOUEUR]%s s'est trompe de code pour ouvrir un coffre.", GetName(playerid));
 					ShowPlayerTextInfo(playerid, 5000, "~r~Wrong code.", "~r~Mauvais code.", "~r~Espagnol", "~r~Portugais", "~r~Italien", "~r~Allemand");
 					return 1;
 			    }
 			    //---
 				ChangeSafeDoorState(pPlayerSafe[playerid], true);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-				LogInfo(true, "[JOUEUR]%s ouvre la porte du coffre %d.", GetName(playerid), pPlayerSafe[playerid]);
+				LogInfo(true, "[JOUEUR]%s ouvre la porte d'un coffre.", GetName(playerid));
 			}
 			else if(!response)
 			{
-				pPlayerSafe[playerid] = -1;
+				pPlayerSafe[playerid] = MEM_NULLPTR;
 			}
 	    }
 	    case 9://DROP OR
@@ -27441,14 +28044,16 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        }
 				if(pAroundItems[playerid][0][1] == 4)//COLLECTEUR
 				{
-			        if(dCollector[pAroundItems[playerid][0][0]][dEau] == -1)
+					new collector[Collecteur];
+					MEM_get_arr(nodeFound[playerid][0], _, collector);
+			        if(collector[dEau] == -1)
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 95, dFreeSlot);
-		        	DestroyCollector(pAroundItems[playerid][0][0]);
+		        	DestroyCollector(nodeFound[playerid][0]);
 				}
 				else if(pAroundItems[playerid][0][1] == 7)//BROYEUR
 				{
@@ -27463,14 +28068,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				}
 				else if(pAroundItems[playerid][0][1] == 12)//RÉFRIGÉRATEUR
 				{
-					if(!dFridgeInfos[pAroundItems[playerid][0][0]][bFridge])
+					new fridge[FridgeInfo];
+					MEM_get_arr(nodeFound[playerid][0], _, fridge);
+					if(!fridge[bFridge])
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 130, dFreeSlot);
-		        	DestroyFridge(pAroundItems[playerid][0][0]);
+		        	DestroyFridge(nodeFound[playerid][0]);
+					nodeFound[playerid][0] = MEM_NULLPTR;
 				}
 		    }
 		}
@@ -28415,26 +29023,27 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        GetFridgeFood(pFridge[playerid], listitem, food, amount);
 		        if(food == 0)
 		        {
-					ShowPlayerTextInfo(playerid, 3000, "~r~There is no food there!", "~r~Il n'y a pas de nourriture ici !", "~r~¡Espagnol!", "~r~Portugais!", "~r~Italien!", "~r~Allemand!");
-					pFridge[playerid] = -1;
+                    ShowPlayerTextInfo(playerid, 3000, "~r~There is no food there!", "~r~Il n'y a pas de nourriture ici !", "~r~ï¿½Espagnol!", "~r~Portugais!", "~r~Italien!", "~r~Allemand!");
+					pFridge[playerid] = MEM_NULLPTR;
 				}
 				else
 				{
 		    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
 		    		if(dFreeSlot == -1)
 		    		{
-						ShowPlayerTextInfo(playerid, 3000, "~r~You cannot carry more items!", "~r~Vous ne pouvez pas porter plus d'objets !", "~r~¡Espagnol!", "~r~Portugais!", "~r~Italien!", "~r~Allemand!");
-						pFridge[playerid] = -1;
+						ShowPlayerTextInfo(playerid, 3000, "~r~You cannot carry more items!", "~r~Vous ne pouvez pas porter plus d'objets !", "~r~ï¿½Espagnol!", "~r~Portugais!", "~r~Italien!", "~r~Allemand!");
+						pFridge[playerid] = MEM_NULLPTR;
 						return 1;
 		    		}
 		    		GivePlayerSlotObject(playerid, food, dFreeSlot);
-					LogInfo(true, "[JOUEUR]%s met %s dans le réfrigérateur %d: %d.", GetName(playerid), NoNewLineSign(aObjects[food][ObjectFrName]), pFridge[playerid], amount - 1);
+					LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur: %d.", GetName(playerid), NoNewLineSign(aObjects[food][ObjectFrName]), amount - 1);
 		    		AddFridgeFood(pFridge[playerid], food, -1);
+                    pFridge[playerid] = MEM_NULLPTR;
 				}
 			}
 		    else
 		    {
-		        pFridge[playerid] = -1;
+		        pFridge[playerid] = MEM_NULLPTR;
 		    }
 		}
 		case 59://OPTIONS
@@ -28744,13 +29353,13 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 			pRack[playerid] = MEM_NULLPTR;
 	    }
 	}
-	if(pFridge[playerid] != -1)
+	if(!IsNull(pFridge[playerid]))
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
 			DestroyFridge(pFridge[playerid]);
-			CreateFridge(x, y, z + 1.0, rz, pFridge[playerid]);
-			pFridge[playerid] = -1;
+			CreateFridge(x, y, z + 1.0, rz);
+			pFridge[playerid] = MEM_NULLPTR;
 	    }
 	}
 	if(pBrasero[playerid] != -1)
@@ -28771,7 +29380,7 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 			pShredder[playerid] = -1;
 	    }
 	}
-	if(pBoard[playerid])
+	if(!IsNull(pBoard[playerid]))
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
@@ -28789,14 +29398,16 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 			}
 	    }
 	}
-	if(pCreateSafe[playerid] != -1)
+	if(!IsNull(pCreateSafe[playerid]))
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
+			new safe[SafeInfos];
 			DestroySafe(pCreateSafe[playerid]);
-			CreateSafe(x, y, z + 0.539, rz, pCreateSafe[playerid]);
+			pCreateSafe[playerid] = CreateSafe(x, y, z + 0.539, rz);
+			MEM_get_arr(pCreateSafe[playerid], _, safe);
 			ChangeSafeDoorState(pCreateSafe[playerid], true);
-			format(dSafeInfos[pCreateSafe[playerid]][sSafeCode], 5, "0000");
+			format(safe[sSafeCode], 5, "0000");
 			//---
 			switch(pPlayerInfos[playerid][pLangue])
 			{
@@ -29243,7 +29854,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 						        }
 							}
 		    	        }
-		    	        else if(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dObjectType] ==  TYPE_FOOD && IsPlayerNearFridge(playerid) != -1)
+		    	        else if(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dObjectType] ==  TYPE_FOOD && !IsNull(IsPlayerNearFridge(playerid)))
 		    	        {
 							switch(pPlayerInfos[playerid][pLangue])
 		     				{
@@ -30411,12 +31022,12 @@ public OnSecondPassed()
 				{
 					ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to sit.~n~Press ~r~~k~~GROUP_CONTROL_BWD~ ~w~to pick the seat up.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour vous asseoir.~n~Appuyez sur ~r~~k~~GROUP_CONTROL_BWD~ ~w~pour ramasser le siège.", "Espagnol", "Portugais", "Italien", "Allemand");
 				}
-			    else if(IsPlayerNearSafe(i) != -1 && pPlayerSafe[i] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to open/close the safe.~n~Press ~r~~k~~CONVERSATION_YES~ ~w~to look in the safe.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour ouvrir le coffre.~n~Appuyez sur ~r~~k~~CONVERSATION_YES~ ~w~regarder dans le coffre.", "Espagnol", "Portugais", "Italien", "Allemand");
+			    else if(!IsNull(IsPlayerNearSafe(i)) && !IsNull(pPlayerSafe[i])) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to open/close the safe.~n~Press ~r~~k~~CONVERSATION_YES~ ~w~to look in the safe.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour ouvrir le coffre.~n~Appuyez sur ~r~~k~~CONVERSATION_YES~ ~w~regarder dans le coffre.", "Espagnol", "Portugais", "Italien", "Allemand");
 			    else if(IsPlayerNearGarageDoor(i) != -1 && pGarage[i] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to open/close the door.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour ouvrir la porte.", "Espagnol", "Portugais", "Italien", "Allemand");
 			    else if(IsPlayerNearHouseDoor(i) != -1 && dDoor[i] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to open/close the door.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour ouvrir la porte.", "Espagnol", "Portugais", "Italien", "Allemand");
 				else if(CallRemoteFunction("GetPlayerNearShop", "i", i) != -1 && !CallRemoteFunction("GetPlayerShop", "i", i)) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to see what's for sale.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour voir ce qui se vend ici.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para mirar que puede comprar.", "Imprensa ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~ para vistar que Portugais", "Italien", "Drücken sie auf ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~fur der shop aussehen.");
 			    else if(CallRemoteFunction("GetPlayerNearAuctionHouse", "i", i) != -1 && pHDV[i][0] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to see the Auction House.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour voir l'hôtel des ventes.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para mirar que puede comprar.", "Imprensa ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~ para vistar que Portugais", "Italien", "Drücken sie auf ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~fur der shop aussehen.");
-			    else if(IsPlayerNearCollector(i) != -1) ShowPlayerTextInfo(i, 3000, "Use an ~r~empty bottle ~w~to refill it.~n~Press ~r~~k~~GROUP_CONTROL_BWD~ ~w~to pick the collector up.", "Utilisez une ~r~bouteille vide ~w~pour la remplir.~n~Appuyez sur ~r~~k~~GROUP_CONTROL_BWD~ ~w~pour ramasser le récupérateur.", "Espagnol", "Portugais", "Italien", "Allemand");
+			    else if(!IsNull(IsPlayerNearCollector(i))) ShowPlayerTextInfo(i, 3000, "Use an ~r~empty bottle ~w~to refill it.~n~Press ~r~~k~~GROUP_CONTROL_BWD~ ~w~to pick the collector up.", "Utilisez une ~r~bouteille vide ~w~pour la remplir.~n~Appuyez sur ~r~~k~~GROUP_CONTROL_BWD~ ~w~pour ramasser le récupérateur.", "Espagnol", "Portugais", "Italien", "Allemand");
 			    else if(!IsNull(IsPlayerNearGasStation(i))) ShowPlayerTextInfo(i, 3000, "Use an ~r~empty bottle - jerry ~w~to refill it.~n~Press ~r~~k~~GROUP_CONTROL_BWD~ ~w~next to a vehicle to fill the tank.", "Utilisez une ~r~bouteille - bidon vide ~w~pour remplir d'essence.~n~Appuyez sur ~r~~k~~GROUP_CONTROL_BWD~ ~w~à côté d'un véhicule pour faire le plein.", "Espagnol", "Portugais", "Italien", "Allemand");
 			    else if(GetPlayerNearEngineer(i) != -1 && dEngineer[i] == -1 && !bCrafting[i]) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to see what the engineer can craft.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour voir ce que l'ingénieur peut fabriquer.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para mirar lo que ingeniero puede hacer.", "Imprensa ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~ para vistar que Portugais", "Italien", "Drücken sie auf ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~fur das Ingenieur-Geschäft aussehen.");
 			    else if(IsPlayerNearDoctor(i) != -1 && !bHeal[i] && pChooseSkin[i] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to talk with the doctor.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour parler au docteur.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para hablar con el doctor.", "Portugais", "Italien", "Allemand");
@@ -30430,7 +31041,7 @@ public OnSecondPassed()
 			    }
 			    //---AIDE
 			    else if(!pPlayerInfos[i][bAide][0] && IsPlayerNearItem(i)) ShowPlayerHelp(i, 1, 10000);
-			    else if(!pPlayerInfos[i][bAide][7] && IsPlayerNearCollector(i) != -1) ShowPlayerHelp(i, 8, 10000);
+			    else if(!pPlayerInfos[i][bAide][7] && !IsNull(IsPlayerNearCollector(i))) ShowPlayerHelp(i, 8, 10000);
 			    else if(!pPlayerInfos[i][bAide][9] && IsPlayerNearVehicle(i)) ShowPlayerHelp(i, 10, 15000);
 			    else if(!pPlayerInfos[i][bAide][12] && CallRemoteFunction("GetPlayerNearShop", "i", i) != -1) ShowPlayerHelp(i, 13, 10000);
 			    else if(!pPlayerInfos[i][bAide][13] && GetPlayerNearEngineer(i) != -1) ShowPlayerHelp(i, 14, 10000);
@@ -30562,16 +31173,20 @@ public OnMinutePassed()
 	//---COLLECTEUR D'EAU
 	if(IsRaining())//S'il pleut on donne 1 litre par minute à chaque collecteur d'eau
 	{
-		for(new j = 0; j < MAX_COLLECTORS; j ++)
+		LIST_foreach(data_ptr : collectorList)
 		{
-			if(dCollector[j][dEau] != -1) GiveCollectorWater(j, 10);
+			new collector[Collecteur];
+			MEM_get_arr(data_ptr, _, collector);
+			if(collector[dEau] != -1) GiveCollectorWater(data_ptr, 10);
 		}
 	}
 	else if(IsMultiple(dMinutes, 30))//Sinon, on donne quand même un décilitre de flotte toutes les trente minutes
 	{
-		for(new j = 0; j < MAX_COLLECTORS; j ++)
+		LIST_foreach(data_ptr : collectorList)
 		{
-			if(dCollector[j][dEau] != -1) GiveCollectorWater(j, 1);
+			new collector[Collecteur];
+			MEM_get_arr(data_ptr, _, collector);
+			if(collector[dEau] != -1) GiveCollectorWater(data_ptr, 1);
 		}
 	}
 	//---PLANTES
@@ -30886,8 +31501,13 @@ public CreateExplosionEx(playerid, Float:x, Float:y, Float:z, type, Float:radius
 	    case EXPLOSION_HUGE: modelid = 18682;
 	}
 	SetTimerEx("DestroyObjectEx", 3500, false, "ib", CreateObject(modelid, x, y, z - 0.928, 0.0, 0.0, floatrand(0.0, 360.0), 0.0), false);
-	for(new i = 0; i < MAX_SAFES; i ++) if(GetDistanceBetweenPoints(x, y, z, dSafeInfos[i][xSafe], dSafeInfos[i][ySafe], dSafeInfos[i][zSafe]) < 3.0) ChangeSafeDoorState(i, true);
-	//---
+	LIST_foreach(data_ptr : safeList)
+	{
+		new safe[SafeInfos];
+		MEM_get_arr(data_ptr, _, safe);
+		if(GetDistanceBetweenPoints(x, y, z, safe[xSafe], safe[ySafe], safe[zSafe]) < 3.0) 
+			ChangeSafeDoorState(data_ptr, true);
+	}
 	ShockWaveVehicles(playerid, x, y, z, radius);
 	//---
 	for(new i = 0, j = GetPlayerPoolSize(); i <= j; i ++)
