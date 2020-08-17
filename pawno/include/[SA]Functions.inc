@@ -101,7 +101,7 @@ stock Float:GetDistanceBetweenPlayers(playerid,playerid2)
 	}
 	return INF_FLOAT;
 }
-stock ListIt:GetNodeAt(List: list[], index = 0)
+/*stock ListIt:GetNodeAt(List: list[], index = 0)
 {
 	new ListIt: res;
 	if(index >= 0)
@@ -119,7 +119,7 @@ stock ListIt:GetNodeAt(List: list[], index = 0)
 		}
 	}
 	return res;
-}
+}*/
 stock GetGasStationPos(stationid, &Float:x, &Float:y, &Float:z)
 {
 	new Float:fGasPos[19][3] =

@@ -378,6 +378,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 //#include <mapandreas.inc>
 //#include <rnpc>
 #include <list> 							// À inclure en premier, sinon on se tappe des erreurs
+#include <strlib>
 #include <FCNPC>
 #include <streamer>
 #include <colandreas>
@@ -670,6 +671,7 @@ forward OnGoldsLoaded();
 forward OnSeatsLoaded();
 forward OnBoardsLoaded();
 forward OnFurnituresLoaded();
+forward OnGunRacksLoaded();
 #endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
@@ -1055,7 +1057,8 @@ enum GunRackInfo
 	Float:zRack,
 	Float:aRack,
 	dGun[4],
-	dGunAmmo[4]
+	dGunAmmo[4],
+	gunrackID
 }
 
 enum FridgeInfo
@@ -1450,11 +1453,11 @@ new pCreateSafe[MAX_PLAYERS] = {-1, ...};//Création de mot de passe pour le coff
 new pBed[MAX_PLAYERS] = {-1, ...};
 new Pointer:pSeat[MAX_PLAYERS];
 new Pointer:pBoard[MAX_PLAYERS];
-new pRack[MAX_PLAYERS] = {-1, ...};
+new Pointer:pRack[MAX_PLAYERS];
 new pBrasero[MAX_PLAYERS] = {-1, ...};
 new pShredder[MAX_PLAYERS] = {-1, ...};
 //---
-new pGunRack[MAX_PLAYERS] = {-1, ...};
+new Pointer:pGunRack[MAX_PLAYERS];
 new pFridge[MAX_PLAYERS] = {-1, ...};
 new pPlayerSafe[MAX_PLAYERS] = {-1, ...};
 new dInfoTimer[MAX_PLAYERS];
@@ -8469,6 +8472,209 @@ SaveFridges()
 }
 
 //---ÉTAGÈRES ARMES---//
+#if defined MYSQL_SYSTEM
+new List: gunrackList;
+Pointer: CreateGunRack(Float:x, Float:y, Float:z, Float:angle, id = -1)
+{
+	new Pointer: res;
+	new gunrack[GunRackInfo];
+	gunrack[bRack] = true;
+	gunrack[xRack] = x;
+	gunrack[yRack] = y;
+	gunrack[zRack] = z;
+	gunrack[aRack] = angle;
+	gunrack[oRack] = CreateDynamicObject(2078, x, y, z - 1.0, 0.0, 0.0, angle, -1, -1, -1, 25.0, 20.0);
+
+	gunrack[gunrackID] = id;
+	if(id == -1)
+	{
+		new string[512], Cache: result;
+		mysql_format(mysqlPool, string, sizeof(string), "CALL `insertGunRack`(%f, %f, %f, %f, '')", x, y, z, angle);
+		result = mysql_query(mysqlPool, string);
+		cache_set_active(result);
+		cache_get_value_name_int(0, "nextID", gunrack[gunrackID]);
+		cache_delete(result);
+	}
+	LIST_push_back_arr(gunrackList, gunrack);
+	LIST_iter_end(gunrackList, res);
+	return res;
+}
+public OnGunRacksLoaded()
+{
+	if(cache_num_rows())
+	{
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new gunrackid, Pointer: pt;
+			new Float:x, Float:y, Float:z, Float:a, weapons[64], tuplesWeapons[4][10];
+			cache_get_value_name_int(i, "idgunrack", gunrackid);
+			cache_get_value_name_float(i, "xgunrack", x);
+			cache_get_value_name_float(i, "ygunrack", y);
+			cache_get_value_name_float(i, "zgunrack", z);
+			cache_get_value_name_float(i, "agunrack", a);
+			cache_get_value_name(i, "weapons", weapons);
+			pt = CreateGunRack(x, y, z, a, gunrackid);
+			strexplode(tuplesWeapons, weapons, " ");
+			for(new idx = 0; idx < 4; idx++)
+			{
+				printf("tuplesWeapons : %s", tuplesWeapons[idx]);
+				new indexDelimiter = strfind(tuplesWeapons[idx], ",");
+				new strWeaponID[4], strAmmo[4];
+				strmid(strWeaponID, tuplesWeapons[idx], 0, indexDelimiter);
+				strmid(strAmmo, tuplesWeapons[idx], indexDelimiter + 1, strlen(tuplesWeapons[idx]));
+				printf("strWeaponID : %s | strAmmo: %s", strWeaponID, strAmmo);
+				AddGunRackWeapon(pt, idx, strval(strWeaponID), strval(strAmmo), true);
+			}
+		}
+	}
+	LogInfo(true, "[INIT] %d etageres pour armes chargees", cache_num_rows());
+	return 1;
+}
+IsRackEmpty(Pointer:rackid)
+{
+	if(IsNull(rackid)) return true;
+	new gunrack[GunRackInfo];
+	MEM_get_arr(rackid, _, gunrack);
+	new dSlots = 0;
+	for(new i = 0; i < 4; i ++) if(gunrack[dGun][i] == 0) dSlots ++;
+	return (dSlots == 4) ? true : false;
+}
+stock DestroyGunRack(&Pointer: pt)
+{	
+	new gunrack[GunRackInfo], query[256];
+	MEM_get_arr(pt, _, gunrack);
+	DestroyDynamicObject(gunrack[oRack]);
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `gunrack` WHERE idgunrack = %d", gunrack[gunrackID]);
+	mysql_tquery(mysqlPool, query);
+	LIST_remove_arr(gunrackList, gunrack);
+	gunrack[oRack] = INVALID_OBJECT_ID;
+	for(new i = 0; i < 4; i ++)
+	{
+	    if(gunrack[dGun][i] != 0)
+	    {
+			gunrack[dGun][i] = 0;
+			gunrack[dGunAmmo][i] = 0;
+			UpdateGunRackSlot(pt, i);
+		}
+	}
+	gunrack[xRack] = 0.0;
+	gunrack[yRack] = 0.0;
+	gunrack[zRack] = 0.0;
+	gunrack[aRack] = 0.0;
+	pt = Pointer:MEM_NULLPTR;
+}
+UpdateGunRackSlot(Pointer:rackid, slot, bool:loading=false)
+{
+	new gunrack[GunRackInfo];
+	MEM_get_arr(rackid, _, gunrack);
+	if(gunrack[dGun][slot] == 0)
+	{
+	    if(gunrack[oGun][slot] != INVALID_OBJECT_ID)
+		{
+			DestroyDynamicObject(gunrack[oGun][slot]);
+			gunrack[oGun][slot] = INVALID_OBJECT_ID;
+		}
+	}
+	else
+	{
+	    if(gunrack[oGun][slot] != INVALID_OBJECT_ID)
+		{
+			DestroyDynamicObject(gunrack[oGun][slot]);
+			gunrack[oGun][slot] = INVALID_OBJECT_ID;
+		}
+		//---
+	    new Float:x, Float:y, Float:z, Float:ry, Float:angle, Float:distance;
+	    switch(slot)
+	    {
+	        case 0:
+			{
+				angle = gunrack[aRack] + 270.0 + 177.8884;
+				distance = 0.2701;
+			}
+	        case 1:
+			{
+				angle = gunrack[aRack] + 270.0 - 36.8111;
+				distance = 0.2031;
+			}
+	        case 2:
+			{
+				angle = gunrack[aRack] + 270.0 - 12.0837;
+				distance = 0.71;
+			}
+	        case 3:
+			{
+				angle = gunrack[aRack] + 270.0 - 7.4484;
+				distance = 1.1621;
+			}
+	    }
+		x = gunrack[xRack] + (distance * floatsin(-angle, degrees));
+		y = gunrack[yRack] + (distance * floatcos(-angle, degrees));
+		z = gunrack[zRack];
+		switch(gunrack[dGun][slot])
+		{
+		    case 3, 4, 5, 8, 9: ry = 0.0;
+			default: ry = 270.0;
+		}
+		z += ((slot == 0 || slot == 3) ? 0.4841 : 0.687) - 1.0;
+		gunrack[oGun][slot] = CreateDynamicObject(GetWeaponModel(gunrack[dGun][slot]), x, y, z, 0.0, ry, gunrack[aRack] + 270.0, -1, -1, -1, 10.0);
+		if(!loading)
+		{
+			new string[64], query[256];
+			for(new i = 0; i < 4; i++)
+			{
+				new tmp[12];
+				format(tmp, sizeof(tmp), "%d,%d ", gunrack[dGun][i], gunrack[dGunAmmo][i]);
+				strcat(string, tmp);
+			}
+			mysql_format(mysqlPool, query, sizeof(query), "UPDATE gunrack SET weapons = \"%s\" WHERE idgunrack = %d", string, gunrack[gunrackID]);
+			mysql_tquery(mysqlPool, query);
+		}
+		MEM_set_arr(rackid, _, gunrack);
+	}
+}
+AddGunRackWeapon(Pointer: rackid, slotid, gun, ammo, bool:loading = false)
+{
+	new gunrack[GunRackInfo];
+	MEM_get_arr(rackid, _, gunrack);
+	gunrack[dGun][slotid] = gun;
+	gunrack[dGunAmmo][slotid] = ammo;
+	MEM_set_arr(rackid, _, gunrack);
+	UpdateGunRackSlot(rackid, slotid, loading);
+}
+GetGunRackWeapon(Pointer: rackid, slotid, &gun, &ammo)
+{
+	new gunrack[GunRackInfo];
+	MEM_get_arr(rackid, _, gunrack);
+	gun = gunrack[dGun][slotid];
+	ammo = gunrack[dGunAmmo][slotid];
+}
+
+Pointer: IsPlayerNearRack(playerid)
+{
+	new Float:x, Float:y, Float:z, Float:fTrash;
+	GetPlayerPos(playerid, x, y, z);
+	LIST_foreach(data_ptr : gunrackList)
+	{
+		new gunrack[GunRackInfo];
+		MEM_get_arr(data_ptr, _, gunrack);
+		if(gunrack[bRack] && IsPlayerInRangeOfPoint(playerid, 1.5, gunrack[xRack], gunrack[yRack], gunrack[zRack]))
+		{
+			if(CA_RayCastLine(x, y, z, gunrack[xRack], gunrack[yRack], gunrack[zRack], fTrash, fTrash, fTrash) != 0) continue;
+			return data_ptr;
+		}
+	}
+	return MEM_NULLPTR;
+}
+
+GetRackNextFreeSlot(Pointer: rackid)
+{
+	new gunrack[GunRackInfo];
+	MEM_get_arr(rackid, _, gunrack);
+	if(IsNull(rackid)) return -1;
+	for(new i = 0; i < 4; i ++) if(gunrack[dGun][i] == 0) return i;
+	return -1;
+}
+#else
 CreateGunRack(Float:x, Float:y, Float:z, Float:angle, load = -1)
 {
 	static slotid;
@@ -8684,7 +8890,7 @@ SaveGunRacks()
 	}
 	INI_Close(File);
 }
-
+#endif
 //---PANNEAUX---//
 #if defined MYSQL_SYSTEM
 new List:boardList;
@@ -15002,6 +15208,23 @@ CheckItemsRoundPlayer(playerid)
 		}
 	}
 	//---GUNRACKS
+	#if defined MYSQL_SYSTEM
+	LIST_foreach(data_ptr : gunrackList)
+	{
+		new gunrack[GunRackInfo];
+		MEM_get_arr(data_ptr, _, gunrack);
+		if(dSlot == 9) break;
+	    if(gunrack[bRack]) continue;
+	    if(IsPlayerInRangeOfPoint(playerid, 3.0, gunrack[xRack], gunrack[yRack], gunrack[zRack]))
+		{
+			if(CA_RayCastLine(x, y, z, gunrack[xRack], gunrack[yRack],gunrack[zRack], fTrash, fTrash, fTrash) != 0) continue;
+		    //pAroundItems[playerid][dSlot][0] = i;
+			nodeFound[playerid][dSlot] = data_ptr;
+		    pAroundItems[playerid][dSlot][1] = 8;
+			dSlot ++;
+		}
+	}
+	#else
 	for(new i = 0; i < MAX_GUNRACKS; i ++)
 	{
 	    if(dSlot == 9) break;
@@ -15014,6 +15237,7 @@ CheckItemsRoundPlayer(playerid)
 			dSlot ++;
 		}
 	}
+	#endif
 	//---BRASEROS
 	#if defined CAN_PICKUP_BRAZIER
 	for(new i = 0; i < MAX_BRASEROS; i ++)
@@ -15309,14 +15533,14 @@ CheckItemsRoundPlayer(playerid)
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "O senhor não pode carregar mais objetos", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
-	        if(!IsRackEmpty(pAroundItems[playerid][0][0]))
+	        if(!IsRackEmpty(nodeFound[playerid][0]))
 	        {
 	            ShowPlayerTextInfo(playerid, 5000, "~r~Unload the gunrack before you pick it up!", "~r~Videz l'étagère avant de la ramasser !", "Espagnol", "O senhor tem que abrir essa caixa forte antes de apanha-lo !", "Italien", "Allemand");
 	            return 1;
 	        }
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerSlotObject(playerid, 127, dFreeSlot);
-        	DestroyGunRack(pAroundItems[playerid][0][0]);
+        	DestroyGunRack(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 9)//Si cet objet est un brasero
 	    {
@@ -18002,9 +18226,11 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				return 1;
 			}
 			//---
+			new gunrack[GunRackInfo];
 			GetXYInFrontOfPoint(x, y, angle, 0.9);
 			pRack[playerid] = CreateGunRack(x, y, z, angle);
-			EditDynamicObject(playerid, dGunRackInfos[pRack[playerid]][oRack]);
+			MEM_get_arr(pRack[playerid], _, gunrack);
+			EditDynamicObject(playerid, gunrack[oRack]);
 			GivePlayerSlotObject(playerid, -1, slot);
 		}
 		case 128://BRASERO
@@ -20177,6 +20403,9 @@ public OnGameModeInit()
 	//---------------------//
 	//---ÉTAGÈRES À ARMES
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `gunrack`", "OnGunRacksLoaded");
+	#else
 	//INITIALISATION
 	dLastLoaded = 0;
 	for(new i = 0; i < MAX_GUNRACKS; i ++) dGunRackInfos[i][bRack] = false;
@@ -20207,6 +20436,7 @@ public OnGameModeInit()
 	    }
 	}
     LogInfo(true, "[INIT]Etageres pour armes charges");
+	#endif
 	//---------------------//
 	//---RÉFRIGÉRATEURS
 	//---------------------//
@@ -20992,9 +21222,9 @@ public OnPlayerDisconnect(playerid, reason)
 			dRepair[playerid][3] = -1;
 	  	}
 	  	//---GUNRACKS
-	  	if(pGunRack[playerid] != -1)
+	  	if(!IsNull(pGunRack[playerid]))
 	  	{
-	  	    pGunRack[playerid] = -1;
+	  	    pGunRack[playerid] = MEM_NULLPTR;
 	  	}
 	  	//---FRIDGES
 	  	if(pFridge[playerid] != -1)
@@ -23128,7 +23358,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 		    }
 			//---
 			pGunRack[playerid] = IsPlayerNearRack(playerid);
-			if(pGunRack[playerid] != -1)
+			if(!IsNull(pGunRack[playerid]))
 			{
 			    new string[135];
 			    new sWeap[35];
@@ -24160,8 +24390,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		                }
 		                else if(listitem == 1)//RANGER
 		                {
-		                    new rackid = IsPlayerNearRack(playerid);
-							if(rackid != -1)
+		                    new Pointer:rackid = IsPlayerNearRack(playerid);
+							if(!IsNull(rackid))
 							{
 								new slotid = GetRackNextFreeSlot(rackid);
 								if(slotid != -1)
@@ -24210,8 +24440,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						}
 		                else if(listitem == 1)//RANGER
 		                {
-		                    new rackid = IsPlayerNearRack(playerid);
-							if(rackid != -1)
+		                    new Pointer:rackid = IsPlayerNearRack(playerid);
+							if(!IsNull(rackid))
 							{
 								new slotid = GetRackNextFreeSlot(rackid);
 								if(slotid != -1)
@@ -24260,8 +24490,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						}
 		                else if(listitem == 1)//RANGER
 		                {
-		                    new rackid = IsPlayerNearRack(playerid);
-							if(rackid != -1)
+		                    new Pointer:rackid = IsPlayerNearRack(playerid);
+							if(!IsNull(rackid))
 							{
 								new slotid = GetRackNextFreeSlot(rackid);
 								if(slotid != -1)
@@ -24310,8 +24540,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						}
 		                else if(listitem == 1)//RANGER
 		                {
-		                    new rackid = IsPlayerNearRack(playerid);
-							if(rackid != -1)
+		                    new Pointer:rackid = IsPlayerNearRack(playerid);
+							if(!IsNull(rackid))
 							{
 								new slotid = GetRackNextFreeSlot(rackid);
 								if(slotid != -1)
@@ -24848,7 +25078,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 8)//Si cet objet est une étagère
 			    {
-			        if(!dGunRackInfos[pAroundItems[playerid][listitem][0]][bRack])
+					new gunrack[GunRackInfo];
+					MEM_get_arr(nodeFound[playerid][listitem], _, gunrack);
+			        if(!gunrack[bRack])
 			        {
 					    SendClientMessageEx(playerid, ROUGE, "This item has already been picked up!", "Cet objet a déjà été ramassé !", "¡Esto objeto ya ha recogado!", "Portugais", "Italien", "Dieser Objekte hat schon abgeholt ");
 					    return 1;
@@ -24859,14 +25091,14 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
-			        if(!IsRackEmpty(pAroundItems[playerid][listitem][0]))
+			        if(!IsRackEmpty(nodeFound[playerid][listitem]))
 			        {
 			            ShowPlayerTextInfo(playerid, 5000, "~r~Unload the gunrack before you pick it up!", "~r~Videz l'étagère avant de la ramasser !", "Espagnol", "O senhor tem que abrir essa caixa forte antes de apanha-lo !", "Italien", "Allemand");
 			            return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerSlotObject(playerid, 127, dFreeSlot);
-		        	DestroyGunRack(pAroundItems[playerid][listitem][0]);
+		        	DestroyGunRack(nodeFound[playerid][listitem]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 9)//Si cet objet est un brasero
 			    {
@@ -27295,7 +27527,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        if(gun == 0)
 		        {
 					ShowPlayerTextInfo(playerid, 3000, "~r~There is no weapon there!", "~r~Il n'y a pas d'arme ici !", "~r~¡Espagnol!", "~r~Portugais!", "~r~Italien!", "~r~Allemand!");
-					pGunRack[playerid] = -1;
+					pGunRack[playerid] = MEM_NULLPTR;
 				}
 				else
 				{
@@ -27344,7 +27576,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		    }
 		    else
 		    {
-		        pGunRack[playerid] = -1;
+		        pGunRack[playerid] = MEM_NULLPTR;
 		    }
 		}
 	    case 39://CRÉATION GARAGE
@@ -28503,13 +28735,13 @@ public OnPlayerEditDynamicObject(playerid, objectid, response, Float:x, Float:y,
 			CreateSeat(seat[dSeatType], x, y, z + 1.0, rz);
 	    }
 	}
-	if(pRack[playerid] != -1)
+	if(!IsNull(pRack[playerid]))
 	{
 	    if(response == EDIT_RESPONSE_FINAL)
 	    {
 			DestroyGunRack(pRack[playerid]);
-			CreateGunRack(x, y, z + 1.0, rz, pRack[playerid]);
-			pRack[playerid] = -1;
+			CreateGunRack(x, y, z + 1.0, rz);
+			pRack[playerid] = MEM_NULLPTR;
 	    }
 	}
 	if(pFridge[playerid] != -1)
@@ -30190,7 +30422,7 @@ public OnSecondPassed()
 			    else if(IsPlayerNearDoctor(i) != -1 && !bHeal[i] && pChooseSkin[i] == -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to talk with the doctor.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour parler au docteur.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para hablar con el doctor.", "Portugais", "Italien", "Allemand");
 			    else if(IsPlayerNearMechanic(i) != -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to talk with the mechanic.", "Appuyez sur ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~pour parler au mécanicien.", "Prensa usted ~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para hablar con el mecánico.", "Portugais", "Italien", "Allemand");
 			    else if(IsPlayerNearShredder(i) != -1) ShowPlayerTextInfo(i, 3000, "Use ~r~wheat ~w~to turn it into flour.", "Utilisez du ~r~blé ~w~pour avoir de la farine.", "Espagnol", "Portugais", "Italien", "Allemand");
-			    else if(IsPlayerNearRack(i) != -1) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to take a gun.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour prendre une arme.", "Espagnol", "Portugais", "Italien", "Allemand");
+			    else if(!IsNull(IsPlayerNearRack(i))) ShowPlayerTextInfo(i, 3000, "Press ~r~~k~~PED_DUCK~ ~w~to take a gun.", "Appuyez sur ~r~~k~~PED_DUCK~ ~w~pour prendre une arme.", "Espagnol", "Portugais", "Italien", "Allemand");
 			    else if(CallRemoteFunction("GetPlayerNearCart", "i", i) != -1)
 			    {
 					if(HasPlayerGold(i, 2)) ShowPlayerTextInfo(i, 5000, "~g~~Hotdog: ~y~0.2g of gold.~n~~n~~r~~k~~VEHICLE_ENTER_EXIT~ ~w~to buy.", "~g~Hotdog: ~y~0.2g d'or.~n~~n~~r~~k~~PED_JUMPING~ ~w~pour acheter.", "~g~Hotdog: ~y~0.2g de oro gold.~n~~n~~r~~k~~PED_JUMPING~ ~w~para comprar.", "~g~Hotdog: ~y~0.2g de ouro.~n~~n~~r~~k~~PED_JUMPING~ ~w~para comprar.", "~g~Hotdog: ~y~0.2g di oro.~n~~n~~r~~k~~PED_JUMPING~ ~w~per comperar.", "~g~Hotdog: ~y~0.2g gold.~n~~n~~r~~k~~PED_JUMPING~ ~w~zum kaufen.");
