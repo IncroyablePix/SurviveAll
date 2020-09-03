@@ -20,7 +20,7 @@
 #include <[SA]Defines.inc>
 #include <[SA]Functions.inc>
 #include <streamer.inc>
-#undef PROFILING
+//#undef PROFILING
 #if defined PROFILING
 #include <profiler.inc>
 #endif
@@ -177,8 +177,8 @@ GetShopItemPrice(shopid, itemid)
 	        switch(itemid)
 	        {
 	            case 1: return 3;//Lait
-	            case 2: return 250;//Canne à pêche
-	            case 3: return 50;//Tronçonneuse
+	            case 2: return 250;//Canne ï¿½ pï¿½che
+	            case 3: return 50;//Tronï¿½onneuse
 	            case 4: return 10;//9mm
 	            case 5: return 3;//Bouteille vide
 	            case 6: return 3;//Tomates
@@ -192,8 +192,8 @@ GetShopItemPrice(shopid, itemid)
 	            case 2: return 20;//12 Gauge
 	            case 3: return 40;//Uzi
 	            case 4: return 45;//Alice Pack
-	            case 5: return 15;//Bérêt
-	            case 6: return 100;//Clé anglaise
+	            case 5: return 15;//Bï¿½rï¿½t
+	            case 6: return 100;//Clï¿½ anglaise
 	            case 7: return 45;//Lit miteux
 	        }
 		}
@@ -206,7 +206,7 @@ GetShopItemPrice(shopid, itemid)
 	            case 3: return 50;//Tente
 	            case 4: return 40;//Country Rifle
 	            case 5: return 10;//Aviators noires
-	            case 6: return 20;//Masque à gaz
+	            case 6: return 20;//Masque ï¿½ gaz
 	        }
 		}
 	    case 4://Boutique LV Nord
@@ -216,9 +216,9 @@ GetShopItemPrice(shopid, itemid)
 	            case 1: return 15;//.50AE
 	            case 2: return 40;//AK47
 	            case 3: return 95;//Casserole
-	            case 4: return 8;//Caféine
+	            case 4: return 8;//Cafï¿½ine
 	            case 5: return 10;//Roue
-	            case 6: return 35;//Chapeau de sorcière
+	            case 6: return 35;//Chapeau de sorciï¿½re
 	        }
 		}
   		case 5://Boutique Grove Street
@@ -259,7 +259,7 @@ GetShopItemPrice(shopid, itemid)
 		{
 		    switch(itemid)
 		    {
-		        case 1: return 20;//Masque à gaz
+		        case 1: return 20;//Masque ï¿½ gaz
 		        case 2: return 100;//Coffre Fort
 		        case 3: return 35;//Lampe
 		        case 4: return 15;//Medikit
@@ -292,8 +292,8 @@ GetShopItemID(shopid, itemid)
 	        switch(itemid)
 	        {
 	            case 1: return 70;//Lait
-	            case 2: return 90;//Canne à pêche
-	            case 3: return 7;//Tronçonneuse
+	            case 2: return 90;//Canne ï¿½ pï¿½che
+	            case 3: return 7;//Tronï¿½onneuse
 	            case 4: return 26;//9mm
 	            case 5: return 40;//Bouteille vide
 	            case 6: return 74;//Tomates
@@ -307,8 +307,8 @@ GetShopItemID(shopid, itemid)
 	            case 2: return 28;//12 Gauge
 	            case 3: return 16;//Uzi
 	            case 4: return 34;//Alice Pack
-	            case 5: return 46;//Bérêt
-	            case 6: return 96;//Clé anglaise
+	            case 5: return 46;//Bï¿½rï¿½t
+	            case 6: return 96;//Clï¿½ anglaise
 	            case 7: return 80;//Lit miteux
 	        }
 		}
@@ -321,7 +321,7 @@ GetShopItemID(shopid, itemid)
 	            case 3: return 1;//Tente
 	            case 4: return 21;//Country Rifle
 	            case 5: return 56;//Aviators noires
-	            case 6: return 65;//Masque à gaz
+	            case 6: return 65;//Masque ï¿½ gaz
 	        }
 		}
 	    case 4://Boutique LV Nord
@@ -331,9 +331,9 @@ GetShopItemID(shopid, itemid)
 	            case 1: return 27;//.50AE
 	            case 2: return 18;//AK47
 	            case 3: return 102;//Casserole
-	            case 4: return 39;//Caféine
+	            case 4: return 39;//Cafï¿½ine
 	            case 5: return 63;//Roue
-	            case 6: return 45;//Chapeau de sorcière
+	            case 6: return 45;//Chapeau de sorciï¿½re
 	        }
 		}
 		case 5://Boutique Grove Street
@@ -374,7 +374,7 @@ GetShopItemID(shopid, itemid)
 		{
 		    switch(itemid)
 		    {
-		        case 1: return 65;//Masque à gaz
+		        case 1: return 65;//Masque ï¿½ gaz
 		        case 2: return 97;//Coffre Fort
 		        case 3: return 137;//Lampe
 		        case 4: return 2;//Medikit
@@ -463,7 +463,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 	                fy = -2444.5832;
 	                fz = 31.0176;
 	            }
-	            case 2://Canne à pêche
+	            case 2://Canne ï¿½ pï¿½che
 	            {
 	                x = -1952.8769;
 	                y = -2443.3808;
@@ -472,7 +472,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 	                fy = -2445.2211;
 	                fz = 31.2476;
 	            }
-	            case 3://Tronçonneuse
+	            case 3://Tronï¿½onneuse
 	            {
 	                x = -1951.5751;
 	                y = -2443.3886;
@@ -550,7 +550,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 					fy = -2207.2871;
 					fz = 53.2086;
 	            }
-	            case 5://Bérêt
+	            case 5://Bï¿½rï¿½t
 	            {
 	                x = -1375.5507;
 	                y = -2205.5107;
@@ -559,7 +559,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 					fy = -2206.1547;
 					fz = 52.4836;
 	            }
-	            case 6://Clé anglaise
+	            case 6://Clï¿½ anglaise
 	            {
 	                x = -1374.2558;
 	                y = -2204.5937;
@@ -583,7 +583,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 	    {
 	        switch(itemid)
 	        {
-	            case 1://Poudre à canon
+	            case 1://Poudre ï¿½ canon
 	            {
 	                x = -1323.3979;
 	                y = 2507.224;
@@ -628,7 +628,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 					fy = 2505.0136;
 					fz = 89.1564;
 	            }
-	            case 6://Masque à gaz
+	            case 6://Masque ï¿½ gaz
 	            {
 	                x = -1320.176;
 	                y = 2504.5139;
@@ -670,7 +670,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 					fy = 2442.8273;
 					fz = 11.1745;
 	            }
-	            case 4://Caféine
+	            case 4://Cafï¿½ine
 	            {
 	                x = 991.0595;
 	                y = 2441.5896;
@@ -688,7 +688,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 					fy = 2441.5827;
 					fz = 11.0057;
 	            }
-	            case 6://Chapeau de sorcière
+	            case 6://Chapeau de sorciï¿½re
 	            {
 	                x = 989.6191;
 	                y = 2443.9404;
@@ -865,7 +865,7 @@ GetShopItemCameraInfos(shopid, itemid, &Float:x, &Float:y, &Float:z, &Float:fx, 
 		{
 		    switch(itemid)
 		    {
-	            case 1://Masque à gaz
+	            case 1://Masque ï¿½ gaz
 	            {
 	                x = -1635.774902;
 	                y = 1018.651184;
@@ -964,8 +964,8 @@ public NextShopItemForPlayer(playerid, bool:next)
 	    }
 	    case LANGUAGE_PG:
 	    {
-			if(CallRemoteFunction("HasPlayerGold", "ii", playerid, dPrice)) format(string, sizeof(string), "~g~%s~n~~w~Preço: ~y~%.1fg de ouro.~n~~n~~r~~k~~PED_JUMPING~ ~w~para comprar.~n~~r~~<~ - ~>~ ~w~para mudar.~n~~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para sair.", sObjectName, floatdiv(dPrice, 10));
-			else format(string, sizeof(string), "~r~%s~n~~w~Preço: ~y~%.1fg de ouro.~n~~n~~r~~<~ - ~>~ ~w~para mudar.~n~~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para sair.", sObjectName, floatdiv(dPrice, 10));
+			if(CallRemoteFunction("HasPlayerGold", "ii", playerid, dPrice)) format(string, sizeof(string), "~g~%s~n~~w~Preï¿½o: ~y~%.1fg de ouro.~n~~n~~r~~k~~PED_JUMPING~ ~w~para comprar.~n~~r~~<~ - ~>~ ~w~para mudar.~n~~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para sair.", sObjectName, floatdiv(dPrice, 10));
+			else format(string, sizeof(string), "~r~%s~n~~w~Preï¿½o: ~y~%.1fg de ouro.~n~~n~~r~~<~ - ~>~ ~w~para mudar.~n~~r~~k~~VEHICLE_ENTER_EXIT~ ~w~para sair.", sObjectName, floatdiv(dPrice, 10));
 	    }
 	    case LANGUAGE_IT:
 	    {
@@ -998,14 +998,14 @@ public BuyPlayerItem(playerid)
     if(dFreeSlot  == -1)
     {
 		PlayerPlaySound(playerid, 1053, 0.0, 0.0, 0.0);
-		CallRemoteFunction("SendClientMessageEx", "iissssss", playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
+		CallRemoteFunction("SendClientMessageEx", "iissssss", playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "ï¿½No puede llevar mï¿½s objetos!", "Portugais", "Italien", "Sie kï¿½nnen nicht mehr Objekte tragen!");
 		return 1;
     }
     new dPrice = GetShopItemPrice(dShop[playerid][0], dShop[playerid][1]);
     if(!CallRemoteFunction("HasPlayerGold", "ii", playerid, dPrice))
     {
 		PlayerPlaySound(playerid, 1053, 0.0, 0.0, 0.0);
-		CallRemoteFunction("SendClientMessageEx", "iissssss", playerid, ROUGE, "You don't have enough gold!", "Vous n'avez pas assez d'or !", "¡No tiene suficiente de oro!", "Portugais", "No avete abbastanza di oro.", "Sie haben nicht genug gold!");
+		CallRemoteFunction("SendClientMessageEx", "iissssss", playerid, ROUGE, "You don't have enough gold!", "Vous n'avez pas assez d'or !", "ï¿½No tiene suficiente de oro!", "Portugais", "No avete abbastanza di oro.", "Sie haben nicht genug gold!");
 		return 1;
     }
     //---
@@ -1015,7 +1015,7 @@ public BuyPlayerItem(playerid)
     if(CallRemoteFunction("GetPlayerMission", "i", playerid) == MISSION_HAZING_HARVEST && dShop[playerid][0] == 6 && dShop[playerid][1] == 4)
     {
         if(dFreeSlot != 0) CallRemoteFunction("SwapPlayerObjects", "iii", playerid, 0, dFreeSlot);
-		CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, 5000, "Now hit the ~k~~CONVERSATION_NO~ key to equip the weapon!", "Appuyez sur la touche ~k~~CONVERSATION_NO~ pour équiper l'arme !", "Espagnol", "Portugais", "Italien", "Allemand");
+		CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, 5000, "Now hit the ~k~~CONVERSATION_NO~ key to equip the weapon!", "Appuyez sur la touche ~k~~CONVERSATION_NO~ pour ï¿½quiper l'arme !", "Espagnol", "Portugais", "Italien", "Allemand");
     }
     return 1;
 }

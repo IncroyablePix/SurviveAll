@@ -13,13 +13,14 @@
 \\
 //-------------------------------------------------------------------------------*/
 #include <a_samp>
+#include <memory>
 #include <[SA]Defines.inc>
 #include <[SA]Functions.inc>
-#undef PROFILING
-#if defined PROFILING
+//#undef PROFILING
+/*#if defined PROFILING
 #include <profiler.inc>
 #endif
-
+*/
 //---PARAMÉTRAGE
 //#define ADVANCED_ITEM_SPAWN
 
@@ -60,7 +61,7 @@ forward CreateRandomItem();
 forward PickRandomItem(neutral, gun, vehicle, medic, clothes, bag, level);
 
 //---VARIABLES
-static dSpawnObjects[MAX_ITEM_SPAWNS] = {-1, ...};
+static Pointer:dSpawnObjects[MAX_ITEM_SPAWNS] = {MEM_NULLPTR, ...};
 static dItemsHistory[MAX_SPAWNED_ITEMS] = {-1, ...};
 static dHistory;
 
@@ -72,10 +73,10 @@ public OnFilterScriptInit()
 	print("Survive-All object spawner - [Pix]");
 	print("- Loading");
 	print("...");
-	InitializeSpawnObject();
-	#if defined PROFILING
+	//InitializeSpawnObject();
+	/*#if defined PROFILING
  	Profiler_Start();
-	#endif
+	#endif*/
 	print("- Loaded");
 	print("--------------------------------------\n");
 	return 1;
@@ -2336,34 +2337,34 @@ GetItemSpawnPos(spawnid, &Float:x, &Float:y, &Float:z, &neutral, &gun, &vehicle,
 	bag = aRandomItemPos[spawnid][dBag];
 	level = aRandomItemPos[spawnid][dLevel];
 }
-
-InitializeSpawnObject()
+forward InitializeSpawnObject(spawnid, Pointer:objectid);
+public InitializeSpawnObject(spawnid, Pointer:objectid)
 {
-  	new dObjectsAmount;
-  	for(new i = 0; i < MAX_ITEM_SPAWNS; i ++)
-  	{
-  	    new Float:x, Float:y, Float:z, dNothing;
-  	    GetItemSpawnPos(i, x, y, z, dNothing, dNothing, dNothing, dNothing, dNothing, dNothing, dNothing);
-		new dItemID = CallRemoteFunction("GetItemWithinDistance", "ffff", x, y, z, 3.0);
-  	    if(dItemID != -1)
-  		{
-		  	dSpawnObjects[i] = dItemID;
-		  	dItemsHistory[dHistory] = i;
-		  	if(++ dHistory >= MAX_SPAWNED_ITEMS) dHistory = 0;
-			dObjectsAmount ++;
+	if(spawnid >= 0 && spawnid < MAX_ITEM_SPAWNS)
+	{
+		if(objectid != MEM_NULLPTR)
+		{
+			dSpawnObjects[spawnid] = objectid;
+			dItemsHistory[dHistory] = spawnid;
+			if(++ dHistory >= MAX_SPAWNED_ITEMS) dHistory = 0;
 		}
-  	    else dSpawnObjects[i] = -1;
-  	}
-  	return dObjectsAmount;
+		else dSpawnObjects[spawnid] = MEM_NULLPTR;
+	}
 }
 
 public CreateRandomItem()
 {
 	static dReplace = 0;
+
 	new dDestroyed = -1;
 	new dSpawned = CallRemoteFunction("GetSpawnedObjects", "");
 	if(dSpawned >= MAX_SPAWNED_ITEMS)
 	{
+		/*printf("%d objects spawned", dSpawned);
+		for(new i = 0; i < MAX_SPAWNED_ITEMS; i++)
+		{
+			printf("dItemsHistory[%d] = %d", i, dItemsHistory[i]);
+		}*/
 	    //printf("1");
 		do
 		{
@@ -2371,8 +2372,10 @@ public CreateRandomItem()
 		}
 	    while(dItemsHistory[dReplace] == -1);
 	    //---
-	    if(dSpawnObjects[dItemsHistory[dReplace]] != -1) CallRemoteFunction("DestroyItem", "i", dSpawnObjects[dItemsHistory[dReplace]]);
-	    dSpawnObjects[dItemsHistory[dReplace]] = -1;
+	    if(dSpawnObjects[dItemsHistory[dReplace]] != MEM_NULLPTR)
+			CallRemoteFunction("DestroyItem", "x", _:dSpawnObjects[dItemsHistory[dReplace]]);
+
+	    dSpawnObjects[dItemsHistory[dReplace]] = MEM_NULLPTR;
 	    dItemsHistory[dReplace] = -1;
 		if(++ dReplace >= MAX_SPAWNED_ITEMS) dReplace = 0;
 	    dDestroyed = dReplace;
@@ -2382,8 +2385,8 @@ public CreateRandomItem()
 	new dSlotID = -1;//Variable pour trouver un slot où y'a po d'objet
 	for(new i = 0; i < MAX_ITEM_SPAWNS; i ++)
 	{
-		if(dSpawnObjects[i] != -1 && CallRemoteFunction("GetObjectID", "i", dSpawnObjects[i]) == 0) dSpawnObjects[i] = -1;
-		if(dSpawnObjects[i] == -1)
+		if(dSpawnObjects[i] != MEM_NULLPTR && CallRemoteFunction("GetObjectID", "x", _:dSpawnObjects[i]) == 0) dSpawnObjects[i] = MEM_NULLPTR;
+		if(dSpawnObjects[i] == MEM_NULLPTR)
 		{
 			dSlotID = i;//Si on a trouvé au moins une position libre, c'bon
 			break;
@@ -2391,33 +2394,32 @@ public CreateRandomItem()
 	}
 	//printf("3");
 	//---
-	if(dSlotID == -1) return 1;//Si on a pas trouvé de position libre, on interrompt
+	if(dSlotID == -1) return 1;//Si on a pas trouvé de position libre, on interrompt*/
 	//---
 	//printf("4");
     new dRandomPos;
  	do dRandomPos = random(MAX_ITEM_SPAWNS);//On prend des positions au hasard...
-	while(dSpawnObjects[dRandomPos] != -1);//Jusqu'à ce qu'on en trouve une qui soit libre là !
+	while(dSpawnObjects[dRandomPos] != MEM_NULLPTR);//Jusqu'à ce qu'on en trouve une qui soit libre là !
 	//---
 	//printf("5");
 	new Float:x, Float:y, Float:z, neutral, gun, vehicle, medic, clothe, bag, level;
 	GetItemSpawnPos(dRandomPos, x, y, z, neutral, gun, vehicle, medic, clothe, bag, level);
+	/*if(Pointer:CallRemoteFunction("GetItemWithinDistance", "ffff", x, y, z, 3.0) != MEM_NULLPTR)
+		return 1;*/
     new dItemID = PickRandomItem(neutral, gun, vehicle, medic, clothe, bag, level);
 	//printf("6");
-    if(dItemID != 0)
-    {
-        dSlotID = CallRemoteFunction("CreateItem", "dfffbd", dItemID, x, y, z, true, -1);
-		dSpawnObjects[dRandomPos] = dSlotID;
-		//---
-		//printf("7");
-		if(dDestroyed == -1)
-		{
-			dItemsHistory[dHistory] = dRandomPos;
-			dHistory ++;
-		}
-		else
-		{
-			dItemsHistory[dDestroyed] = dRandomPos;
-		}
+	new Pointer:pt = Pointer:CallRemoteFunction("CreateItem", "dfffbdd", dItemID, x, y, z, true, -1, dRandomPos);
+	dSpawnObjects[dRandomPos] = pt;
+	//---
+	//printf("7");
+	if(dDestroyed == -1)
+	{
+		dItemsHistory[dHistory] = dRandomPos;
+		dHistory ++;
+	}
+	else
+	{
+		dItemsHistory[dDestroyed] = dRandomPos;
 	}
 	return 1;
 }

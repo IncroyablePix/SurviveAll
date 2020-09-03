@@ -72,7 +72,6 @@ stock IsEngineOn(vehicleid)//On regarde si le moteur d'un vï¿½hicule est allumï¿
 	GetVehicleParamsEx(vehicleid, engine, other, other, other, other, other, other);//On rï¿½cupï¿½re la variable de tous les ï¿½tats parce qu'on a pas trop trop le choix, mais on garde que 'engine'
 	return engine;
 }
-
 stock Float:GetDistanceToPoint(playerid,Float:x1,Float:y1,Float:z1)//Fonction pour chopper la distance entre un joueur et un point
 {
 	if(IsPlayerConnected(playerid))
