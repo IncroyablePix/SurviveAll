@@ -382,7 +382,6 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #include <FCNPC>
 #include <streamer>
 #include <colandreas>
-#include <YSI\y_ini>
 #include <YSI\y_hooks>
 #include <FloodControl.inc>
 #include <crashdetect.inc>
@@ -1812,7 +1811,7 @@ GetItemName(objectid, language)
 //AUTRES
 new pNPCType[MAX_PLAYERS] = {0, ...};
 //new dGoldDumpVar;//Variable pour donner de l'or à un joueur pendant qu'il n'est pas en ligne
-new dAuctionParsingVar[50];
+//new dAuctionParsingVar[50];
 new zBlackZone;//Gangzone noire sur toute la map
 new dEnvironment[Environment];//Variables de météo, de temps, etc.
 new dMapRes[2];//Variable de protocole pour la taille du fichier BMP de terrain
@@ -1931,7 +1930,7 @@ ChangeWeather(weather, time)
 }
 
 //---SYSTÈME ADMIN---//
-new bool:bBannedIP;
+//new bool:bBannedIP;
 new dIPInfo;
 new sIPInfos[30][MAX_PLAYER_NAME + 1];
 
@@ -1946,7 +1945,7 @@ IsTextIP(const ip[])
 	return true;
 }
 
-IPFile(const ip[])//Pour avoir le fichier d'une IP
+/*IPFile(const ip[])//Pour avoir le fichier d'une IP
 {
 	new string[50];
 	format(string,sizeof(string), IP, ip);
@@ -1959,7 +1958,7 @@ PlayerFile(const name[])//Pour avoir le fichier d'un joueur
 	format(string,sizeof(string), PSEUDO, name);
 	return string;
 }
-
+*/
 GetIPFromPlayer(playerid)
 {
 	new ip[16];
@@ -1969,22 +1968,43 @@ GetIPFromPlayer(playerid)
 
 SetIPBan(const ip[], bool:banned)
 {
+	#if defined MYSQL_SYSTEM
+	new query[256];
+	mysql_format(mysqlPool, query, sizeof(query), "UPDATE `ip` SET banned = %b WHERE ip = \"%s\"", banned, ip);
+	mysql_tquery(mysqlPool, query);
+	#else
     new INI:File;
 	File = INI_Open(IPFile(ip));
     INI_SetTag(File,"ban");
     INI_WriteBool(File,"Banned", banned);
 	INI_Close(File);
+	#endif
 }
 
 IsIPBanned(const ip[])
 {
+	#if defined MYSQL_SYSTEM
+	new bool: banned, query[256], Cache:result;
+	mysql_format(mysqlPool, query, sizeof(query), "SELECT banned FROM `ip` WHERE ip = \"%s\" LIMIT 1", ip);
+	result = mysql_query(mysqlPool, query);
+	cache_set_active(result);
+	cache_get_value_name_bool(0, "banned", banned);
+	cache_delete(result);
+	return banned;
+	#else
 	if(!fexist(IPFile(ip))) return false;
 	INI_ParseFile(IPFile(ip), "LoadIPBan_%s");
 	return bBannedIP;
+	#endif
 }
 
 AddPlayerToIP(const name[], const ip[])
 {
+	#if defined MYSQL_SYSTEM
+	new query[256], playerid = PlayeridFromName(name);
+	mysql_format(mysqlPool, query, sizeof(query), "CALL `insertPlayerIP`(\"%s\", \"%s\", %d)", ip, name, pPlayerInfos[playerid][dPlayerID]);
+	mysql_tquery(mysqlPool, query);
+	#else
 	if(!fexist(IPFile(ip)))
 	{
 	    dIPInfo = 0;
@@ -1996,17 +2016,18 @@ AddPlayerToIP(const name[], const ip[])
 	strcpy(sIPInfos[dIPInfo], name, MAX_PLAYER_NAME + 1);
 	dIPInfo ++;
 	SaveIPNicks(ip);
+	#endif
 	//---
 	return 1;
 }
 
-public LoadIPBan_ban(name[], value[])
+/*public LoadIPBan_ban(name[], value[])
 {
 	INI_Bool("Banned", bBannedIP);
 	return 1;
-}
+}*/
 
-public LoadIPNicks_nicks(name[], value[])
+/*public LoadIPNicks_nicks(name[], value[])
 {
 	new string[50];
 	if(!fexist(PlayerFile(name)))
@@ -2022,8 +2043,8 @@ public LoadIPNicks_nicks(name[], value[])
 	}
 	return 1;
 }
-
-SaveIPNicks(const ip[])
+*/
+/*SaveIPNicks(const ip[])
 {
     new INI:File;
 	new string[50];
@@ -2037,8 +2058,8 @@ SaveIPNicks(const ip[])
 	}
 	INI_Close(File);
 }
-
-AddIPToPlayer(const ip[], const name[])
+*/
+/*AddIPToPlayer(const ip[], const name[])
 {
 	if(!fexist(IPFile(ip)))
 	{
@@ -2054,7 +2075,7 @@ AddIPToPlayer(const ip[], const name[])
 	//---
 	return 1;
 }
-
+*/
 stock BanAllPlayerIP(const name[])
 {
 	if(!fexist(PlayerFile(name))) return 0;
@@ -2068,8 +2089,13 @@ stock BanAllPlayerIP(const name[])
 	return 1;
 }
 
-UnbanAllPlayerIP(const name[])
+UnbanAllPlayerIP(playerid)
 {
+	#if defined MYSQL_SYSTEM
+	new query[256];
+	mysql_format(mysqlPool, query, sizeof(query), "UPDATE `ip` SET banned = 0 WHERE ip IN(SELECT ip FROM `connection` WHERE idplayer = %d)", pPlayerInfos[playerid][dPlayerID]);
+	mysql_tquery(mysqlPool, query);
+	#else
 	if(!fexist(PlayerFile(name))) return 0;
 	INI_ParseFile(PlayerFile(name), "LoadPlayerIP_%s");
 	//---
@@ -2077,11 +2103,12 @@ UnbanAllPlayerIP(const name[])
 	{
         SetIPBan(sIPInfos[i], false);
 	}
+	#endif
 	//---
 	return 1;
 }
 
-public LoadPlayerIP_ip(name[], value[])
+/*public LoadPlayerIP_ip(name[], value[])
 {
 	new string[50];
 	INI_Int("IPs", dIPInfo);
@@ -2092,8 +2119,8 @@ public LoadPlayerIP_ip(name[], value[])
 	}
 	return 1;
 }
-
-SavePlayerIPs(const name[])
+*/
+/*SavePlayerIPs(const name[])
 {
     new INI:File;
 	new string[50];
@@ -2107,7 +2134,7 @@ SavePlayerIPs(const name[])
 	}
 	INI_Close(File);
 }
-
+*/
 //---INFOS JOUEURS---//
 /*new lastco[30];
 public GetUserLastCo_data(name[],value[])
@@ -2282,8 +2309,8 @@ public OnPlayerLoaded(playerid)
 	}
 	//---
 	AddPlayerToIP(GetName(playerid), GetIPFromPlayer(playerid));
-	AddIPToPlayer(GetIPFromPlayer(playerid), GetName(playerid));
-	if(gettime() > pPlayerInfos[playerid][pBan]) UnbanAllPlayerIP(GetName(playerid));
+	//AddIPToPlayer(GetIPFromPlayer(playerid), GetName(playerid));
+	if(gettime() > pPlayerInfos[playerid][pBan]) UnbanAllPlayerIP(playerid);
 	if(gettime() < pPlayerInfos[playerid][pBan] && IsIPBanned(GetIPFromPlayer(playerid))) return aBan(INVALID_PLAYER_ID, playerid, 1, "Banned IP");
 	//---
 	if(pPlayerInfos[playerid][pBan] == -1)
@@ -8893,7 +8920,7 @@ ReturnPlayerItem(category, itemid)
     RemoveAuctionHouseItem(category, itemid);
 }
 
-public LoadUserItems_auctions(name[], value[])
+/*public LoadUserItems_auctions(name[], value[])
 {
 	new string[16];
 	for(new i = 0; i < 50; i ++)
@@ -8903,7 +8930,7 @@ public LoadUserItems_auctions(name[], value[])
     }
     return 1;
 }
-
+*/
 /*enum ItemForSale
 {
 	dItemSale,//ID de l'objet
@@ -24426,7 +24453,7 @@ public OnPlayerSpawn(playerid)
 
 public OnPlayerDies(playerid, killerid, reason)
 {
-	static pLastDeath[MAX_PLAYERS] = {0, ...};
+	static pLastDeath[MAX_PLAYERS] = {0, ...}, query[256];
 	if(TimePassedSince(pLastDeath[playerid]) >= 3)
 	{
 		switch(reason)
@@ -24440,6 +24467,7 @@ public OnPlayerDies(playerid, killerid, reason)
 				ShowPlayerTextInfo(playerid, 5000, "~r~You died of thirst.", "~r~Vous êtes mort de soif", "~r~Està muerto de sed.", "Portugais", "~r~Si sei morto di sete.", "~r~Sie sint verdursted.");//On lui envoie un message
 			}
 		}
+		mysql_format(mysqlPool, query, sizeof(query), "INSERT INTO `kills` (idplayer, idkilled) VALUES(NULL, %d)", pPlayerInfos[playerid][dPlayerID]);
 		if(killerid != INVALID_PLAYER_ID)
 		{
 		    new bool:bZombie;
@@ -24458,13 +24486,23 @@ public OnPlayerDies(playerid, killerid, reason)
 				GivePlayerExp(killerid, 13);
 	    		pPlayerInfos[killerid][pKills] ++;
 			}
-			if(bZombie) LogInfo(true, "[KILL]%s s'est fait tuer par un zombie.", GetName(playerid));
-			else LogInfo(true, "[KILL]%s s'est fait tuer par %s - %d.", GetName(playerid), GetName(killerid), reason);
+			if(bZombie)
+			{
+				LogInfo(true, "[KILL]%s s'est fait tuer par un zombie.", GetName(playerid));
+				mysql_format(mysqlPool, query, sizeof(query), "INSERT INTO `kills` (idplayer, idkilled) VALUES(-1, %d)", pPlayerInfos[playerid][dPlayerID]);
+
+			} 
+			else
+			{
+				LogInfo(true, "[KILL]%s s'est fait tuer par %s - %d.", GetName(playerid), GetName(killerid), reason);
+				mysql_format(mysqlPool, query, sizeof(query), "INSERT INTO `kills` (idplayer, idkilled) VALUES(%d, %d)", pPlayerInfos[killerid][dPlayerID], pPlayerInfos[playerid][dPlayerID]);
+			}
 		}
 		else
 		{
 			LogInfo(true, "[KILL]%s est mort - %d.", GetName(playerid), reason);
 		}
+		mysql_tquery(mysqlPool, query);
 		pPlayerInfos[playerid][pDeaths] ++;
 		//-----------//
 		for(new i = 0; i < MAX_JOHNS; i ++)
@@ -28563,9 +28601,15 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				    }
 				    case -2://Débannir un joueur
 				    {
-						format(string, sizeof(string), "/Comptes/%s.ini", inputtext);
+						new query[256], Cache: result, idplayer = -1;
+						mysql_format(mysqlPool, query, sizeof(query), "SELECT idplayer FROM `player` WHERE username = \"%s\"", inputtext);
+						result = mysql_query(mysqlPool, query);
+						cache_set_active(result);
+						if(cache_num_rows())
+							cache_get_value_name_int(0, "idplayer", idplayer);
+						cache_delete(result);
 						//---
-						if(!fexist(string) || !strlen(inputtext))
+						if(idplayer == -1 || !strlen(inputtext))
 						{
 							switch(pPlayerInfos[playerid][pLangue])
 							{
@@ -28578,10 +28622,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 							}
 							return 1;
 						}
-						new INI:File = INI_Open(string);
-						INI_SetTag(File,"data");
-						INI_WriteInt(File,"Ban", 0);
-						INI_Close(File);
+						mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET banned = NULL WHERE idplayer = %d", idplayer);
+						mysql_tquery(mysqlPool, query);
 						ShowPlayerTextInfo(playerid, 5000, "~g~Player successfully unbanned!", "~g~Joueur débanni avec succès !", "Espagnol", "Portugais", "Italien", "Allemand");
 						//---
 						for(new i = 0; i < MAX_PLAYERS; i ++)
