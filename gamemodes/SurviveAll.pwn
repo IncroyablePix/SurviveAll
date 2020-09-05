@@ -394,7 +394,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #include <profiler.inc>
 #endif
 
-#pragma dynamic 1000000
+#pragma dynamic 50000
 
 //---PARAMÉTRAGE---//
 #define VERSION                             "Alpha v0.93"//Version du serveur
@@ -690,6 +690,7 @@ forward OnWeaponsLoaded();
 forward OnVehiclesLoaded();
 forward OnPlayerLoaded(playerid);
 forward DestroyItem(Pointer:itemid);
+forward OnAuctionHouseLoaded();
 #endif
 //SAUVEGARDES
 forward LoadVehicles_data(name[], value[]);
@@ -1810,7 +1811,7 @@ GetItemName(objectid, language)
 
 //AUTRES
 new pNPCType[MAX_PLAYERS] = {0, ...};
-new dGoldDumpVar;//Variable pour donner de l'or à un joueur pendant qu'il n'est pas en ligne
+//new dGoldDumpVar;//Variable pour donner de l'or à un joueur pendant qu'il n'est pas en ligne
 new dAuctionParsingVar[50];
 new zBlackZone;//Gangzone noire sur toute la map
 new dEnvironment[Environment];//Variables de météo, de temps, etc.
@@ -2155,8 +2156,8 @@ public LoadPlayerExtraGold(playerid)
 }*/
 public OnPlayerLoaded(playerid)
 {
-	new infomask[64], infobody[64], infoglasses[64], infohat[64], weapons[64], skills[64], inventory[128], goldtogive, itemstogive[64];
-	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][4], items[36][4], string[256];
+	new infomask[64], infobody[64], infoglasses[64], infohat[64], weapons[64], skills[64], inventory[128], itemstogive[64];
+	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][4], items[50][4];
 	cache_get_value_name(0, "registerdate", pPlayerInfos[playerid][sFirstCo]);
 	cache_get_value_name(0, "lastco", pPlayerInfos[playerid][sLastCo]);
 	cache_get_value_name(0, "password", pPlayerInfos[playerid][pPassword]);
@@ -2211,6 +2212,7 @@ public OnPlayerLoaded(playerid)
 	strexplode(skill, skills, " ");
 	strexplode(invent, inventory, " ");
 	strexplode(items, itemstogive, " ");
+	ProcessPlayerSave(playerid, .save = false);
 	for(new i = 0; i < 9; i++)
 	{
 		pPlayerInfos[playerid][fPosTorse][i] = floatstr(body[i]);
@@ -2309,8 +2311,6 @@ public OnPlayerLoaded(playerid)
 	pPlayerInfos[playerid][dLogState] = SPAWNED;
 	//---
 	SetSpawnInfo(playerid, 0, (pPlayerInfos[playerid][pSkin] > 311) ? 252 : pPlayerInfos[playerid][pSkin], 0.0, 0.0, 3.0, 0.0, 0, 0, 0, 0, 0, 0);
-	SpawnPlayer(playerid);
-	OnPlayerSpawn(playerid);
 	pPlayerTag[playerid] = Create3DTextLabel(GetName(playerid), BLEU, 0.0, 0.0, 0.0, TAG_DISTANCE, -1, 1);
 	UpdatePlayerTag(playerid);
 	StopAudioStreamForPlayer(playerid);
@@ -2488,50 +2488,54 @@ public OnPlayerLoaded(playerid)
 #if defined MYSQL_SYSTEM
 public SaveUser(playerid)
 {
-	new query[1512], itemstogive[256] = "", infomask[128], infohat[128], infobody[128], infoglasses[128], infoweapon[64], inventory[256], skills[64], weapons[64];
-	format(skills, sizeof(skills),"%d %d %d %d %d %d %d %d %d %d %d %d %d", pPlayerInfos[playerid][dBoucher], pPlayerInfos[playerid][dMedecine], pPlayerInfos[playerid][dSante], pPlayerInfos[playerid][dArtisan],
-	pPlayerInfos[playerid][dTransporteur], pPlayerInfos[playerid][dPecheur], pPlayerInfos[playerid][dMecano], pPlayerInfos[playerid][dJardinier], pPlayerInfos[playerid][dAthlete], pPlayerInfos[playerid][dSurvivaliste],
-	pPlayerInfos[playerid][dTank], pPlayerInfos[playerid][dBomberman], pPlayerInfos[playerid][dHydra]);
-	for(new i = 0; i < 50; i++)
+	if(pPlayerInfos[playerid][dLogState] != UNLOGGED)
 	{
-		format(itemstogive, sizeof(itemstogive), "%s%d ", itemstogive, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
+		ProcessPlayerSave(playerid, .save = true);
+		new query[1512], itemstogive[256] = "", infomask[128], infohat[128], infobody[128], infoglasses[128], infoweapon[64], inventory[256], skills[64], weapons[64];
+		format(skills, sizeof(skills),"%d %d %d %d %d %d %d %d %d %d %d %d %d", pPlayerInfos[playerid][dBoucher], pPlayerInfos[playerid][dMedecine], pPlayerInfos[playerid][dSante], pPlayerInfos[playerid][dArtisan],
+		pPlayerInfos[playerid][dTransporteur], pPlayerInfos[playerid][dPecheur], pPlayerInfos[playerid][dMecano], pPlayerInfos[playerid][dJardinier], pPlayerInfos[playerid][dAthlete], pPlayerInfos[playerid][dSurvivaliste],
+		pPlayerInfos[playerid][dTank], pPlayerInfos[playerid][dBomberman], pPlayerInfos[playerid][dHydra]);
+		for(new i = 0; i < 50; i++)
+		{
+			format(itemstogive, sizeof(itemstogive), "%s%d ", itemstogive, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
+		}
+		for(new i = 0; i < 9; i++)
+		{
+			new tmp[10];
+			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosChapeau][i]);
+			strcat(infohat, tmp);
+			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosLunettes][i]);
+			strcat(infoglasses, tmp);
+			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosMasque][i]);
+			strcat(infomask, tmp);
+			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosTorse][i]);
+			strcat(infobody, tmp);
+		}
+		format(infohat, sizeof(infohat), "%s%d", infohat, pPlayerInfos[playerid][pChapeau]);
+		format(infoglasses, sizeof(infoglasses), "%s%d", infoglasses, pPlayerInfos[playerid][pLunettes]);
+		format(infomask, sizeof(infomask), "%s%d", infomask, pPlayerInfos[playerid][pMasque]);
+		format(infobody, sizeof(infobody), "%s%d", infobody, pPlayerInfos[playerid][pTorse]);
+		for(new i = 1; i < 38; i++)
+		{
+			new tmp[10];
+			format(tmp, sizeof(tmp), "%d ", GetPlayerSlotObject(playerid, i));
+			strcat(inventory, tmp);
+		}
+		format(weapons, sizeof(weapons), "%d,%d,%d %d,%d,%d %d,%d,%d %d,%d,%d", pPlayerInfos[playerid][pArme1][0], pPlayerInfos[playerid][pArme1][1], pPlayerInfos[playerid][pArme1][2],
+		pPlayerInfos[playerid][pArme2][0], pPlayerInfos[playerid][pArme2][1], pPlayerInfos[playerid][pArme2][2], pPlayerInfos[playerid][pArme3][0], pPlayerInfos[playerid][pArme3][1], pPlayerInfos[playerid][pArme3][2],
+		pPlayerInfos[playerid][pArme4][0], pPlayerInfos[playerid][pArme4][1], pPlayerInfos[playerid][pArme4][2]);
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET username = \"%s\", password = \"%s\", salt = \"%s\", adminlevel = %d, idvip = %d, goldtogive = %d, itemstogive = \"%s\", \
+		viptime = %d, language = %d, gold = %d, gametime = %d, bagtype = %d, hunger = %d, thirst = %d, sleep = %d, health = %d, armour = %d, x = %f, y = %f, z = %f, a = %f, \
+		legs = %b, bleed = %b, temperature = %d, infohat = \"%s\", infoglasses = \"%s\", infomask = \"%s\", infobody = \"%s\", infoweapon = \"%s\", inventory = \"%s\", level = %d, exp = %d, competence = %d, \
+		help1_16 = %d, help17_32 = %d, skills = \"%s\", reggaeshark = %d, intro = %d, amy = %d, ken = %d, dpo = %d, killzombies = %d, killboss = %d, kills = %d, deaths = %d, weapons = \"%s\", skin = \"%d\" \
+		WHERE idplayer = %d", GetName(playerid), pPlayerInfos[playerid][pPassword], pPlayerInfos[playerid][pSalt], pPlayerInfos[playerid][pAdmin], pPlayerInfos[playerid][pVIP][0], pPlayerOfflineInfos[playerid][dRecievedGold], itemstogive,
+		pPlayerInfos[playerid][pVIP][1], pPlayerInfos[playerid][pLangue], pPlayerInfos[playerid][pGold], pPlayerInfos[playerid][pGameTime], pPlayerInfos[playerid][pBag], pPlayerInfos[playerid][pHunger],
+		pPlayerInfos[playerid][pThirst], pPlayerInfos[playerid][pSleep], pPlayerInfos[playerid][pHealth], pPlayerInfos[playerid][pArmour], pPlayerInfos[playerid][xPos], pPlayerInfos[playerid][yPos], pPlayerInfos[playerid][zPos], pPlayerInfos[playerid][aPos],
+		pPlayerInfos[playerid][bLeg], pPlayerInfos[playerid][bHemorragie], pPlayerInfos[playerid][pTemperature], infohat, infoglasses, infomask, infobody, infoweapon, inventory, pPlayerInfos[playerid][pLevel], pPlayerInfos[playerid][pExp], pPlayerInfos[playerid][pCompetence],
+		pPlayerInfos[playerid][dAide1_16], pPlayerInfos[playerid][dAide17_32], skills, pPlayerInfos[playerid][pReggaeShark], pPlayerInfos[playerid][pIntro], pPlayerInfos[playerid][pAmy], pPlayerInfos[playerid][pKen], pPlayerInfos[playerid][pDPO],
+		pPlayerInfos[playerid][pZombies], pPlayerInfos[playerid][pBosses], pPlayerInfos[playerid][pKills], pPlayerInfos[playerid][pDeaths], weapons, pPlayerInfos[playerid][pSkin], pPlayerInfos[playerid][dPlayerID]);
+		mysql_tquery(mysqlPool, query);			
 	}
-	for(new i = 0; i < 9; i++)
-	{
-		new tmp[10];
-		format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosChapeau][i]);
-		strcat(infohat, tmp);
-		format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosLunettes][i]);
-		strcat(infoglasses, tmp);
-		format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosMasque][i]);
-		strcat(infomask, tmp);
-		format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosTorse][i]);
-		strcat(infobody, tmp);
-	}
-	format(infohat, sizeof(infohat), "%s%d", infohat, pPlayerInfos[playerid][pChapeau]);
-	format(infoglasses, sizeof(infoglasses), "%s%d", infoglasses, pPlayerInfos[playerid][pLunettes]);
-	format(infomask, sizeof(infomask), "%s%d", infomask, pPlayerInfos[playerid][pMasque]);
-	format(infobody, sizeof(infobody), "%s%d", infobody, pPlayerInfos[playerid][pTorse]);
-	for(new i = 1; i < 38; i++)
-	{
-		new tmp[10];
-		format(tmp, sizeof(tmp), "%d ", GetPlayerSlotObject(playerid, i));
-		strcat(inventory, tmp);
-	}
-	format(weapons, sizeof(weapons), "%d,%d,%d %d,%d,%d %d,%d,%d %d,%d,%d", pPlayerInfos[playerid][pArme1][0], pPlayerInfos[playerid][pArme1][1], pPlayerInfos[playerid][pArme1][2],
-	pPlayerInfos[playerid][pArme2][0], pPlayerInfos[playerid][pArme2][1], pPlayerInfos[playerid][pArme2][2], pPlayerInfos[playerid][pArme3][0], pPlayerInfos[playerid][pArme3][1], pPlayerInfos[playerid][pArme3][2],
-	pPlayerInfos[playerid][pArme4][0], pPlayerInfos[playerid][pArme4][1], pPlayerInfos[playerid][pArme4][2]);
-	mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET username = \"%s\", password = \"%s\", salt = \"%s\", adminlevel = %d, idvip = %d, goldtogive = %d, itemstogive = \"%s\", \
-	viptime = %d, language = %d, gold = %d, gametime = %d, bagtype = %d, hunger = %d, thirst = %d, sleep = %d, health = %d, armour = %d, x = %f, y = %f, z = %f, a = %f, \
-	legs = %b, bleed = %b, temperature = %d, infohat = \"%s\", infoglasses = \"%s\", infomask = \"%s\", infobody = \"%s\", infoweapon = \"%s\", inventory = \"%s\", level = %d, exp = %d, competence = %d, \
-	help1_16 = %d, help17_32 = %d, skills = \"%s\", reggaeshark = %d, intro = %d, amy = %d, ken = %d, dpo = %d, killzombies = %d, killboss = %d, kills = %d, deaths = %d, weapons = \"%s\", skin = \"%d\" \
-	WHERE idplayer = %d", GetName(playerid), pPlayerInfos[playerid][pPassword], pPlayerInfos[playerid][pSalt], pPlayerInfos[playerid][pAdmin], pPlayerInfos[playerid][pVIP][0], pPlayerOfflineInfos[playerid][dRecievedGold], itemstogive,
-	pPlayerInfos[playerid][pVIP][1], pPlayerInfos[playerid][pLangue], pPlayerInfos[playerid][pGold], pPlayerInfos[playerid][pGameTime], pPlayerInfos[playerid][pBag], pPlayerInfos[playerid][pHunger],
-	pPlayerInfos[playerid][pThirst], pPlayerInfos[playerid][pSleep], pPlayerInfos[playerid][pHealth], pPlayerInfos[playerid][pArmour], pPlayerInfos[playerid][xPos], pPlayerInfos[playerid][yPos], pPlayerInfos[playerid][zPos], pPlayerInfos[playerid][aPos],
-	pPlayerInfos[playerid][bLeg], pPlayerInfos[playerid][bHemorragie], pPlayerInfos[playerid][pTemperature], infohat, infoglasses, infomask, infobody, infoweapon, inventory, pPlayerInfos[playerid][pLevel], pPlayerInfos[playerid][pExp], pPlayerInfos[playerid][pCompetence],
-	pPlayerInfos[playerid][dAide1_16], pPlayerInfos[playerid][dAide17_32], skills, pPlayerInfos[playerid][pReggaeShark], pPlayerInfos[playerid][pIntro], pPlayerInfos[playerid][pAmy], pPlayerInfos[playerid][pKen], pPlayerInfos[playerid][pDPO],
-	pPlayerInfos[playerid][pZombies], pPlayerInfos[playerid][pBosses], pPlayerInfos[playerid][pKills], pPlayerInfos[playerid][pDeaths], weapons, pPlayerInfos[playerid][pSkin], pPlayerInfos[playerid][dPlayerID]);
-	mysql_tquery(mysqlPool, query);
 }
 #else
 public SaveUser(playerid)
@@ -2824,6 +2828,7 @@ ResetPlayerVariables(playerid)//Pour remettre les variables à 0 quand un mec se 
 	pPlayerInfos[playerid][dLogState] = UNLOGGED;
 	pPlayerInfos[playerid][pPassword][0] = 0;
 	pPlayerInfos[playerid][pSalt][0] = 0;
+	pPlayerInfos[playerid][dPlayerID] = -1;
 	pPlayerInfos[playerid][pAdmin] = PLAYER;
 	format(pPlayerInfos[playerid][sFirstCo], 30, " ");
 	format(pPlayerInfos[playerid][sLastCo], 30, " ");
@@ -5780,10 +5785,13 @@ public GivePlayerGold(playerid, amount)//Pour donner de l'or
 	return pPlayerInfos[playerid][pGold];
 }
 #if defined MYSQL_SYSTEM
-GiveOfflinePlayerGold(const playername[], amount)
+GiveOfflinePlayerGold(const playername[], amount, sqlID = -1)
 {
     new string[256];
-    mysql_format(mysqlPool, string, sizeof(string), "UPDATE `player` SET goldtogive = goldtogive + %d WHERE username = \"%s\"", amount, playername);
+	if(sqlID == -1)
+    	mysql_format(mysqlPool, string, sizeof(string), "UPDATE `player` SET goldtogive = goldtogive + %d WHERE username = \"%s\"", amount, playername);
+	else
+	    mysql_format(mysqlPool, string, sizeof(string), "UPDATE `player` SET goldtogive = goldtogive + %d WHERE idplayer = %d", amount, sqlID);
 	mysql_tquery(mysqlPool, string);
 }
 #else
@@ -5805,13 +5813,13 @@ public LoadUserGold_auctions(name[],value[])
     INI_Int("Or", dGoldDumpVar);
     return 1;
 }
-
+#endif
 IsThereUnsoldItem(playerid)
 {
 	for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] != 0) return true;
 	return false;
 }
-#endif
+
 //---
 
 GetPlayerMaxHealth(playerid)
@@ -6354,7 +6362,7 @@ stock SaveGasStations()
 		new gas[GasStation];
 		MEM_get_arr(data_ptr, _, gas);
 		mysql_format(mysqlPool, string, sizeof(string), "UPDATE gasstation SET quantite = %d WHERE idstation = %d", gas[dStationGas], gas[gasID]);
-		mysql_query(mysqlPool, string);
+		mysql_query(mysqlPool, string, false);
 	}
 	LogInfo(true, "[SAVE] Stations-essences sauvegardees");
 }
@@ -7656,13 +7664,15 @@ ShowPlayerSkills(playerid)
 //---HDV---//
 new pHDVSale[MAX_PLAYERS][3];
 new pHDV[MAX_PLAYERS][2];
-enum ItemForSale
+enum _:ItemForSale
 {
 	dItemSale,//ID de l'objet
 	dItemPrice,//Prix
 	dSalesID,//
-	sSalesman[MAX_PLAYER_NAME + 1],
-	dTimeLeft
+	//sSalesman[MAX_PLAYER_NAME + 1],
+	dTimeLeft,
+	dSellType,
+	dSaleManID
 }
 
 new dAuctionSellerTool[MAX_AUCTION_ITEMS][ItemForSale];
@@ -8174,65 +8184,30 @@ AddAuctionHouseItem(playerid, category, item, price, time, slotid = -1)
     }
     //---
     if(slotid == -1) return -1;
+	new sale[ItemForSale];
     //---
+	sale[dItemSale] = item;
+	sale[dItemPrice] = price;
+	sale[dTimeLeft] = time;
+	sale[dSaleManID] = pPlayerInfos[playerid][dPlayerID];
+	sale[dSellType] = category;
+	new string[512], Cache: result;
+	mysql_format(mysqlPool, string, sizeof(string), "CALL `insertSale`(%d, %d, %d, %d, %d)", item, price, time, sale[dSaleManID], category);
+	result = mysql_query(mysqlPool, string);
+	cache_set_active(result);
+	cache_get_value_name_int(0, "nextID", sale[dSalesID]);
+	cache_delete(result);
+	new numbytes = sizeof(sale) * 4;
     switch(category)
     {
-        case 0:
-        {
-            dAuctionSellerTool[slotid][dItemSale] = item;
-            dAuctionSellerTool[slotid][dItemPrice] = price;
-            dAuctionSellerTool[slotid][dTimeLeft] = time;
-            format(dAuctionSellerTool[slotid][sSalesman], MAX_PLAYER_NAME + 1, GetName(playerid));
-        }
-        case 1:
-        {
-            dAuctionSellerMedic[slotid][dItemSale] = item;
-            dAuctionSellerMedic[slotid][dItemPrice] = price;
-            dAuctionSellerMedic[slotid][dTimeLeft] = time;
-            format(dAuctionSellerMedic[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 2:
-        {
-            dAuctionSellerWeapon[slotid][dItemSale] = item;
-            dAuctionSellerWeapon[slotid][dItemPrice] = price;
-            dAuctionSellerWeapon[slotid][dTimeLeft] = time;
-            format(dAuctionSellerWeapon[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 3:
-        {
-            dAuctionSellerOther[slotid][dItemSale] = item;
-            dAuctionSellerOther[slotid][dItemPrice] = price;
-            dAuctionSellerOther[slotid][dTimeLeft] = time;
-            format(dAuctionSellerOther[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 4:
-        {
-            dAuctionSellerVehicle[slotid][dItemSale] = item;
-            dAuctionSellerVehicle[slotid][dItemPrice] = price;
-            dAuctionSellerVehicle[slotid][dTimeLeft] = time;
-            format(dAuctionSellerVehicle[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 5:
-        {
-            dAuctionSellerClothes[slotid][dItemSale] = item;
-            dAuctionSellerClothes[slotid][dItemPrice] = price;
-            dAuctionSellerClothes[slotid][dTimeLeft] = time;
-            format(dAuctionSellerClothes[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 6:
-        {
-            dAuctionSellerFood[slotid][dItemSale] = item;
-            dAuctionSellerFood[slotid][dItemPrice] = price;
-            dAuctionSellerFood[slotid][dTimeLeft] = time;
-            format(dAuctionSellerFood[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
-        case 7:
-        {
-            dAuctionSellerRessource[slotid][dItemSale] = item;
-            dAuctionSellerRessource[slotid][dItemPrice] = price;
-            dAuctionSellerRessource[slotid][dTimeLeft] = time;
-            format(dAuctionSellerRessource[slotid][sSalesman], MAX_PLAYER_NAME + 1, "%s", GetName(playerid));
-        }
+		case 0: memcpy(dAuctionSellerTool[slotid], sale, _, numbytes);
+		case 1: memcpy(dAuctionSellerMedic[slotid], sale, _, numbytes);
+		case 2: memcpy(dAuctionSellerWeapon[slotid], sale, _, numbytes);
+		case 3: memcpy(dAuctionSellerOther[slotid], sale, _, numbytes);
+		case 4: memcpy(dAuctionSellerVehicle[slotid], sale, _, numbytes);
+		case 5: memcpy(dAuctionSellerClothes[slotid], sale, _, numbytes);
+		case 6: memcpy(dAuctionSellerFood[slotid], sale, _, numbytes);
+		case 7: memcpy(dAuctionSellerRessource[slotid], sale, _, numbytes);
     }
 	return slotid;
 }
@@ -8252,6 +8227,7 @@ RemoveAuctionHouseItem(category, slotid)
 	    case 6: if(dAuctionSellerFood[slotid][dItemSale] == 0) return 0;
 	    case 7: if(dAuctionSellerRessource[slotid][dItemSale] == 0) return 0;
 	}
+	new saleid;
     //---
     switch(category)
     {
@@ -8260,64 +8236,75 @@ RemoveAuctionHouseItem(category, slotid)
             dAuctionSellerTool[slotid][dItemSale] = 0;
             dAuctionSellerTool[slotid][dItemPrice] = 0;
             dAuctionSellerTool[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerTool[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerTool[slotid][dSalesID];
+            //format(dAuctionSellerTool[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 1:
         {
             dAuctionSellerMedic[slotid][dItemSale] = 0;
             dAuctionSellerMedic[slotid][dItemPrice] = 0;
             dAuctionSellerMedic[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerMedic[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerMedic[slotid][dSalesID];
+            //format(dAuctionSellerMedic[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 2:
         {
             dAuctionSellerWeapon[slotid][dItemSale] = 0;
             dAuctionSellerWeapon[slotid][dItemPrice] = 0;
             dAuctionSellerWeapon[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerWeapon[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerWeapon[slotid][dSalesID];
+            //format(dAuctionSellerWeapon[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 3:
         {
             dAuctionSellerOther[slotid][dItemSale] = 0;
             dAuctionSellerOther[slotid][dItemPrice] = 0;
             dAuctionSellerOther[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerOther[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+            //format(dAuctionSellerOther[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerWeapon[slotid][dSalesID];
         }
         case 4:
         {
             dAuctionSellerVehicle[slotid][dItemSale] = 0;
             dAuctionSellerVehicle[slotid][dItemPrice] = 0;
             dAuctionSellerVehicle[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerVehicle[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerVehicle[slotid][dSalesID];
+            //format(dAuctionSellerVehicle[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 5:
         {
             dAuctionSellerClothes[slotid][dItemSale] = 0;
             dAuctionSellerClothes[slotid][dItemPrice] = 0;
             dAuctionSellerClothes[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerClothes[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerClothes[slotid][dSalesID];
+            //format(dAuctionSellerClothes[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 6:
         {
             dAuctionSellerFood[slotid][dItemSale] = 0;
             dAuctionSellerFood[slotid][dItemPrice] = 0;
             dAuctionSellerFood[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerFood[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerFood[slotid][dSalesID];
+            //format(dAuctionSellerFood[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
         case 7:
         {
             dAuctionSellerRessource[slotid][dItemSale] = 0;
             dAuctionSellerRessource[slotid][dItemPrice] = 0;
             dAuctionSellerRessource[slotid][dTimeLeft] = 0;
-            format(dAuctionSellerRessource[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
+			saleid = dAuctionSellerRessource[slotid][dSalesID];
+            //format(dAuctionSellerRessource[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
         }
     }
+	new query[256];
+	mysql_format(mysqlPool, query, sizeof(query), "DELETE FROM `auction` WHERE idauction = %d", saleid);
+	mysql_tquery(mysqlPool, query);
     return 1;
 }
 
 BuyAuctionHouseItem(playerid, category, itemid)
 {
-	new dPrice, itemID, sSeller[MAX_PLAYER_NAME + 1];
+	new dPrice, itemID, idPlayer;
     switch(category)
     {
         case 0:
@@ -8328,12 +8315,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
 			if(dAuctionSellerTool[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerTool[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerTool[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerTool[itemid][sSalesman]);
             itemID = dAuctionSellerTool[itemid][dItemSale];
+			idPlayer = dAuctionSellerTool[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerTool[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerTool[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerTool[itemid][sSalesman], dAuctionSellerTool[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerTool[itemid][dSaleManID], dAuctionSellerTool[itemid][dItemPrice]);
         }
         case 1:
         {
@@ -8343,12 +8331,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerMedic[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerMedic[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerMedic[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerMedic[itemid][sSalesman]);
+			idPlayer = dAuctionSellerMedic[itemid][dSaleManID];
             itemID = dAuctionSellerMedic[itemid][dItemSale];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerMedic[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerMedic[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerMedic[itemid][sSalesman], dAuctionSellerMedic[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerMedic[itemid][dSaleManID], dAuctionSellerMedic[itemid][dItemPrice]);
         }
         case 2:
         {
@@ -8358,12 +8347,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerWeapon[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerWeapon[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerWeapon[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerWeapon[itemid][sSalesman]);
             itemID = dAuctionSellerWeapon[itemid][dItemSale];
+			idPlayer = dAuctionSellerWeapon[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerWeapon[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerWeapon[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerWeapon[itemid][sSalesman], dAuctionSellerWeapon[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerWeapon[itemid][dSaleManID], dAuctionSellerWeapon[itemid][dItemPrice]);
         }
         case 3:
         {
@@ -8373,12 +8363,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerOther[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerOther[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerOther[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerOther[itemid][sSalesman]);
             itemID = dAuctionSellerOther[itemid][dItemSale];
+			idPlayer = dAuctionSellerOther[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerOther[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerOther[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerOther[itemid][sSalesman], dAuctionSellerOther[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerOther[itemid][dSaleManID], dAuctionSellerOther[itemid][dItemPrice]);
         }
         case 4:
         {
@@ -8388,12 +8379,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerVehicle[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerVehicle[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerVehicle[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerVehicle[itemid][sSalesman]);
             itemID = dAuctionSellerVehicle[itemid][dItemSale];
+			idPlayer = dAuctionSellerVehicle[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerVehicle[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerVehicle[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerVehicle[itemid][sSalesman], dAuctionSellerVehicle[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerVehicle[itemid][dSaleManID], dAuctionSellerVehicle[itemid][dItemPrice]);
         }
         case 5:
         {
@@ -8403,12 +8395,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerClothes[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerClothes[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerClothes[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerClothes[itemid][sSalesman]);
             itemID = dAuctionSellerClothes[itemid][dItemSale];
+			idPlayer = dAuctionSellerClothes[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerClothes[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerClothes[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerClothes[itemid][sSalesman], dAuctionSellerClothes[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerClothes[itemid][dSaleManID], dAuctionSellerClothes[itemid][dItemPrice]);
         }
         case 6:
         {
@@ -8418,12 +8411,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerFood[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerFood[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerFood[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerFood[itemid][sSalesman]);
             itemID = dAuctionSellerFood[itemid][dItemSale];
+			idPlayer = dAuctionSellerFood[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerFood[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerFood[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerFood[itemid][sSalesman], dAuctionSellerFood[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerFood[itemid][dSaleManID], dAuctionSellerFood[itemid][dItemPrice]);
         }
         case 7:
         {
@@ -8433,27 +8427,28 @@ BuyAuctionHouseItem(playerid, category, itemid)
             if(dAuctionSellerRessource[itemid][dItemSale] == 0) return 0;
             //---
             dPrice = dAuctionSellerRessource[itemid][dItemPrice];
-            strcpy(sSeller, dAuctionSellerRessource[itemid][sSalesman]);
+            //strcpy(sSeller, dAuctionSellerRessource[itemid][sSalesman]);
             itemID = dAuctionSellerRessource[itemid][dItemSale];
+			idPlayer = dAuctionSellerRessource[itemid][dSaleManID];
             //---
     		GivePlayerGold(playerid, -dAuctionSellerRessource[itemid][dItemPrice]);
     		GivePlayerSlotObject(playerid, dAuctionSellerRessource[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerRessource[itemid][sSalesman], dAuctionSellerRessource[itemid][dItemPrice]);
+    		PayAuctionSeller(dAuctionSellerRessource[itemid][dSaleManID], dAuctionSellerRessource[itemid][dItemPrice]);
         }
     }
-	LogInfo(true, "[JOUEUR]%s achete le %s de %s pour %.1fg d'or a l'HDV.", GetName(playerid), NoNewLineSign(aObjects[itemID][ObjectFrName]), sSeller, floatdiv(dPrice, 10));
+	LogInfo(true, "[JOUEUR]%s achete le %s du joueur d'ID %d pour %.1fg d'or a l'HDV.", GetName(playerid), NoNewLineSign(aObjects[itemID][ObjectFrName]), idPlayer, floatdiv(dPrice, 10));
     RemoveAuctionHouseItem(category, itemid);
 	HidePlayerAuctionHouse(playerid);
     return 1;
 }
 
-PayAuctionSeller(const sellersname[], amount)
+PayAuctionSeller(sellerID, amount)
 {
-	new playerid = PlayeridFromName(sellersname);
-	LogInfo(true, "Test: %s - %d", sellersname, playerid);
+	//new playerid = PlayeridFromName(sellersname);
+	new playerid = PlayeridFromSQLId(sellerID);
 	if(playerid == INVALID_PLAYER_ID)//Si le vendeur n'est pas connecté
 	{
-	    GiveOfflinePlayerGold(sellersname, amount);
+	    GiveOfflinePlayerGold("", amount, sellerID);
 	}
 	else//S'il est connecté
 	{
@@ -8471,7 +8466,46 @@ PayAuctionSeller(const sellersname[], amount)
 		SendClientMessageEx(playerid, BRUN, string, string, string, string, string, string);
 	}
 }
-
+#if defined MYSQL_SYSTEM
+public OnAuctionHouseLoaded()
+{
+	if(cache_num_rows())
+	{
+		new indexCounter[8] = {0, ...};
+		for(new i = 0; i < cache_num_rows(); i++)
+		{
+			new sale[ItemForSale], index = 0, numbytes;
+			cache_get_value_name_int(i, "idauction", sale[dSalesID]);
+			cache_get_value_name_int(i, "categorie", sale[dSellType]);
+			cache_get_value_name_int(i, "idobject", sale[dItemSale]);
+			cache_get_value_name_int(i, "idplayer", sale[dSaleManID]);
+			cache_get_value_name_int(i, "price", sale[dItemPrice]);
+			cache_get_value_name_int(i, "time", sale[dTimeLeft]);
+			index = indexCounter[sale[dSellType]];
+			numbytes = sizeof(sale) * 4;
+			switch(sale[dSellType])
+			{
+				case 0: memcpy(dAuctionSellerTool[index], sale, _, numbytes);
+				case 1: memcpy(dAuctionSellerMedic[index], sale, _, numbytes);
+				case 2: memcpy(dAuctionSellerWeapon[index], sale, _, numbytes);
+				case 3: memcpy(dAuctionSellerOther[index], sale, _, numbytes);
+				case 4: memcpy(dAuctionSellerVehicle[index], sale, _, numbytes);
+				case 5: memcpy(dAuctionSellerClothes[index], sale, _, numbytes);
+				case 6: memcpy(dAuctionSellerFood[index], sale, _, numbytes);
+				case 7: memcpy(dAuctionSellerRessource[index], sale, _, numbytes);
+			}
+			indexCounter[sale[dSellType]]++;
+			if(indexCounter[sale[dSellType]] >= MAX_AUCTION_ITEMS)
+			{
+				LogInfo(true, "[ERROR] La categorie de vente %d recueille plus de %d ventes, des ventes n'ont donc pas ete chargées", sale[dSellType], MAX_AUCTION_ITEMS);
+				break;
+			}
+		}
+	}
+	LogInfo(true, "[INIT] %d ventes chargees de l'HDV ", cache_num_rows());
+	return 1;
+}
+#else
 public LoadAuctionHouse_data(name[],value[])
 {
 	new string[50];
@@ -8675,9 +8709,33 @@ SaveAuctionHouse()
 	}
 	INI_Close(File);
 }
-
-ReturnOfflinePlayerItem(const playername[], itemid)
+#endif
+ReturnOfflinePlayerItem(const playername[], itemid, sqlID = -1)
 {
+	#if defined MYSQL_SYSTEM
+	new query[256];
+	if(sqlID == -1)
+		mysql_format(mysqlPool, query, sizeof(query), "SELECT itemstogive FROM `player` WHERE username = \"%s\"", playername);
+	else
+		mysql_format(mysqlPool, query, sizeof(query), "SELECT itemstogive FROM `player` WHERE idplayer = %d", sqlID);
+	new Cache: result = mysql_query(mysqlPool, query), itemstogive[256], items[50][5];
+	cache_set_active(result);
+	cache_get_value_name(0, "itemstogive", itemstogive);
+	cache_delete(result);
+	strexplode(items, itemstogive, " ");
+	for(new i = 0; i < 50; i++)
+	{
+		new object = strval(items[i]);
+		if(object == 0)
+			valstr(items[i], itemid);
+	}
+	strimplode(" ", itemstogive, _, items);
+	if(sqlID != -1)
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET itemstogive = \"%s\" WHERE idplayer = %d", itemstogive, sqlID);
+	else
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET itemstogive = \"%s\" WHERE username = \"%s\"", itemstogive, playername);
+	mysql_tquery(mysqlPool, query);
+	#else
     new string[50];
     format(string,sizeof(string), OFFPATH, playername);
     if(!fexist(string)) return 0;
@@ -8694,6 +8752,7 @@ ReturnOfflinePlayerItem(const playername[], itemid)
 	        return true;
 	    }
 	}
+	#endif
 	return false;
 }
 
@@ -8704,10 +8763,10 @@ ReturnPlayerItem(category, itemid)
 	{
 		case 0:
 		{
-			playerid = PlayeridFromName(dAuctionSellerTool[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerTool[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerTool[itemid][sSalesman], dAuctionSellerTool[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerTool[itemid][dItemSale], dAuctionSellerTool[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8720,10 +8779,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 1:
 		{
-			playerid = PlayeridFromName(dAuctionSellerMedic[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerMedic[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerMedic[itemid][sSalesman], dAuctionSellerMedic[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerMedic[itemid][dItemSale], dAuctionSellerMedic[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8736,10 +8795,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 2:
 		{
-			playerid = PlayeridFromName(dAuctionSellerWeapon[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerWeapon[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerWeapon[itemid][sSalesman], dAuctionSellerWeapon[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerWeapon[itemid][dItemSale], dAuctionSellerWeapon[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8752,10 +8811,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 3:
 		{
-			playerid = PlayeridFromName(dAuctionSellerOther[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerOther[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerOther[itemid][sSalesman], dAuctionSellerOther[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerOther[itemid][dItemSale], dAuctionSellerOther[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8768,10 +8827,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 4:
 		{
-			playerid = PlayeridFromName(dAuctionSellerVehicle[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerVehicle[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerVehicle[itemid][sSalesman], dAuctionSellerVehicle[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerVehicle[itemid][dItemSale], dAuctionSellerVehicle[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8784,10 +8843,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 5:
 		{
-			playerid = PlayeridFromName(dAuctionSellerClothes[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerClothes[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerClothes[itemid][sSalesman], dAuctionSellerClothes[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerClothes[itemid][dItemSale], dAuctionSellerClothes[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8800,10 +8859,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 6:
 		{
-			playerid = PlayeridFromName(dAuctionSellerFood[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerFood[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerFood[itemid][sSalesman], dAuctionSellerFood[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerFood[itemid][dItemSale], dAuctionSellerFood[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -8816,10 +8875,10 @@ ReturnPlayerItem(category, itemid)
 		}
 		case 7:
 		{
-			playerid = PlayeridFromName(dAuctionSellerRessource[itemid][sSalesman]);
+			playerid = PlayeridFromSQLId(dAuctionSellerRessource[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem(dAuctionSellerRessource[itemid][sSalesman], dAuctionSellerRessource[itemid][dItemSale]);
+				ReturnOfflinePlayerItem("", dAuctionSellerRessource[itemid][dItemSale], dAuctionSellerRessource[itemid][dSaleManID]);
 			}
 			else
 			{
@@ -20843,7 +20902,6 @@ public DestroyItem(Pointer:itemid)
 {
 	new item[Items], query[256];
 	MEM_get_arr(itemid, _, item);
-	printf("Destruction de l'ITEM n°%d - 0x%x", item[dItemID], _:itemid);
 	DestroyDynamicObject(item[dItemObjectID]);
 	DestroyDynamic3DTextLabel(item[ObjectText]);
 	LIST_remove_arr(itemList, item);
@@ -22714,7 +22772,7 @@ public OnGameModeInit()
 	#if defined MYSQL_SYSTEM
 	new MySQLOpt: options = mysql_init_options();
 	mysql_set_option(options, POOL_SIZE, 4);
-	mysql_log(ALL);
+	mysql_log(ERROR | WARNING);
 	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB);	
 	if(mysqlPool == MYSQL_INVALID_HANDLE) 
 	{
@@ -23235,9 +23293,13 @@ public OnGameModeInit()
 	//---------------------//
 	//---HDV
 	//---------------------//
+	#if defined MYSQL_SYSTEM
+	mysql_tquery(mysqlPool, "SELECT * FROM `auction`", "OnAuctionHouseLoaded");
+	#else
 	//INITIALISATION
 //	dLastLoaded = 0;
 	//CHARGEMENT
+	
  	#if defined LOAD_DYNAMICS
     INI_ParseFile(APATH, "LoadAuctionHouse_data");
     #endif
@@ -23252,6 +23314,7 @@ public OnGameModeInit()
 	}
 	for(new i = dLastLoaded + 1; i < MAX_PLANTS; i ++) dPlant[i][dPlantType] = 0;*/
     LogInfo(true, "[INIT]HDV charge");
+	#endif
 	//---------------------//
 	//---OBJETS
 	//---------------------//
@@ -23489,6 +23552,7 @@ public OnGameModeExit()
 	LIST_clear(plantList);
 	LIST_clear(bedList);
 	LIST_clear(tentList);
+	LIST_clear(weaponList);
 	#endif
 	return 1;
 }
@@ -23549,7 +23613,6 @@ public OnPlayerConnect(playerid)
 			cache_get_value_name(0, "password", pPlayerInfos[playerid][pPassword]);
 			cache_get_value_name(0, "salt", pPlayerInfos[playerid][pSalt]);
 			cache_get_value_name_int(0, "language", pPlayerInfos[playerid][pLangue]);
-			cache_delete(result);
    			//---
    			switch(pPlayerInfos[playerid][pLangue])
    			{
@@ -23592,6 +23655,7 @@ public OnPlayerConnect(playerid)
 			TextDrawShowForPlayer(playerid, tHUDFont[8]);
 			#endif
 		}
+		cache_delete(result);
 		SetPlayerWeather(playerid, 9);
 		SetPlayerTime(playerid, 0, 0);
 		SetSpawnInfo(playerid, 0, 0, 301.6640, -109.9130, 2052.2338, 0.0, 0, 0, 0, 0, 0, 0);
@@ -23733,7 +23797,7 @@ public OnPlayerDisconnect(playerid, reason)
 		}
 		//---
 		SaveUser(playerid);
-		SaveUserOffline(playerid);
+		//SaveUserOffline(playerid);
 		//---
 		new sName[MAX_PLAYER_NAME + 1];
 		GetPlayerName(playerid, sName, MAX_PLAYER_NAME + 1);
@@ -33282,7 +33346,7 @@ public OnMinutePassed()
 	//---
 	new h, m, s;
 	gettime(h, m, s);
-	if(m == 30)
+	if(IsMultiple(dMinutes, 30))
 	{
  		#if defined LOAD_DYNAMICS
 		SaveFiles();
@@ -33297,6 +33361,57 @@ public OnMinutePassed()
 			format(content, sizeof(content), "%d %d %d %d %d %d", dVehicleInfos[i][TrunkObject][0], dVehicleInfos[i][TrunkObject][1], dVehicleInfos[i][TrunkObject][2], dVehicleInfos[i][TrunkObject][3], dVehicleInfos[i][TrunkObject][4], dVehicleInfos[i][TrunkObject][5]);
 			mysql_format(mysqlPool, query, sizeof(query), "UPDATE `vehicles` SET xveh = %f, yveh = %f, zveh = %f, aveh = %f, health = %f, content=\"%s\" WHERE idvehicle = %d", x, y, z, a, health, content, dVehicleInfos[i][dVehID]);
 			mysql_tquery(mysqlPool, query);
+		}
+		for(new i = 0; i < GetPlayerPoolSize(); i++)
+		{
+			if(IsPlayerConnected(i) && !IsPlayerNPC(i))
+			{
+				SaveUser(i);
+			}
+		}
+		for(new i = 0; i < MAX_AUCTION_ITEMS; i ++)
+		{
+			new query[256];
+			if(dAuctionSellerTool[i][dItemSale] != 0)
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerTool[i][dTimeLeft], dAuctionSellerTool[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerMedic[i][dItemSale] != 0) 
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerMedic[i][dTimeLeft], dAuctionSellerMedic[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerWeapon[i][dItemSale] != 0)
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerWeapon[i][dTimeLeft], dAuctionSellerWeapon[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerOther[i][dItemSale] != 0)
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerOther[i][dTimeLeft], dAuctionSellerOther[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerVehicle[i][dItemSale] != 0)
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerVehicle[i][dTimeLeft], dAuctionSellerVehicle[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerClothes[i][dItemSale] != 0)
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerClothes[i][dTimeLeft], dAuctionSellerClothes[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerFood[i][dItemSale] != 0) 
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerFood[i][dTimeLeft], dAuctionSellerFood[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
+			if(dAuctionSellerRessource[i][dItemSale] != 0) 
+			{
+				mysql_format(mysqlPool, query, sizeof(query), "UPDATE `auction` SET time = %d WHERE idauction = %d", dAuctionSellerRessource[i][dTimeLeft], dAuctionSellerRessource[i][dSalesID]);
+				mysql_tquery(mysqlPool, query);
+			}
 		}
 	}
 	//---
@@ -35562,7 +35677,19 @@ SetPlayerAdminLevel(playerid, level)
 	if(level == PLAYER) TextDrawHideForPlayer(playerid, tAdmin);
 	else TextDrawShowForPlayer(playerid, tAdmin);
 }
-
+PlayeridFromSQLId(sqlID)
+{
+	new playerid = INVALID_PLAYER_ID;
+	for(new i = 0, j = GetPlayerPoolSize(); i <= j; i++)
+	{
+		if(pPlayerInfos[i][dPlayerID] == sqlID && IsPlayerConnected(i) && !FCNPC_IsValid(i))
+		{
+			playerid = i;
+			break;
+		}
+	}
+	return playerid;
+}
 PlayeridFromName(const nick[])
 {
 	new playerid = INVALID_PLAYER_ID;
