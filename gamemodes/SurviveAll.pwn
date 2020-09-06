@@ -11708,14 +11708,14 @@ ZombieGruntPlayer(zombieid, playerid, grunt, Float:x, Float:y, Float:z)
  	    #if defined SCREAMING_STREAMING
  	    switch(grunt)
  	    {
-			case 0: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack1.mp3", x, y, z, 50.0, 1);
-			case 1: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack2.mp3", x, y, z, 25.0, 1);
-			case 2: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack3.mp3", x, y, z, 50.0, 1);
-			case 3: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack4.mp3", x, y, z, 25.0, 1);
+			case 0: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zattack1.mp3", x, y, z, 50.0, 1);
+			case 1: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zattack2.mp3", x, y, z, 25.0, 1);
+			case 2: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zattack3.mp3", x, y, z, 50.0, 1);
+			case 3: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zattack4.mp3", x, y, z, 25.0, 1);
 			case 4://FAR ROAM
 			{
-				if(RandomEx(0, 2) == 1) PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zfarroam1.mp3", x, y, z, 25.0, 1);
-				else PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zfarroam2.mp3", x, y, z, 25.0, 1);
+				if(RandomEx(0, 2) == 1) PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zfarroam1.mp3", x, y, z, 25.0, 1);
+				else PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zfarroam2.mp3", x, y, z, 25.0, 1);
 			}
  	    }
 		#else
@@ -11727,8 +11727,8 @@ ZombieGruntPlayer(zombieid, playerid, grunt, Float:x, Float:y, Float:z)
 			case 3: PlayerPlaySound(playerid, 7879, x, y, z);
 			case 4://FAR ROAM
 			{
-				if(RandomEx(0, 2) == 1) PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zfarroam1.mp3", x, y, z, 25.0, 1);
-				else PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zfarroam2.mp3", x, y, z, 25.0, 1);
+				if(RandomEx(0, 2) == 1) PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zfarroam1.mp3", x, y, z, 25.0, 1);
+				else PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/zfarroam2.mp3", x, y, z, 25.0, 1);
 			}
  	    }
 		#endif
@@ -23607,7 +23607,7 @@ public OnPlayerConnect(playerid)
 		//---
 		for(new z = 0; z < MAX_ZOMBIES; z ++) if(playerid == dZombie[z][dZombieID]) dZombie[z][dZombieID] = INVALID_PLAYER_ID;
 		//TextDrawShowForPlayer(playerid, tConnection);
-		PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/tsdway.mp3");
+		PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/tsdway.mp3");
 		#if defined KEEP_PLAYERTEXT
 		CreatePlayerVehicleHUD(playerid);
 		CreatePlayerVehicleInventory(playerid);
@@ -33516,9 +33516,9 @@ MusicUpdateForPlayer(playerid)
 			dSaveZone[playerid] = dZone;
 			switch(dZone)
 			{
-				case 1: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/losthighway.mp3", -1949.6744, -2452.2961, 30.6250, 20.0, true);//CAMP ANGEL PINE
-				case 2: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/farfromanyroad.mp3", 1310.0, 2519.0, 86.5);
-		        case 3: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/civilexplore.mp3", 221.091, 1883.369, 3625.5759);
+				case 1: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/losthighway.mp3", -1949.6744, -2452.2961, 30.6250, 20.0, true);//CAMP ANGEL PINE
+				case 2: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/farfromanyroad.mp3", 1310.0, 2519.0, 86.5);//CAMP ALDEA MALVADA
+		        case 3: PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/oldies/musicsamp/civilexplore.mp3", 221.091, 1883.369, 3625.5759);//VAISSEAU ALIEN
 			}
 		}
 		else if(dMusic[playerid] && dZone == 0)
