@@ -1890,7 +1890,7 @@ stock SaveGeneralInfos()
 		weather = %d,\
 		timeweather = %d,\
 		cheatersbusted = %d", dEnvironment[dHours], dEnvironment[dMins], dEnvironment[dDay], dEnvironment[dMeteo], dEnvironment[dMeteoTime], dCheatersBusted);
-	mysql_query(mysqlPool, string, false);
+	mysql_tquery(mysqlPool, string);
 	LogInfo(true, "[SAVE] Variables d'environnements sauvegardees");
 }
 #else
@@ -2343,14 +2343,8 @@ public OnPlayerLoaded(playerid)
 	StopAudioStreamForPlayer(playerid);
 	CallRemoteFunction("DestroyMapping", "i", playerid);//Fonction pour dùtruire certains objets de la map
 	LoadAnimations(playerid);
-	if(LoadMissionProgress(playerid, "Intro") == 0)
-	{
-		CallRemoteFunction("OnCinematicGoesOn", "iiii", playerid, 100, 0, 0);
-	}
-	else
-	{
+	if(LoadMissionProgress(playerid, "Intro") != 0)
 		ShowPlayerRules(playerid);
-	}
 	//---
 	SetPlayerWeather(playerid, dEnvironment[dMeteo]);
 	SetPlayerTime(playerid, dEnvironment[dHours], dEnvironment[dMins]);
@@ -6389,7 +6383,7 @@ stock SaveGasStations()
 		new gas[GasStation];
 		MEM_get_arr(data_ptr, _, gas);
 		mysql_format(mysqlPool, string, sizeof(string), "UPDATE gasstation SET quantite = %d WHERE idstation = %d", gas[dStationGas], gas[gasID]);
-		mysql_query(mysqlPool, string, false);
+		mysql_tquery(mysqlPool, string);
 	}
 	LogInfo(true, "[SAVE] Stations-essences sauvegardees");
 }
@@ -20977,7 +20971,6 @@ public Pointer:GetItemWithinDistance(Float:x1, Float:y1, Float:z1, Float:dist)//
 	}
 	return MEM_NULLPTR;
 }
-
 public OnItemsLoaded()
 {
 	//static oldBound = 500, total = 0;
@@ -23555,6 +23548,9 @@ public OnGameModeExit()
  	Profiler_Stop();
 	#endif
 	#if defined MYSQL_SYSTEM
+	for(new i = 0; i < GetPlayerPoolSize(); i++)
+		if(IsPlayerConnected(i) && !IsPlayerNPC(i))
+			SaveUser(i), ResetPlayerVariables(i);
 	SaveGeneralInfos();
 	SaveGasStations();
 	//SaveGold();
