@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profile of 'filterscripts/[SA]ObjectSpawner.amx'</title>
+  <script type="text/javascript"
+          src="http://code.jquery.com/jquery-latest.min.js">
+  </script>
+  <script type="text/javascript"
+          src="http://tablesorter.com/__jquery.tablesorter.min.js">
+  </script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('#data').tablesorter();
+      $('#data th').hover(function () {
+        $(this).css({ cursor: 'pointer' });
+      });
+    });
+  </script>
+</head>
+<body>
+  <style type="text/css">
+    table {
+      margin: 0 auto;
+    }
+    table, th, td {
+      border: thin solid #555;
+      border-collapse: collapse;
+      padding: 7px 10px;
+    }
+    th, td {
+      border: none;
+    }
+    th {
+      color: white;
+      background-color: #555;
+    }
+    td {
+      font-family: Consolas, "DejaVu Sans Mono", "Courier New", Monospace;
+    }
+    td.numeric {
+      text-align: right;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: #eee;
+    }
+    tbody tr:hover {
+      background-color: #c0e3eb;
+    }
+  </style>
+  <table id="meta">
+    <thead>
+      <tr>
+        <th colspan="2">Meta</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Date</td>
+        <td>Sat May  5 12:07:23 2018</td>
+      </tr>
+      <tr>
+        <td>Duration</td>
+        <td>08:52:56</td>
+      </tr>
+    </tbody>
+  </table>
+  <br/>
+  <table id="data" class="tablesorter">
+    <thead>
+      <tr>
+        <th rowspan="2">Type</th>
+        <th rowspan="2">Name</th>
+        <th rowspan="2">Calls</th>
+        <th colspan="4" class="group">Self Time</th>
+        <th colspan="4" class="group">Total Time</th>
+      </tr>
+      <tr>
+        <th>%</th>
+        <th>Overall</th>
+        <th>Average</th>
+        <th>Worst</th>
+        <th>%</th>
+        <th>Overall</th>
+        <th>Average</th>
+        <th>Worst</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>public</td>
+      <td>OnFilterScriptExit</td>
+      <td class="numeric">1</td>
+      <td class="numeric">0.00%</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.2</td>
+      <td class="numeric">0.2</td>
+      <td class="numeric">0.00%</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.2</td>
+      <td class="numeric">0.2</td>
+    </tr>
+    <tr>
+      <td>public</td>
+      <td>CreateRandomItem</td>
+      <td class="numeric">3003</td>
+      <td class="numeric">100.00%</td>
+      <td class="numeric">11.1</td>
+      <td class="numeric">3.7</td>
+      <td class="numeric">162.2</td>
+      <td class="numeric">100.00%</td>
+      <td class="numeric">11.1</td>
+      <td class="numeric">3.7</td>
+      <td class="numeric">162.2</td>
+    </tr>
+    <tr>
+      <td>public</td>
+      <td>PickRandomItem</td>
+      <td class="numeric">2</td>
+      <td class="numeric">0.00%</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.00%</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.0</td>
+      <td class="numeric">0.0</td>
+    </tr>
+    </tbody>
+  </table>
+</body>
+</html>

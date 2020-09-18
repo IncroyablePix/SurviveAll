@@ -254,7 +254,7 @@ public OnFilterScriptInit()
                 strcat(mysqlquery, little_query, sizeof(mysqlquery));
             }
             mysql_format(dbMYSQL, mysqlquery, sizeof(mysqlquery), "%s,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\")", mysqlquery, aObjects[i][ObjectEnName],aObjects[i][ObjectFrName],aObjects[i][ObjectEsName],aObjects[i][ObjectPgName], aObjects[i][ObjectItName],aObjects[i][ObjectDeName]);
-            mysql_pquery(dbMYSQL, mysqlquery);
+            mysql_query(dbMYSQL, mysqlquery);
             printf("*** OBJECT %s saved (%d) ***", aObjects[i][ObjectEnName], i);
         }
         printf("------------------------------------\n\n|--- All objects were correctly saved in %d ms ---|", GetTickCount() - tick);

@@ -190,7 +190,7 @@ DestroyStaticActors()
 
 CreateStaticActors()
 {
-	//---MODÈLE---//
+	//---MODï¿½LE---//
 	/*aActeur[] = CreateActor(skinid, x, y, z, angle);
 	SetActorHealth(aActeur[], 100.0);
 	ApplyActorAnimation(aActeur[],"BSKTBALL", "BBALL_def_loop", 4.0, 1, 0, 0, 0, 0);
@@ -236,7 +236,7 @@ CreateStaticActors()
 	aActeur[Gardes][9] = CreateActor(44, 1007.3849, 2463.6934, 10.8203, 180.0);
 	SetActorHealth(aActeur[Gardes][9], 100.0);
 	SetActorInvulnerable(aActeur[Gardes][9], true);
-	//Garde Moto-école
+	//Garde Moto-ï¿½cole
 	aActeur[Gardes][10] = CreateActor(44, 1060.7551, 1361.5688, 16.3125, 0.0);
 	SetActorHealth(aActeur[Gardes][10], 100.0);
 	SetActorInvulnerable(aActeur[Gardes][10], true);
@@ -294,12 +294,12 @@ CreateStaticActors()
 	aActeur[Artisans][2] = CreateActor(27, -1316.7290, 2509.062, 87.0419, 0.0);
 	SetActorHealth(aActeur[Artisans][2], 100.0);
 	SetActorInvulnerable(aActeur[Artisans][2], true);
-	//Artisan Moto École
+	//Artisan Moto ï¿½cole
 	aActeur[Artisans][3] = CreateActor(35, 1096.3636, 1279.3676, 10.8203, 90.1581);
 	SetActorHealth(aActeur[Artisans][3], 100.0);
 	SetActorInvulnerable(aActeur[Artisans][3], true);
 	//---HABITANTS CAMP ANGEL PINE
-	//Mec Couché
+	//Mec Couchï¿½
 	aActeur[CampAngelPine][0] = CreateActor(159, -1953.5962, -2453.7654, 30.6250, 317.1696);
 	SetActorHealth(aActeur[CampAngelPine][0], 100.0);
 	ApplyActorAnimation(aActeur[CampAngelPine][0], "BEACH", "bather", 4.0, 1, 0, 0, 0, 0);
@@ -319,7 +319,7 @@ CreateStaticActors()
 	SetActorHealth(aActeur[CampArbres][1], 100.0);
 	ApplyActorAnimation(aActeur[CampArbres][1], "BEACH", "bather", 4.0, 1, 0, 0, 0, 0);
 	SetActorInvulnerable(aActeur[CampArbres][1], true);
-	//Mec qui a la tête dans l'armoire
+	//Mec qui a la tï¿½te dans l'armoire
 	aActeur[CampArbres][2] = CreateActor(210, -1372.1310, -2204.8853, 58.41990, 300.7307);
 	SetActorHealth(aActeur[CampArbres][2], 100.0);
 	ApplyActorAnimation(aActeur[CampArbres][2], "FOOD", "SHP_Thank", 4.1, 0, 0, 0, 1, 0);
@@ -335,7 +335,7 @@ CreateStaticActors()
 	ApplyActorAnimation(aActeur[CampChilliad][1], "SMOKING", "M_smklean_loop", 4.0, 1, 0, 0, 0, 0);
 	SetActorInvulnerable(aActeur[CampChilliad][1], true);
 	//---HABITANTS CAMP HILLTOP FARM
-	//Mec tout cassé
+	//Mec tout cassï¿½
 	aActeur[CampHillTop][0] = CreateActor(234, 1045.6683, -310.2458, 77.3678, 133.9725);
 	SetActorHealth(aActeur[CampHillTop][0], 100.0);
 	ApplyActorAnimation(aActeur[CampHillTop][0], "CRACK", "crckdeth2", 4.0, 1, 0, 0, 0, 0);
@@ -346,7 +346,7 @@ CreateStaticActors()
 	ApplyActorAnimation(aActeur[CampHillTop][1], "BEACH", "bather", 4.0, 1, 0, 0, 0, 0);
 	SetActorInvulnerable(aActeur[CampHillTop][1], true);
 	//---HABITANT CAMP CAMIONNEURS
-	//Mec tout cassé
+	//Mec tout cassï¿½
 	aActeur[CampBlueberry][0] = CreateActor(16, 619.0773, -592.7731, 17.2330, 273.7879);
 	SetActorHealth(aActeur[CampBlueberry][0], 100.0);
 	ApplyActorAnimation(aActeur[CampBlueberry][0], "CRACK", "crckdeth2", 4.0, 1, 0, 0, 0, 0);
@@ -383,21 +383,21 @@ CreateStaticActors()
 	    SetActorHealth(aActeur[SoldatsArea][i], 100.0);
 		SetActorInvulnerable(aActeur[SoldatsArea][i], true);
 	}
-	//---MÉDECINS
-	//Médecin LV Nord
+	//---Mï¿½DECINS
+	//Mï¿½decin LV Nord
 	aActeur[Medecins][0] = CreateActor(70, 939.9223, 2431.6440, 12.0331, 270.0);
 	SetActorHealth(aActeur[Medecins][0], 100.0);
 	SetActorInvulnerable(aActeur[Medecins][0], true);
-	//Médecin Blueberry
+	//Mï¿½decin Blueberry
 	aActeur[Medecins][1] = CreateActor(70, -11.0567, -370.3130, 5.4297, 0.0);
 	SetActorHealth(aActeur[Medecins][1], 100.0);
 	SetActorInvulnerable(aActeur[Medecins][1], true);
-	//---MÉCANICIENS
-	//Mécano Grove Street
+	//---Mï¿½CANICIENS
+	//Mï¿½cano Grove Street
 	aActeur[Mecaniciens][0] = CreateActor(42, 2443.8588, -1674.453, 13.527, 270.0);
 	SetActorHealth(aActeur[Mecaniciens][0], 100.0);
 	SetActorInvulnerable(aActeur[Mecaniciens][0], true);
-	//Mécano Blueberry
+	//Mï¿½cano Blueberry
 	aActeur[Mecaniciens][1] = CreateActor(268, -26.5084, -227.0425, 5.4297, 306.2509);
 	SetActorHealth(aActeur[Mecaniciens][1], 100.0);
 	SetActorInvulnerable(aActeur[Mecaniciens][1], true);
@@ -451,7 +451,7 @@ CreateStaticActors()
 	//ApplyActorAnimation(aActeur[Intro][1],"PED","SEAT_IDLE",4,0,0,0, 1,0);
 	//SetActorInvulnerable(aActeur[Intro][1], true);
 	//---MISSIONS
-	//Mission essence Moto-école
+	//Mission essence Moto-ï¿½cole
 	aActeur[Mission][0] = CreateActor(42, 1091.7297, 1335.6772, 10.8203, 90.0);
 	SetActorHealth(aActeur[Mission][0], 100.0);
 	SetActorInvulnerable(aActeur[Mission][0], true);
@@ -488,7 +488,7 @@ CreateStaticActors()
 	aActeur[Mission][7] = CreateActor(296, -697.9556, -2097.4727, 30.1593, 229.7047);
 	SetActorHealth(aActeur[Mission][7], 100.0);
 	SetActorInvulnerable(aActeur[Mission][7], true);
-	//---GARDE AÉROPORT
+	//---GARDE Aï¿½ROPORT
 	aActeur[Mission][8] = CreateActor(71, -1817.4589, 125.1279, 1055.1689, 90.0);
 	SetActorHealth(aActeur[Mission][8], 100.0);
 	SetActorInvulnerable(aActeur[Mission][8], true);
@@ -658,7 +658,7 @@ public OnPlayerGiveDamageActor(playerid, damaged_actorid, Float: amount, weaponi
     return 1;
 }
 
-//---FONCTIONS SUPPLÉMENTAIRES---//
+//---FONCTIONS SUPPLï¿½MENTAIRES---//
 public OnActorSpawn(actorid)
 {
 }

@@ -830,6 +830,7 @@ forward GetBombMission(bombid);
 forward CreateBomb(type, time, vehicleid, Float:x, Float:y, Float:z, Float:angle, load, missionid);
 forward GiveStationFuelEx(stationid, fuel);
 forward GiveStationFuel(Pointer:stationid, fuel);
+forward GetStationFuelEx(stationid);
 forward GetStationFuel(Pointer:stationid);
 forward GetPlayerLanguage(playerid);
 forward SaveMissionProgress(playerid, const missionname[], info);
@@ -6325,6 +6326,17 @@ public GiveStationFuelEx(stationid, fuel)
 	}
 	return GiveStationFuel(res, fuel);
 }
+public GetStationFuelEx(stationid)
+{
+	new idx = 0;
+	LIST_foreach(data_ptr : gasStationsList)
+	{
+		if(stationid == idx)
+			return GetStationFuel(data_ptr);
+		idx++;
+	}
+	return -1;
+}
 public GiveStationFuel(Pointer:stationid, fuel)//Pour donner de l'essence ou en enlever d'une station essence
 {
 	#if defined MYSQL_SYSTEM
@@ -6366,8 +6378,8 @@ public OnGasStationsLoaded()
 		cache_get_value_name_float(i, "xstation", gas[xGas]);
 		cache_get_value_name_float(i, "ystation", gas[yGas]);
 		cache_get_value_name_float(i, "zstation", gas[zGas]);
-		format(string, sizeof(string), "%d l", gas[dStationGas]);
 		gas[tGasText] = CreateDynamic3DTextLabel(string, KAKI, gas[xGas], gas[yGas], gas[zGas], 40.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 1, -1, -1, -1, 50.0);
+		UpdateGasStationInfo(gas);
 		LIST_push_back_arr(gasStationsList, gas);
 
 	}
@@ -23628,7 +23640,6 @@ public OnPlayerConnect(playerid)
    		{
 			if(bHideHUD[playerid]) HidePlayerHUD(playerid, false);
 			//---
-			ResetPlayerVariables(playerid);
 			GetPlayerName(playerid, sPlayerName[playerid], MAX_PLAYER_NAME + 1);
 			/*INI_ParseFile(UserPath(playerid), "LoadUser_%s", .bExtra = true, .extra = playerid);
 			ProcessPlayerSave(playerid, .save = false);*/
@@ -23649,7 +23660,6 @@ public OnPlayerConnect(playerid)
 		}
 		else
 		{
-			ResetPlayerVariables(playerid);
 			SetPlayerAdminLevel(playerid, PLAYER);
 			GetPlayerName(playerid, sPlayerName[playerid], MAX_PLAYER_NAME + 1);
 			//---
@@ -23822,17 +23832,7 @@ public OnPlayerDisconnect(playerid, reason)
 		SaveUser(playerid);
 		//SaveUserOffline(playerid);
 		//---
-		new sName[MAX_PLAYER_NAME + 1];
-		GetPlayerName(playerid, sName, MAX_PLAYER_NAME + 1);
-		for(new i = 0; i < dMaxPlayers; i ++)
-		{
-		    if(i == playerid) continue;
-			if(strcmp(sName, sPlayerName[playerid], false) != 0)
-			{
-				format(sPlayerName[i], MAX_PLAYER_NAME + 1, "N/A");
-				ResetPlayerVariables(playerid);
-			}
-		}
+
 		//---GROUPES
 		if(pGroup[playerid] != -1) RemoveGroupMember(playerid, false);
 		//---LOGGED
@@ -23948,6 +23948,7 @@ public OnPlayerDisconnect(playerid, reason)
 		{
 		    pAdminInfos[playerid][bLog] = false;
 		}
+		ResetPlayerVariables(playerid);
 	}
 	return 1;
 }

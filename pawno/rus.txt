@@ -1,0 +1,8 @@
+c:\Users\dimin\Desktop\SurviveAll\filterscripts\[SA]Missions.pwn(22424) : èäåíòèôèêàòîðó ïðèñâîåíî çíà÷åíèå, íî îí íå èñïîëüçóåòñÿ: "string"
+c:\Users\dimin\Desktop\SurviveAll\filterscripts\[SA]Missions.pwn(783) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â OnCinematicGoesOn
+C:\Users\dimin\Desktop\SurviveAll\pawno\include\YSI\y_amx.inc(294) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â AMX_GetGlobal
+Äëÿ îòêëþ÷åíèÿ âûâîäà ðåêóðñèé: #pragma disablerecursion èëè #pragma warning disable 238
+Pawn compiler 3.2.3664	 	 	Copyright (c) 1997-2017, ITB CompuPhase
+
+
+Ïðåäóïðåæäåíèé:2.

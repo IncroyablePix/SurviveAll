@@ -17440,7 +17440,7 @@ public UpdateMissionTimer(playerid)
 			new Float:fClosest = 9999.9999;
 			for(new i = 0; i < 19; i ++)
 			{
-			    if(CallRemoteFunction("GetStationFuel", "i", i) > 28000) continue;
+			    if(CallRemoteFunction("GetStationFuelEx", "i", i) > 28000) continue;
 			    GetGasStationPos(i, x, y, z);
 				new Float:dist = GetDistanceToPoint(playerid, x, y, z);
 				if(dist < fClosest)
