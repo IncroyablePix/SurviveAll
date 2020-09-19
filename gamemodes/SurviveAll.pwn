@@ -2332,23 +2332,6 @@ public OnPlayerLoaded(playerid)
 	{
 		SetPlayerAdminLevel(playerid, OWNER);
 	}
-	/*mysql_format(mysqlPool, string, sizeof(string), "UPDATE `player` SET goldtogive = 0, itemstogive = \"\" WHERE idplayer = %d", pPlayerInfos[playerid][dPlayerID]);
-	mysql_tquery(mysqlPool, string);*/
-	TogglePlayerControllable(playerid, true);
-	//---
-	pPlayerInfos[playerid][dLogState] = SPAWNED;
-	//---
-	SetSpawnInfo(playerid, 0, (pPlayerInfos[playerid][pSkin] > 311) ? 252 : pPlayerInfos[playerid][pSkin], 0.0, 0.0, 3.0, 0.0, 0, 0, 0, 0, 0, 0);
-	pPlayerTag[playerid] = Create3DTextLabel(GetName(playerid), BLEU, 0.0, 0.0, 0.0, TAG_DISTANCE, -1, 1);
-	UpdatePlayerTag(playerid);
-	StopAudioStreamForPlayer(playerid);
-	CallRemoteFunction("DestroyMapping", "i", playerid);//Fonction pour dùtruire certains objets de la map
-	LoadAnimations(playerid);
-	if(LoadMissionProgress(playerid, "Intro") != 0)
-		ShowPlayerRules(playerid);
-	//---
-	SetPlayerWeather(playerid, dEnvironment[dMeteo]);
-	SetPlayerTime(playerid, dEnvironment[dHours], dEnvironment[dMins]);
 	return 1;
 }
 /*public LoadUser_data(playerid,name[],value[])
