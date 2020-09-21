@@ -1999,11 +1999,11 @@ IsIPBanned(const ip[])
 	#endif
 }
 
-AddPlayerToIP(const name[], const ip[])
+AddPlayerToIP(playerid)
 {
 	#if defined MYSQL_SYSTEM
-	new query[256], playerid = PlayeridFromName(name);
-	mysql_format(mysqlPool, query, sizeof(query), "CALL `insertPlayerIP`(\"%s\", \"%s\", %d)", ip, name, pPlayerInfos[playerid][dPlayerID]);
+	new query[256];
+	mysql_format(mysqlPool, query, sizeof(query), "CALL `insertPlayerIP`(\"%s\", \"%s\", %d)", GetIPFromPlayer(playerid), GetName(playerid), pPlayerInfos[playerid][dPlayerID]);
 	mysql_tquery(mysqlPool, query);
 	#else
 	if(!fexist(IPFile(ip)))
@@ -2184,15 +2184,17 @@ public LoadPlayerExtraGold(playerid)
 }*/
 public OnPlayerLoaded(playerid)
 {
-	new infomask[64], infobody[64], infoglasses[64], infohat[64], weapons[64], skills[64], inventory[128], itemstogive[64];
-	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][4], items[50][4];
+	new infomask[256], infobody[256], infoglasses[256], infohat[256], weapons[128], skills[128], inventory[128], itemstogive[128];
+	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][4], items[50][4], bool: noBan;
 	cache_get_value_name(0, "registerdate", pPlayerInfos[playerid][sFirstCo]);
 	cache_get_value_name(0, "lastco", pPlayerInfos[playerid][sLastCo]);
 	cache_get_value_name(0, "password", pPlayerInfos[playerid][pPassword]);
 	cache_get_value_name_int(0, "adminlevel", pPlayerInfos[playerid][pAdmin]);
 	cache_get_value_name_int(0, "idvip", pPlayerInfos[playerid][pVIP][0]);
 	cache_get_value_name_int(0, "viptime", pPlayerInfos[playerid][pVIP][1]);
-	cache_get_value_name_int(0, "banned", pPlayerInfos[playerid][pBan]);
+	cache_is_value_name_null(0, "banned", noBan);
+	if(!noBan)
+		cache_get_value_name_int(0, "banned", pPlayerInfos[playerid][pBan]);
 	cache_get_value_name_int(0, "language", pPlayerInfos[playerid][pLangue]);
 	cache_get_value_name_int(0, "gold", pPlayerInfos[playerid][pGold]);
 	cache_get_value_name_int(0, "gametime", pPlayerInfos[playerid][pGameTime]);
@@ -2248,6 +2250,10 @@ public OnPlayerLoaded(playerid)
 		pPlayerInfos[playerid][fPosMasque][i] = floatstr(mask[i]);
 		pPlayerInfos[playerid][fPosChapeau][i] = floatstr(hat[i]);
 	}
+	pPlayerInfos[playerid][pChapeau] = strval(hat[9]);
+	pPlayerInfos[playerid][pTorse] = strval(body[9]);
+	pPlayerInfos[playerid][pLunettes] = strval(glasses[9]);
+	pPlayerInfos[playerid][pMasque] = strval(mask[9]);
 	for(new i = 0; i < 50; i++)
 	{
 		pPlayerOfflineInfos[playerid][dReturnedItem][i] = strval(items[i]);
@@ -2309,7 +2315,7 @@ public OnPlayerLoaded(playerid)
 		case LANGUAGE_DE: ShowPlayerDialog(playerid, 4, DIALOG_STYLE_MSGBOX, "Kennwort", "Sie sind verbuden\nSie können spielen jetzt." , "Spawn", "");
 	}
 	//---
-	AddPlayerToIP(GetName(playerid), GetIPFromPlayer(playerid));
+	AddPlayerToIP(playerid);
 	//AddIPToPlayer(GetIPFromPlayer(playerid), GetName(playerid));
 	if(gettime() > pPlayerInfos[playerid][pBan]) UnbanAllPlayerIP(playerid);
 	if(gettime() < pPlayerInfos[playerid][pBan] && IsIPBanned(GetIPFromPlayer(playerid))) return aBan(INVALID_PLAYER_ID, playerid, 1, "Banned IP");
@@ -2496,7 +2502,7 @@ public SaveUser(playerid)
 	if(pPlayerInfos[playerid][dLogState] != UNLOGGED)
 	{
 		ProcessPlayerSave(playerid, .save = true);
-		new query[1512], itemstogive[256] = "", infomask[128], infohat[128], infobody[128], infoglasses[128], infoweapon[64], inventory[256], skills[64], weapons[64];
+		new query[1512], itemstogive[256] = "", infomask[256], infohat[256], infobody[256], infoglasses[256], infoweapon[64], inventory[256], skills[64], weapons[64];
 		format(skills, sizeof(skills),"%d %d %d %d %d %d %d %d %d %d %d %d %d", pPlayerInfos[playerid][dBoucher], pPlayerInfos[playerid][dMedecine], pPlayerInfos[playerid][dSante], pPlayerInfos[playerid][dArtisan],
 		pPlayerInfos[playerid][dTransporteur], pPlayerInfos[playerid][dPecheur], pPlayerInfos[playerid][dMecano], pPlayerInfos[playerid][dJardinier], pPlayerInfos[playerid][dAthlete], pPlayerInfos[playerid][dSurvivaliste],
 		pPlayerInfos[playerid][dTank], pPlayerInfos[playerid][dBomberman], pPlayerInfos[playerid][dHydra]);
@@ -2506,7 +2512,7 @@ public SaveUser(playerid)
 		}
 		for(new i = 0; i < 9; i++)
 		{
-			new tmp[10];
+			new tmp[32];
 			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosChapeau][i]);
 			strcat(infohat, tmp);
 			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosLunettes][i]);
