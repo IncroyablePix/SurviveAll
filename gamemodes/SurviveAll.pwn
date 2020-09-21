@@ -741,7 +741,7 @@ forward OnMinutePassed();
 forward OnAntiCheatStrikes();
 
 //OBJETS
-forward Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, spawnid);
+forward Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, extraVal, spawnid);
 forward PlayerDropObject(playerid, objectid, Float:distance);
 forward GetSpawnedObjects();
 forward GetObjectID(Pointer:slotid);
@@ -1421,6 +1421,7 @@ enum _:Items
 	ItemID, // ID d'objet au sol
 	dItemID, // ID SQL
 	dItemObjectID,
+	dItemExtraVal,
 	bool:bAutoSpawn,
 	Text3D:ObjectText,
 	Float:xItem,
@@ -12653,7 +12654,7 @@ OnPlayerKillsTMNT(playerid, turtleid)
 		x = x + float(RandomEx(-7, 7));
 		y = y + float(RandomEx(-7, 7));
 		FindZPathCoord(x, y, z, x, y, z);
-    	CreateItem(67, x, y, z + 1.0, false, -1, -1);
+    	CreateItem(67, x, y, z + 1.0, false, -1, 1, -1);
 	}
 	DestroyTMNT(turtleid);
 	CreateTMNT(turtleid);
@@ -20494,7 +20495,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        //---
 		        angle += 180.0 + float(RandomEx(-20, 20));
 		        GetXYInFrontOfPoint(x, y, angle, floatdiv(RandomEx(55, 70), 100));
-		        CreateItem(108, x, y, z, false, -1, -1);
+		        CreateItem(108, x, y, z, false, -1, 1, -1);
 				GivePlayerSlotObject(playerid, -1, slot);
 				PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 		    }
@@ -20881,7 +20882,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	{
     	CA_FindZ_For2DCoord(x2, y2, z2);
 	}
-	new Pointer:dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, -1, -1);//On crée l'objet, là, au sol
+	new Pointer:dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, -1, 1, -1);//On crée l'objet, là, au sol
 	new item[Items];
 	MEM_get_arr(dSlotID, _, item);
 	SetDynamicObjectPos(item[dItemObjectID], x, y, z);//On remonte l'objet à hauteur du joueur
@@ -20891,7 +20892,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	return 1;
 }
 
-public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, spawnid)
+public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, extraVal = 1, spawnid)
 {
 	new Pointer: res;
 	if(objectid != 0)
@@ -20902,6 +20903,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 		item[xItem] = x;
 		item[yItem] = y;
 		item[zItem] = z;
+		item[dItemExtraVal] = extraVal;
 		if(spawned) item[bAutoSpawn] = true, dSpawnedItems ++;
 	    item[ObjectText] = CreateDynamic3DTextLabel(NoNewLineSign(aObjects[objectid][ObjectEnName]), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
 		item[dItemID] = id;
@@ -20909,7 +20911,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 		if(id == -1)
 		{
 			new string[512], Cache: result;
-			mysql_format(mysqlPool, string, sizeof(string), "CALL `insertItem`(%d, %d, %b, %f, %f, %f)", objectid, spawnid, spawned, x, y, z);
+			mysql_format(mysqlPool, string, sizeof(string), "CALL `insertItem`(%d, %d, %b, %f, %f, %f, %d)", objectid, spawnid, spawned, x, y, z, extraVal);
 			result = mysql_query(mysqlPool, string);
 			cache_set_active(result);
 			cache_get_value_name_int(0, "nextID", item[dItemID]);
@@ -20920,6 +20922,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 	}
 	return res;
 }
+
 public DestroyItem(Pointer:itemid)
 {
 	new item[Items], query[256];
@@ -20932,6 +20935,7 @@ public DestroyItem(Pointer:itemid)
 	item[xItem] = 0.0;
 	item[yItem] = 0.0;
 	item[zItem] = 0.0;
+	item[dItemExtraVal] = 1;
 	if(item[bAutoSpawn]) item[bAutoSpawn] = false, dSpawnedItems --;
 	item[ObjectText] = Text3D:INVALID_3DTEXT_ID;
 	itemid = MEM_NULLPTR;
@@ -20972,6 +20976,7 @@ public Pointer:GetItemWithinDistance(Float:x1, Float:y1, Float:z1, Float:dist)//
 	}
 	return MEM_NULLPTR;
 }
+
 public OnItemsLoaded()
 {
 	//static oldBound = 500, total = 0;
@@ -20981,7 +20986,7 @@ public OnItemsLoaded()
 	{
 		for(new i = 0; i < rows; i++)
 		{
-			new Float:x, Float:y, Float:z, bool:spawned, objectid, itemid, spawnid, Pointer: res;
+			new Float:x, Float:y, Float:z, bool:spawned, objectid, itemid, spawnid, extraVal, Pointer: res;
 			cache_get_value_name_int(i, "iditem", itemid);
 			cache_get_value_name_int(i, "idobject", objectid);
 			cache_get_value_name_int(i, "idspawn", spawnid);
@@ -20989,7 +20994,8 @@ public OnItemsLoaded()
 			cache_get_value_name_float(i, "xitem", x);
 			cache_get_value_name_float(i, "yitem", y);
 			cache_get_value_name_float(i, "zitem", z);
-			res = CreateItem(objectid, x, y, z, spawned, itemid, spawnid);
+			cache_get_value_name_int(i, "extraval", extraVal);
+			res = CreateItem(objectid, x, y, z, spawned, itemid, extraVal, spawnid);
 			if(spawned)
   	    		CallRemoteFunction("InitializeSpawnObject", "ix", spawnid, _:res);
 		}
@@ -21014,6 +21020,8 @@ public LoadItems_data(name[],value[])
 		INI_Float(string, dItems[i][yItem]);
 	    format(string, sizeof(string), "zItem%d", i);
 		INI_Float(string, dItems[i][zItem]);
+	    format(string, sizeof(string), "ItemExtraVal%d", i);
+		INI_Float(string, dItems[i][dItemExtraVal]);
 	}
 	return 1;
 }
@@ -21035,6 +21043,8 @@ SaveItems()
 		INI_WriteFloat(File,string, dItems[i][yItem]);
 	    format(string, sizeof(string), "zItem%d", i);
 		INI_WriteFloat(File,string, dItems[i][zItem]);
+	    format(string, sizeof(string), "ItemExtraVal%d", i);
+		INI_WriteInt(File,string, dItems[i][dItemExtraVal]);
 	}
 	INI_Close(File);
 }
@@ -21068,7 +21078,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	{
     	CA_FindZ_For2DCoord(x2, y2, z2);
 	}
-	new dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, -1);//On crée l'objet, là, au sol
+	new dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, 1, -1);//On crée l'objet, là, au sol
 	SetDynamicObjectPos(dItems[dSlotID][dItemObjectID], x, y, z);//On remonte l'objet à hauteur du joueur
 	Streamer_Update(playerid);//On actualise le streamer pour que l'objet soit vu en train de tomber
 	//---
@@ -21076,7 +21086,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	return 1;
 }
 
-public CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, load)
+public CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, extraVal = -1, load)
 {
 	if(!(MAX_ITEMS > objectid >= 0)) return -1;
 	static slotid;
@@ -21105,6 +21115,7 @@ public CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, load)
 		dItems[(load == -1) ? slotid : load][xItem] = x;
 		dItems[(load == -1) ? slotid : load][yItem] = y;
 		dItems[(load == -1) ? slotid : load][zItem] = z;
+		dItems[(load == -1) ? slotid : load][dItemExtraVal] = extraVal;
 		if(spawned) dItems[(load == -1) ? slotid : load][bAutoSpawn] = true, dSpawnedItems ++;
 	    dItems[(load == -1) ? slotid : load][ObjectText] = CreateDynamic3DTextLabel(NoNewLineSign(aObjects[objectid][ObjectEnName]), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
     }
@@ -21118,6 +21129,7 @@ public DestroyItem(itemid)
 	DestroyDynamicObject(dItems[itemid][dItemObjectID]);
 	dItems[itemid][dItemObjectID] = INVALID_OBJECT_ID;
 	dItems[itemid][ItemID] = 0;
+	dItems[itemid][dItemExtraVal] = 1;
 	dItems[itemid][xItem] = 0.0;
 	dItems[itemid][yItem] = 0.0;
 	dItems[itemid][zItem] = 0.0;
@@ -23356,7 +23368,7 @@ public OnGameModeInit()
     #endif
 	for(new i = 0; i < MAX_GROUND_ITEMS; i ++)
 	{
-		CreateItem(dItems[i][ItemID], dItems[i][xItem], dItems[i][yItem], dItems[i][zItem], dItems[i][bAutoSpawn], i);
+		CreateItem(dItems[i][ItemID], dItems[i][xItem], dItems[i][yItem], dItems[i][zItem], dItems[i][bAutoSpawn], 1, i);
 		dLastLoaded = i;
 	}
 	for(new i = dLastLoaded + 1; i < MAX_GROUND_ITEMS; i ++) dItems[i][ItemID] = 0;
@@ -24669,7 +24681,7 @@ public FCNPC_OnDeath(npcid, killerid, reason)
 		new Float:y2 = y + float(RandomEx(-4, 4));
 		new Float:z2;
 		FindZPathCoord(x, y, z, x2, y2, z2);
-        CreateItem(146, x2, y2, z2 + 1.0, false, -1, -1);
+        CreateItem(146, x2, y2, z2 + 1.0, false, -1, 1, -1);
         //---
 		CreateBloodSplat(x, y, z);
 		dJason[dJasonState] = 3;
@@ -24822,9 +24834,9 @@ public OnPlayerGiveDamageActor(playerid, damaged_actorid, Float:amount, weaponid
 			//---BOITE
 			switch(dDeathBoss[dDeathPos])
 			{
-			    case 1: CreateItem(146, -1841.6383, 579.2135, 234.8874, false, -1, -1);
-			    case 2: CreateItem(146, -1771.5846, 579.0118, 234.8906, false, -1, -1);
-			    case 3: CreateItem(146, -1806.6400, 518.6753, 234.8906, false, -1, -1);
+			    case 1: CreateItem(146, -1841.6383, 579.2135, 234.8874, false, -1, 1, -1);
+			    case 2: CreateItem(146, -1771.5846, 579.0118, 234.8906, false, -1, 1, -1);
+			    case 3: CreateItem(146, -1806.6400, 518.6753, 234.8906, false, -1, 1, -1);
 			}
 	        //---
 			dDeathBoss[dDeathState] = 3;
@@ -26202,14 +26214,14 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 							    x += floatdiv(RandomEx(5, 15), 10);
 							    y += floatdiv(RandomEx(5, 15), 10);
 						    	CA_FindZ_For2DCoord(x, y, z);
-				            	CreateItem(68, x, y, z + 1.0, true, -1, -1);
+				            	CreateItem(68, x, y, z + 1.0, true, -1, 1, -1);
 				            	if(RandomEx(0, 10) < 3)
 				            	{
 									GetDynamicObjectPos(dBambi[bambi][oBambi], x, y, z);
 								    x += floatdiv(RandomEx(5, 15), 10);
 								    y += floatdiv(RandomEx(5, 15), 10);
 	    							CA_FindZ_For2DCoord(x, y, z);
-				            		CreateItem(68, x, y, z + 1.0, true, -1, -1);
+				            		CreateItem(68, x, y, z + 1.0, true, -1, 1, -1);
 				            	}
 							}
 			            	ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
@@ -26244,7 +26256,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 								//---
 								new Float:x2, Float:y2, Float:z2;
 								CA_RayCastLine(board[xBoard], board[yBoard], board[zBoard], x, y, z - 2.0, x2, y2, z2);
-		                        CreateItem(71, x2, y2, z2 + 1.0, false, -1, -1);
+		                        CreateItem(71, x2, y2, z2 + 1.0, false, -1, 1, -1);
 		                    }
 			                DestroyBoard(data_ptr);
 			            }
@@ -26278,7 +26290,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 								//---
 								new Float:x2, Float:y2, Float:z2;
 								CA_RayCastLine(dBoard[i][xBoard], dBoard[i][yBoard], dBoard[i][zBoard], x, y, z - 2.0, x2, y2, z2);
-		                        CreateItem(71, x2, y2, z2 + 1.0, false, -1);
+		                        CreateItem(71, x2, y2, z2 + 1.0, false, 1, -1);
 		                    }
 		                    dBoardResistance[i] = 5;
 			                DestroyBoard(i);
@@ -26326,10 +26338,10 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 									//---
 									new Float:x2, Float:y2, Float:z2;
 									CA_RayCastLine(plant[xPlant], plant[yPlant], plant[zPlant], x, y, z - 2.0, x2, y2, z2);
-         							CreateItem(115, x2, y2, z2 + 1.0, false, -1, -1);
+         							CreateItem(115, x2, y2, z2 + 1.0, false, -1, 1, -1);
 			                    }
 			                    //---
-				                if(RandomEx(0, 10) > 6) CreateItem(116, plant[xPlant], plant[yPlant], plant[zPlant] + 1.0, false, -1, -1);//Et le ballot de blé
+				                if(RandomEx(0, 10) > 6) CreateItem(116, plant[xPlant], plant[yPlant], plant[zPlant] + 1.0, false, -1, 1, -1);//Et le ballot de blé
 			                }
 			                else if(plant[dPlantType] == 5)//SAPIN
 			                {
@@ -26341,7 +26353,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 									//---
 									new Float:x2, Float:y2, Float:z2;
 									CA_RayCastLine(plant[xPlant], plant[yPlant], plant[zPlant], x, y, z - 2.0, x2, y2, z2);
-         							CreateItem(148, x2, y2, z2 + 1.0, false, -1, -1);
+         							CreateItem(148, x2, y2, z2 + 1.0, false, -1, 1, -1);
 									if(RandomEx(0, 10) > 6)//On crée éventuellement des graines
 									{
 					                    x = plant[xPlant] + floatdiv(RandomEx(-15, 15), 10);
@@ -26349,7 +26361,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 										z = plant[zPlant];
 										//---
 										CA_RayCastLine(plant[xPlant], plant[yPlant], plant[zPlant], x, y, z - 2.0, x2, y2, z2);
-	         							CreateItem(148, x2, y2, z2 + 1.0, false, -1, -1);
+	         							CreateItem(148, x2, y2, z2 + 1.0, false, -1, 1, -1);
 				                    }
 			                    }
 			                }
@@ -26364,7 +26376,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 									//---
 									new Float:x2, Float:y2, Float:z2;
 									CA_RayCastLine(plant[xPlant], plant[yPlant], plant[zPlant], x, y, z - 2.0, x2, y2, z2);
-			                        CreateItem(71, x2, y2, z2 + 1.0, false, -1, -1);
+			                        CreateItem(71, x2, y2, z2 + 1.0, false, -1, 1, -1);
 			                    }
 								SetTimerEx("DestroyObjectEx", 15000, false, "ib", CreateDynamicObject(834, plant[xPlant], plant[yPlant], plant[zPlant] - 2.8669, 0.0, 0.0, plant[aPlant]), true);
 			                }
@@ -30473,7 +30485,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						x2 = x1 + float(RandomEx(-2, 2));
      					y2 = y1 + float(RandomEx(-2, 2));
 						FindZPathCoord(x1, y1, z1, x2, y2, z2);
-						CreateItem(63, x2, y2, z2 + 1.0, false, -1, -1);
+						CreateItem(63, x2, y2, z2 + 1.0, false, -1, 1, -1);
 					}
 			  		//---
 			  		if(dRemainEngine > 0)
@@ -30481,7 +30493,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						x2 = x1 + float(RandomEx(-2, 2));
 						y2 = y1 + float(RandomEx(-2, 2));
 						FindZPathCoord(x1, y1, z1, x2, y2, z2);
-						CreateItem(64, x2, y2, z2 + 1.0, false, -1, -1);
+						CreateItem(64, x2, y2, z2 + 1.0, false, -1, 1, -1);
 					}
 					//---
 		        	if(dRemainMetal > 0) for(new i = 0; i < dRemainMetal; i ++)
@@ -30489,7 +30501,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						x2 = x1 + float(RandomEx(-2, 2));
      					y2 = y1 + float(RandomEx(-2, 2));
 						FindZPathCoord(x1, y1, z1, x2, y2, z2);
-						CreateItem(103, x2, y2, z2 + 1.0, false, -1, -1);
+						CreateItem(103, x2, y2, z2 + 1.0, false, -1, 1, -1);
 					}
 					//---
 		        	if(dRemainPlates > 0) for(new i = 0; i < dRemainPlates; i ++)
@@ -30497,7 +30509,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						x2 = x + float(RandomEx(-2, 2));
      					y2 = y + float(RandomEx(-2, 2));
 						FindZPathCoord(x1, y1, z1, x2, y2, z2);
-						CreateItem(104, x2, y2, z2 + 1.0, false, -1, -1);
+						CreateItem(104, x2, y2, z2 + 1.0, false, -1, 1, -1);
 					}
     				DestroyVeh(vehicle);
 					GivePlayerGold(playerid, -10);
@@ -32112,20 +32124,20 @@ public OnPlayerShootDynamicObject(playerid, weaponid, objectid, Float:x, Float:y
 					x2 = x1 + float(RandomEx(-7, 7));
      				y2 = y1 + float(RandomEx(-7, 7));
 					FindZPathCoord(x1, y1, z1, x2, y2, z2);
-		        	CreateItem(68, x2, y2, z2 + 1.0, false, -1, -1);
+		        	CreateItem(68, x2, y2, z2 + 1.0, false, -1, 1, -1);
 				}
 				if(Success(50))
 				{
 					x2 = x1 + float(RandomEx(-7, 7));
 	 				y2 = y1 + float(RandomEx(-7, 7));
 					FindZPathCoord(x1, y1, z1, x2, y2, z2);
-		        	CreateItem(143, x2, y2, z2 + 1.0, false, -1, -1);
+		        	CreateItem(143, x2, y2, z2 + 1.0, false, -1, 1, -1);
 	        	}
 				//BOITE
 				x2 = x1 + float(RandomEx(-7, 7));
     			y2 = y1 + float(RandomEx(-7, 7));
 				FindZPathCoord(x1, y1, z1, x2, y2, z2);
-		        CreateItem(146, x2, y2, z2 + 1.0, false, -1, -1);
+		        CreateItem(146, x2, y2, z2 + 1.0, false, -1, 1, -1);
 				//---
 				DestroyDynamicObject(dBambiKing[oBambiKing]);
     			dBambiKing[oBambiKing] = INVALID_OBJECT_ID;
@@ -32455,7 +32467,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 					//---
 					GivePlayerExp(playerid, 200);
 					OnPlayerGroupKillMob(playerid, MOB_SANCHEZ);
-		        	CreateItem(146, 221.091, 1883.369, 3618.5759, false, -1, -1);
+		        	CreateItem(146, 221.091, 1883.369, 3618.5759, false, -1, 1, -1);
 					//---
 					for(new i = 0, j = GetPlayerPoolSize(); i <= j; i++)
 					{
@@ -33341,9 +33353,9 @@ public OnMinutePassed()
 						//---
 			        	switch(plant[dPlantType])
 			        	{
-							case 2: CreateItem(72, x2, y2, z2 + 1.0, false, -1, -1);
-							case 3: CreateItem(73, x2, y2, z2 + 1.0, false, -1, -1);
-							case 4: CreateItem(74, x2, y2, z2 + 1.0, false, -1, -1);
+							case 2: CreateItem(72, x2, y2, z2 + 1.0, false, -1, 1, -1);
+							case 3: CreateItem(73, x2, y2, z2 + 1.0, false, -1, 1, -1);
+							case 4: CreateItem(74, x2, y2, z2 + 1.0, false, -1, 1, -1);
 						}
 					}
 			    }
