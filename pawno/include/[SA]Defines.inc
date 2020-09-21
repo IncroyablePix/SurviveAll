@@ -39,6 +39,8 @@
 #endif
 //---
 
+#define MSC_ROOT							"https://www.c4nn4.com/oldies/musicsamp/"
+
 #define MAX_ZOMBIES                         (100)
 #define MAX_JOHNS                         	(10)
 
