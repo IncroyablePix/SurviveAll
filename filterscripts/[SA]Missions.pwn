@@ -1262,7 +1262,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				bReggaeSharkBusy[0] = true;
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Here I Come");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/hereicome.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"hereicome.mp3");
 				SetPlayerCameraPos(playerid,-2672.697,-2384.619,4.379);
 				SetPlayerCameraLookAt(playerid,-2677.454,-2382.408,2.004);//TOOTS
 				SetPlayerPos(playerid, -2674.4546, -2384.4089, 3.0050);
@@ -1738,7 +1738,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				bCinematic[playerid] = true;
 		        TogglePlayerControllable(playerid, false);
 				MissionGameText(playerid, "One Love");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/onelove.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"onelove.mp3");
 				SetPlayerCameraPos(playerid,-2192.756,-2798.365,9.978);
 				SetPlayerCameraLookAt(playerid,-2195.166,-2797.041,9.925);
 				//---
@@ -1952,7 +1952,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				bCinematic[playerid] = true;
 		        TogglePlayerControllable(playerid, false);
 				MissionGameText(playerid, "Jellywitch");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/corpserises.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"corpserises.mp3");
 				SetPlayerCameraPos(playerid,-2192.756,-2798.365,9.978);
 				SetPlayerCameraLookAt(playerid,-2195.166,-2797.041,9.925);
 				//---
@@ -2184,7 +2184,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 			{
 				MoveObject(oMeduse[playerid][0], -2011.0989, -2778.1918, 7.42799, 1.0, 0.0, 0.0, 180.0);
 				CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, -1, "~r~Jellywitch~w~: Boop boop boop boop boop fern!", "~r~Jellywitch~w~: Bouboubouboubou fougère !", "Espagnol", "Portugais", "Italien", "Allemand");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/boobooboo.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"boobooboo.mp3");
 				if(IsPlayerPassingCinematic(playerid)) OnCinematicGoesOn(playerid, 6, 18, extrainfo);
 				else SetTimerEx("OnCinematicGoesOn", 2500, false, "iiii", playerid, 6, 18, extrainfo);
 			}
@@ -2239,7 +2239,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				//---
 				ApplyAnimation(playerid,"FAT","IDLE_tired", 4.0, 1, 0, 0, 0, 0);
 				CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, -1, "~r~Jellywitch~w~: Boop boop boop boop boop you got me!", "~r~Jellywitch~w~: Bouboubouboubou tu m'as eue !", "Espagnol", "Portugais", "Italien", "Allemand");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/boobooboo.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"boobooboo.mp3");
 				//---
 				if(IsPlayerPassingCinematic(playerid)) OnCinematicGoesOn(playerid, 6, 23, extrainfo);
 				else SetTimerEx("OnCinematicGoesOn", 2500, false, "iiii", playerid, 6, 23, extrainfo);
@@ -2467,7 +2467,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				bReggaeSharkBusy[0] = true;
 		        actorid[playerid] = CallRemoteFunction("GetMissionActorID", "i", 2);
 				MissionGameText(playerid, "Buffalo Soldier");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/buffalosoldier.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"buffalosoldier.mp3");
 				SetPlayerCameraPos(playerid,-2672.697,-2384.619,4.379);
 				SetPlayerCameraLookAt(playerid,-2677.454,-2382.408,2.004);//TOOTS
 				SetPlayerPos(playerid, -2674.4546, -2384.4089, 3.0050);
@@ -3057,7 +3057,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 				SetTimerEx("DestroyVehicleTimer", 8000, false, "i", pMissionInfos[playerid][dMissionVehicle][0]);
 				pMissionInfos[playerid][dMissionID] = MISSION_REGGAE_5_GIG;
 				pMissionInfos[playerid][dTempsRestant] = -1;
-	      		PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/reggaeshark.mp3");
+	      		PlayAudioStreamForPlayer(playerid, MSC_ROOT"reggaeshark.mp3");
 				SetPlayerPos(playerid,  -2656.7392, -2416.4150, 3.0058);
 				SetPlayerFacingAngle(playerid, 83.4871);
 				SetPlayerCameraPos(playerid,-2660.883,-2416.684,5.177);
@@ -3662,31 +3662,31 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 					case 0:
 					{
 						pMissionInfos[playerid][dInfo][2] = 0;
-      					PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/reggaeshark.mp3");
+      					PlayAudioStreamForPlayer(playerid, MSC_ROOT"reggaeshark.mp3");
 						pMissionInfos[playerid][dTempsRestant] = 124;
 					}
 					case 1:
 					{
 						pMissionInfos[playerid][dInfo][2] = 1;
-						PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/jamming.mp3");
+						PlayAudioStreamForPlayer(playerid, MSC_ROOT"jamming.mp3");
 						pMissionInfos[playerid][dTempsRestant] = 190;
 					}
 					case 2:
 					{
 						pMissionInfos[playerid][dInfo][2] = 2;
-      					PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/badboys.mp3");
+      					PlayAudioStreamForPlayer(playerid, MSC_ROOT"badboys.mp3");
 						pMissionInfos[playerid][dTempsRestant] = 190;
 					}
 					case 3:
 					{
 						pMissionInfos[playerid][dInfo][2] = 3;
-						PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/pressuredrop.mp3");
+						PlayAudioStreamForPlayer(playerid, MSC_ROOT"pressuredrop.mp3");
 						pMissionInfos[playerid][dTempsRestant] = 200;
 					}
 					case 4:
 					{
      					pMissionInfos[playerid][dInfo][2] = 4;
-          				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/ichasedevil.mp3");
+          				PlayAudioStreamForPlayer(playerid, MSC_ROOT"ichasedevil.mp3");
 						pMissionInfos[playerid][dTempsRestant] = 184;
 					}
 				}
@@ -8026,7 +8026,7 @@ public OnCinematicGoesOn(playerid, missionid, cinematic, extrainfo)
 					InterpolateCameraPos(dGroupers[i], -596.517944, 24.951980, 76.845001, -512.509338, -80.682044, 70.419151, 8000);
 					InterpolateCameraLookAt(dGroupers[i], -592.198974, 22.537502, 76.126274, -508.249084, -78.251945, 69.447128, 8000);
 					//---
-					PlayAudioStreamForPlayer(dGroupers[i], "http://www.c4nn4.com/musicsamp/YellowLedbetter.mp3");
+					PlayAudioStreamForPlayer(dGroupers[i], MSC_ROOT"YellowLedbetter.mp3");
 					//---
 					CallRemoteFunction("ShowPlayerTextInfo", "iissssss", dGroupers[i], -1, "~r~Rock~w~: -Urhm-", "~r~Rock~w~: -Urhm-", "~r~Rock~w~: -Urhm-", "~r~Rock~w~: -Urhm-", "~r~Rock~w~: -Urhm-", "~r~Rock~w~: -Urhm-");
 				}
@@ -8320,7 +8320,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				pMissionInfos[playerid][dMissionID] = MISSION_FLIGHT_INTRO;
 				MissionGameText(playerid, "Flight 714");
 				TextDrawShowForPlayer(playerid, tBlackScreen);
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/IntroPart1.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"IntroPart1.mp3");
 				ClearChat(playerid);
 				SetPlayerPos(playerid, -1863.4617, 119.1902, 1055.1689);
 				SetPlayerFacingAngle(playerid, 0.0);
@@ -8649,7 +8649,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			    ApplyAnimation(playerid,"PED","SEAT_IDLE",4,0,0,0, 1,0,1);
 				InterpolateCameraPos(playerid, -8.446573, 37.711231, 1122.231811, -7.577577, 17.641277, 1117.474609, 3500);
 				InterpolateCameraLookAt(playerid, -11.769110, 34.574810, 1120.201171, -11.068103, 14.424806, 1115.902832, 3500);
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/IntroPart2.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"IntroPart2.mp3");
 				ClearChat(playerid);
 			 	if(IsPlayerPassingCinematic(playerid)) OnCinematicGoesOn(playerid, 100, 48, extrainfo);
 				else SetTimerEx("OnCinematicGoesOn", 5000, false, "iiii", playerid, 100, 31, extrainfo);
@@ -8674,7 +8674,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 32:
 		 	{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/summersamba.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"summersamba.mp3");
 			 	InterpolateCameraPos(playerid, -29.908796, 12.692043, 1202.701782, -30.178392, 12.479977, 1202.643066, 500);
 				InterpolateCameraLookAt(playerid, -31.613533, 8.042663, 1202.010986, -34.081455, 9.427364, 1201.973999, 500);
 				CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, -1, "~r~?~w~: You look like someone who was on a flight~n~from Liberty to Vice City", "~r~?~w~: Vous, vous avez l'air de quelqu'un sur un vol~n~de Liberty City à Vice City", "Espagnol", "Portugais", "Italien", "Allemand");
@@ -8841,7 +8841,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 48://GROGNEMENT
 			{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack2.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"zattack2.mp3");
 				if(IsPlayerPassingCinematic(playerid)) OnCinematicGoesOn(playerid, 100, 57, extrainfo);
 				else SetTimerEx("OnCinematicGoesOn", 1500, false, "iiii", playerid, 100, 49, extrainfo);
 		 	}
@@ -8864,7 +8864,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 51:
 			{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack1.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"zattack1.mp3");
 				if(IsPlayerPassingCinematic(playerid)) OnCinematicGoesOn(playerid, 100, 57, extrainfo);
 				else SetTimerEx("OnCinematicGoesOn", 1000, false, "iiii", playerid, 100, 52, extrainfo);
 		 	}
@@ -9083,7 +9083,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				bCinematic[playerid] = true;
 				pMissionInfos[playerid][dMissionID] = MISSION_DEFAULT_FRIENDS_CINE1;
 				MissionGameText(playerid, "Default friends");
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/ForWhatItsWorth.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"ForWhatItsWorth.mp3");
 				SetPlayerPos(playerid, -70.4656, -348.4812, 1.2823);
 				pMissionInfos[playerid][dInfo][0] = CallRemoteFunction("CreateActorEx", "iffff", 133, -19.2647, -277.1054, 6.1050, 175.6355);
 				//pMissionInfos[i][dInfo][1] = 0;
@@ -9505,7 +9505,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			{
 				CallRemoteFunction("HidePlayerTextInfo", "i", playerid);
         		ApplyAnimation(playerid, "SWEET", "ho_ass_slapped", 4.0, 0, 0, 0, 0, 0);
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack1.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"zattack1.mp3");
 		 	    DestroyActor(pMissionInfos[playerid][dInfo][0]);
 		 	    pMissionInfos[playerid][dInfo][0] = 0;
 				pMissionInfos[playerid][dMissionID] = MISSION_DEFAULT_FRIENDS_CHASED;
@@ -9595,7 +9595,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Hazing");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Connexion.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Connexion.mp3");
 				SetPlayerPos(playerid, 15.7800, -224.3412, 5.4297);
 				SetPlayerFacingAngle(playerid, 9.8740);
 				SetActorPos(actorid[playerid], 15.8516, -222.6447, 5.4297);
@@ -9939,7 +9939,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Buddy");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/SFTD.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"SFTD.mp3");
 				SetPlayerPos(playerid, -55.6250, -226.5109, 5.4297);
 				SetPlayerFacingAngle(playerid, 251.4611);
 				//---
@@ -10574,7 +10574,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Waves of Mutilation");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Affection.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Affection.mp3");
 				SetPlayerPos(playerid, -68.0287, -275.0771, 6.4286);
 				SetPlayerFacingAngle(playerid, 179.3477);
 				//ApplyActorAnimation(actorid[playerid], "TATTOOS", "TAT_Sit_In_P", 4.1, 0, 0, 0, 1, 0);
@@ -10801,7 +10801,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	{
 			 	pMissionInfos[playerid][dInfo][0] = actorid[playerid];
 				actorid[playerid] = INVALID_ACTOR_ID;
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Figurehead.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Figurehead.mp3");
 				//---
 				pMissionInfos[playerid][dMissionID] = MISSION_WAVES_ASSEMBLY;
 				//---
@@ -11302,7 +11302,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Cut a caboose");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Photomaton.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Photomaton.mp3");
 				SetPlayerPos(playerid, -55.7559, -228.1659, 5.4378);
 				SetPlayerFacingAngle(playerid, 178.4195);
 				//---
@@ -11697,7 +11697,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			    ApplyAnimation(playerid,"PED", "SEAT_IDLE", 4.1, 0, 0, 0, 1, 0, 1);
 			    //---
 				MissionGameText(playerid, "Investigation");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Falling.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Falling.mp3");
 				//---
 				InterpolateCameraPos(playerid, -57.158206, -230.078536, 6.036802, -57.813034, -232.416900, 6.159376, 70000);
 				InterpolateCameraLookAt(playerid, -52.292037, -230.675491, 5.054944, -53.040157, -231.134002, 5.401886, 70000);
@@ -12096,7 +12096,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				SetPlayerCameraLookAt(playerid, -51.781402, -274.122344, 6.888195, 0);
 				bCinematic[playerid] = false;
 				TogglePlayerControllable(playerid, false);
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Hannah.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Hannah.mp3");
 				//---
 				switch(CallRemoteFunction("GetPlayerLanguage", "i", playerid))
 				{
@@ -12231,7 +12231,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			    //ApplyAnimation(playerid,"PED", "SEAT_IDLE", 4.1, 0, 0, 0, 1, 0, 1);
 			    //---
 				MissionGameText(playerid, "Heart of the Reich");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Sonofapreacherman.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Sonofapreacherman.mp3");
 				//---
 			 	SetPlayerCameraPos(playerid, -58.134536, -230.644577, 5.695697);
 				SetPlayerCameraLookAt(playerid, -57.361026, -235.572509, 6.037878, 0);
@@ -12995,7 +12995,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Winky-Leaks");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/LyudiNaKholme.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"LyudiNaKholme.mp3");
 				SetPlayerPos(playerid, 15.7800, -224.3412, 5.4297);
 				SetPlayerFacingAngle(playerid, 9.8740);
 				//---
@@ -13348,7 +13348,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
             }
             case 21:
             {
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Zalime.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Zalime.mp3");
         		DisablePlayerRaceCheckpointEx(playerid);
 				TogglePlayerControllable(playerid, false);
     			bCinematic[playerid] = true;
@@ -13472,7 +13472,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Cutting a shortcut");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/greycells1.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"greycells1.mp3");
 				SetPlayerPos(playerid, 15.7800, -224.3412, 5.4297);
 				SetPlayerFacingAngle(playerid, 9.8740);
 				SetActorPos(actorid[playerid], 15.8516, -222.6447, 5.4297);
@@ -13693,7 +13693,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				//---
 				InterpolateCameraPos(playerid, -315.562957, -305.386352, 8.505782, -314.203002, -300.844177, 9.580395, 1000);
 				InterpolateCameraLookAt(playerid, -320.207427, -306.379058, 6.942593, -317.671264, -304.076171, 7.991257, 1000);
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/greycells2.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"greycells2.mp3");
 				//---
 				DisablePlayerRaceCheckpointEx(playerid);
 			 	//---
@@ -13994,7 +13994,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 36://Gagné
 		 	{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/bittersweetsymphony.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"bittersweetsymphony.mp3");
 			 	SetPlayerPos(playerid, -353.7478, -377.6570, 5.7105);
 		 		SetPlayerFacingAngle(playerid, 153.4451);
 		 		//---
@@ -14145,7 +14145,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				//TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Birch");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/TattooedLoveBoys.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"TattooedLoveBoys.mp3");
 				SetPlayerPos(playerid, -3.0005, -290.1342, 5.4297);
 				SetPlayerFacingAngle(playerid, 358.9352);
 				//---
@@ -14848,7 +14848,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		        objectid[playerid] = CreateObject(2684, -58.5073, -231.6913, 5.2881, 270.0, 180.0, 330.0);
 			    //---
 				MissionGameText(playerid, "Sweet Black Angel");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Kommersanty.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Kommersanty.mp3");
 				//---
 				SetPlayerCameraPos(playerid, -57.279312, -230.996383, 6.467305);
 				SetPlayerCameraLookAt(playerid, -55.027828, -226.638885, 5.496173, 0);
@@ -14929,7 +14929,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	{
 		 	    SetPlayerPos(playerid, 269.9802, -153.6221, 7.6683);
 			 	SetPlayerFacingAngle(playerid, 278.1692);
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/wanteddeadoralive.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"wanteddeadoralive.mp3");
     			//---
 				ApplyAnimation(playerid, "PED","WEAPON_crouch", 4.1, 1, 0, 0, 1, 30000, 1);
 				//---
@@ -15020,7 +15020,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 13:
 		 	{
-    			//PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/wanteddeadoralive.mp3");
+    			//PlayAudioStreamForPlayer(playerid, MSC_ROOT"wanteddeadoralive.mp3");
     			//---
 				pMissionInfos[playerid][dMissionID] = MISSION_ANGEL_LISTEN;
 		 		CallRemoteFunction("AddJohnToMission", "iiiiiiifff", pMissionInfos[playerid][dInfo][0], 5, 1, 22, MISSION_ANGEL_LISTEN, JOHN_SKILL_NOOB, playerid, 870.9342, -23.6594, 64.0457);
@@ -15132,7 +15132,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				//---
 				DisablePlayerRaceCheckpointEx(playerid);
 				//---
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/teenagesorrow.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"teenagesorrow.mp3");
 				//---
 				InterpolateCameraPos(playerid, -58.134536, -230.644577, 5.695697, -58.134536, -230.644577, 5.695697, 7500);
 				InterpolateCameraLookAt(playerid, -57.361026, -235.572509, 6.037878, -59.256832, -235.500823, 6.092415, 7000);
@@ -15211,7 +15211,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "To Masha...");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/LadyJane1.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"LadyJane1.mp3");
 				SetPlayerPos(playerid, -39.6248, -326.6513, 5.4297);
 				SetPlayerFacingAngle(playerid, 67.4601);
 				//---
@@ -15289,7 +15289,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
     			DestroyVehicle(pMissionInfos[playerid][dMissionVehicle][0]);
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/LadyJane2.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"LadyJane2.mp3");
     			DisablePlayerRaceCheckpointEx(playerid);
 				pMissionInfos[playerid][dMissionVehicle][0] = CreateVehicle(551, 1237.5226, -123.5683, 38.9929, 142.6384, -1, -1, 0, 0);
 				LockVehicle(pMissionInfos[playerid][dMissionVehicle][0], true);
@@ -15497,7 +15497,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
                 DisablePlayerRaceCheckpointEx(playerid);
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/LadyJane3.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"LadyJane3.mp3");
     			//---
 				CallRemoteFunction("ReSpawnJohn", "i", pMissionInfos[playerid][dInfo][0]);
 				//---
@@ -15624,7 +15624,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				TogglePlayerControllable(playerid, false);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "Everyday");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Cavalerie.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Cavalerie.mp3");
 				SetPlayerPos(playerid, 15.7800, -224.3412, 5.4297);
 				SetPlayerFacingAngle(playerid, 9.8740);
 				SetActorPos(actorid[playerid], 15.8516, -222.6447, 5.4297);
@@ -16047,7 +16047,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			}
 			case 29:
 			{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/zattack2.mp3");
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"zattack2.mp3");
 			    //---
         		ApplyAnimation(playerid, "SWEET", "ho_ass_slapped", 4.0, 0, 0, 0, 0, 0);
 				//---
@@ -16200,7 +16200,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	}
 		 	case 39:
 		 	{
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/Chase.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"Chase.mp3");
     			//---
 			 	DestroyVehicle(pMissionInfos[playerid][dMissionVehicle][0]);
 			 	pMissionInfos[playerid][dMissionVehicle][0] = INVALID_VEHICLE_ID;
@@ -16308,7 +16308,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		        actorid[playerid] = CallRemoteFunction("CreateActorEx", "iffff", SKIN_DPO, -57.5660, -269.3641, 6.4286, 182.4195);
 				bCinematic[playerid] = true;
 				MissionGameText(playerid, "The righteous, the weak, the dead");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/MyWeakness1.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"MyWeakness1.mp3");
 				SetPlayerPos(playerid, -57.2145, -271.7066, 6.4286);
 				SetPlayerFacingAngle(playerid, 347.7769);
 				//---
@@ -16564,7 +16564,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	    //---
 			 	pMissionInfos[playerid][dMissionID] = MISSION_WEAK_KINO;
 		    	//---
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/GTAIII.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"GTAIII.mp3");
 				//---
 				CallRemoteFunction("ReSpawnJohn", "i", pMissionInfos[playerid][dInfo][0]);
 		        pMissionInfos[playerid][dInfo][0] = CallRemoteFunction("CreateActorEx", "iffff", 86, 2353.3091, -655.9701, 128.0547, 267.9022);//Méchant homme
@@ -16724,7 +16724,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 			}
 		 	case 25:
 		 	{
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/MyWeakness2.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"MyWeakness2.mp3");
 				//---
 				new Float:x, Float:y, Float:z, Float:angle;
 				GetPlayerPos(playerid, x, y, z);
@@ -17028,7 +17028,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 				bCinematic[playerid] = true;
 			    //---
 				MissionGameText(playerid, "Their Land");
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/MaterBogov1.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"MaterBogov1.mp3");
 				//---
 				InterpolateCameraPos(playerid, -56.6413, -231.859817, 7.224137, -60.007893, -228.835433, 6.105762, 2500);
 				InterpolateCameraLookAt(playerid, -60.8267, -231.458633, 4.856111, -58.4284, -233.579376, 6.123500, 2500);
@@ -17206,7 +17206,7 @@ CreateObject(19337, 484.03244, 455.31552, 53.00258,   0.00000, 0.00000, 0.00000)
 		 	    SetVehicleZAngle(pMissionInfos[playerid][dMissionVehicle][0], 122.8022);
 		 	    RepairVehicle(pMissionInfos[playerid][dMissionVehicle][0]);
 		 	    //---
-    			PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/WhileWeReYoung.mp3");
+    			PlayAudioStreamForPlayer(playerid, MSC_ROOT"WhileWeReYoung.mp3");
 				//---
 				bCinematic[playerid] = true;
 		    	TogglePlayerControllable(playerid, false);
@@ -17562,7 +17562,7 @@ public UpdateMissionTimer(playerid)
 				if(RandomEx(1, 10) == 7)
 				{
 		        	CallRemoteFunction("ShowPlayerTextInfo", "iissssss", playerid, 3500, "~r~Jellywitch~w~: Catch me!", "~r~Jellywitch~w~: Attrape-moi !", "Espagnol", "Portugais", "Italien", "Allemand");
-					PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/boobooboo.mp3", x, y, z, 25.0, 1);
+					PlayAudioStreamForPlayer(playerid, MSC_ROOT"boobooboo.mp3", x, y, z, 25.0, 1);
 				}
 				x2 = float(RandomEx(-2463, -2411));
 				y2 = float(RandomEx(-2766, -2728));
@@ -17776,7 +17776,7 @@ public UpdateMissionTimer(playerid)
 			}
 			if(RandomEx(1, 10) == 7)
 			{
-				PlayAudioStreamForPlayer(playerid, "http://www.c4nn4.com/musicsamp/boobooboo.mp3", x, y, z, 25.0, 1);
+				PlayAudioStreamForPlayer(playerid, MSC_ROOT"boobooboo.mp3", x, y, z, 25.0, 1);
 			}
 			x2 = float(RandomEx(-2463, -2411));
 			y2 = float(RandomEx(-2766, -2728));
