@@ -1,15 +1,36 @@
-<<<<<<< HEAD
-C:\Users\dimin\Desktop\SurviveAll\pawno\include\YSI\y_amx.inc(294) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â AMX_GetGlobal
-c:\Users\dimin\Desktop\SurviveAll\gamemodes\SurviveAll.pwn(3414) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â RemoveGroupMember: âûçîâ ñ DissolveTeam c:\Users\dimin\Desktop\SurviveAll\gamemodes\SurviveAll.pwn(3333)
-C:\Users\dimin\Desktop\SurviveAll\pawno\include\list.inc(163) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â LIST_remove
-c:\Users\dimin\Desktop\SurviveAll\gamemodes\SurviveAll.pwn(13547) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â SetBossUFOState: âûçîâ ñ SetBossUFOArmState c:\Users\dimin\Desktop\SurviveAll\gamemodes\SurviveAll.pwn(13769)
-=======
-E:\PRG\Pawn\SurviveAll\filterscripts\[SA]Missions.pwn(22424) : èäåíòèôèêàòîðó ïðèñâîåíî çíà÷åíèå, íî îí íå èñïîëüçóåòñÿ: "string"
-E:\PRG\Pawn\SurviveAll\filterscripts\[SA]Missions.pwn(783) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â OnCinematicGoesOn
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(21672) : èäåíòèôèêàòîðó ïðèñâîåíî çíà÷åíèå, íî îí íå èñïîëüçóåòñÿ: "dItemExtraVal"
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(27419) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(27530) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(29179) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(30701) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34141) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34144) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34172) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34175) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34202) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34205) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34234) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34237) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34261) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34264) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34289) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34292) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34316) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34319) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34346) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34347) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34348) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34351) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34352) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34353) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34399) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(34402) : ïðåäóïðåæäåíèå 202: êîëè÷åñòâî àðãóìåíòîâ íå ñîâïàäàåò ñ îáúÿâëåíèåì
 E:\PRG\Pawn\SurviveAll\pawno\include\YSI\y_amx.inc(294) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â AMX_GetGlobal
->>>>>>> 313be4fd65bc8586bb0a4028451996913f9e8c36
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3462) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â RemoveGroupMember: âûçîâ ñ DissolveTeam e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3381)
+E:\PRG\Pawn\SurviveAll\pawno\include\list.inc(163) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â LIST_remove
+e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(13608) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â SetBossUFOState: âûçîâ ñ SetBossUFOArmState e:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(13830)
 Äëÿ îòêëþ÷åíèÿ âûâîäà ðåêóðñèé: #pragma disablerecursion èëè #pragma warning disable 238
 Pawn compiler 3.2.3664	 	 	Copyright (c) 1997-2017, ITB CompuPhase
 
 
-Ïðåäóïðåæäåíèé:4.
+Ïðåäóïðåæäåíèé:30.

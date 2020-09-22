@@ -749,7 +749,7 @@ forward Pointer:GetItemWithinDistance(Float:x1, Float:y1, Float:z1, Float:dist);
 forward HasPlayerItem(playerid, objectid);
 forward GetPlayerNextFreeSlot(playerid);
 forward GetPlayerFreeSlots(playerid);
-forward GivePlayerSlotObject(playerid, objectid, slot);
+forward GivePlayerSlotObject(playerid, objectid, slot, extraVal);
 forward SwapPlayerObjects(playerid, slotid1, slotid2);
 forward GetPlayerItemAmount(playerid, objectid);
 forward ClosePlayerHUD(playerid);
@@ -760,6 +760,7 @@ forward HidePlayerHelp(playerid);//Fonction pour cacher l'aide
 forward LoadMap(playerid);
 forward HidePlayerHUD(playerid, bool:hide);
 forward GetObjectName(playerid, objectid, language);
+forward GetObjectDefaultExtraVal(playerid, objectid);
 //PEDS
 forward RespawnPlayer(playerid);
 forward ReSpawnZombie(zombieid);
@@ -875,6 +876,8 @@ enum ObjectsInfos
 	dSellPrice,
 	dObjectType,
 	bool:bHeavy,
+	//---EXTRA VAL
+	dExtraVal,
 	//---NOMS---//
 	ObjectEnName[30],
 	ObjectFrName[30],
@@ -966,7 +969,9 @@ enum PlayerInfos
 	pArme3[3],
 	pArme4[3],
 	HandObject,
+	HandObjectExtraVal,
 	BagObject[36],
+	BagObjectExtraVal[36],
 	pLevel,
 	pExp,
 	pCompetence,
@@ -1034,6 +1039,7 @@ enum VehicleInfos
 	Float:zVeh,
 	Float:aVeh,
 	TrunkObject[6],
+	TrunkObjectExtraVal[6],
 	dColor[2]
 };
 
@@ -1068,6 +1074,7 @@ enum _:SafeInfos
 	Float:zSafe,
 	Float:aSafe,
 	dItemContained[12],
+	dItemContainedExtraVal[12],
 	dSafeID
 };
 
@@ -1795,6 +1802,16 @@ public GetObjectName(playerid, objectid, language)
 	}
 }
 
+public GetObjectDefaultExtraVal(playerid, objectid)
+{
+	new extraVal = 1;
+
+	if(MAX_ITEMS > objectid && objectid >= 0)
+		extraVal = aObjects[objectid][dExtraVal];
+
+	return extraVal;
+}
+
 GetItemName(objectid, language)
 {
 	new string[30];
@@ -1851,6 +1868,7 @@ public OnDataObjectsLoaded()
 			cache_get_value_name_int(i, "sellprice", aObjects[i][dSellPrice]);
 			cache_get_value_name_int(i, "typeobject", aObjects[i][dObjectType]);
 			cache_get_value_name_bool(i, "heavy", aObjects[i][bHeavy]);
+			cache_get_value_name_int(i, "extraval", aObjects[i][dExtraVal]);
 			cache_get_value_name(i, "name_en", aObjects[i][ObjectEnName]);
 			cache_get_value_name(i, "name_fr", aObjects[i][ObjectFrName]);
 			cache_get_value_name(i, "name_es", aObjects[i][ObjectEsName]);
@@ -2185,8 +2203,8 @@ public LoadPlayerExtraGold(playerid)
 }*/
 public OnPlayerLoaded(playerid)
 {
-	new infomask[256], infobody[256], infoglasses[256], infohat[256], weapons[128], skills[128], inventory[128], itemstogive[128];
-	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][4], items[50][4], bool: noBan;
+	new infomask[256], infobody[256], infoglasses[256], infohat[256], weapons[128], skills[128], inventory[192], itemstogive[128];
+	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][11], items[50][4], bool: noBan;
 	cache_get_value_name(0, "registerdate", pPlayerInfos[playerid][sFirstCo]);
 	cache_get_value_name(0, "lastco", pPlayerInfos[playerid][sLastCo]);
 	cache_get_value_name(0, "password", pPlayerInfos[playerid][pPassword]);
@@ -2255,10 +2273,12 @@ public OnPlayerLoaded(playerid)
 	pPlayerInfos[playerid][pTorse] = strval(body[9]);
 	pPlayerInfos[playerid][pLunettes] = strval(glasses[9]);
 	pPlayerInfos[playerid][pMasque] = strval(mask[9]);
+
 	for(new i = 0; i < 50; i++)
 	{
 		pPlayerOfflineInfos[playerid][dReturnedItem][i] = strval(items[i]);
 	}
+	
 	for(new i = 0; i < 4; i++)
 	{
 		new tmp[3][10];
@@ -2302,10 +2322,30 @@ public OnPlayerLoaded(playerid)
 	pPlayerInfos[playerid][dBomberman] = strval(skill[11]); 
 	pPlayerInfos[playerid][dHydra] = strval(skill[12]);
 
+	//---
+ 	new content[2][6];
+	
 	for(new i = 0; i < 36; i++)
-		pPlayerInfos[playerid][BagObject][i] = strval(invent[i]);
-		
-	pPlayerInfos[playerid][HandObject] = strval(invent[36]);
+	{
+	 	content[0] = "0";
+	 	content[1] = "1";
+
+		strexplode(content, invent[i], "@");
+
+		pPlayerInfos[playerid][BagObject][i] = strval(content[0]);
+		pPlayerInfos[playerid][BagObjectExtraVal][i] = strval(content[1]);
+	}
+
+ 	content[0] = "0";
+ 	content[1] = "1";
+
+	strexplode(content, invent[36], "@");
+
+	pPlayerInfos[playerid][HandObject] = strval(content[0]);
+	pPlayerInfos[playerid][HandObjectExtraVal] = strval(invent[1]);
+	
+	//---
+	
 	switch(pPlayerInfos[playerid][pLangue])
 	{
 		case LANGUAGE_EN: ShowPlayerDialog(playerid, 4, DIALOG_STYLE_MSGBOX, "Password", "You are connected.\nYou can play now.", "Spawn", "");
@@ -2507,10 +2547,12 @@ public SaveUser(playerid)
 		format(skills, sizeof(skills),"%d %d %d %d %d %d %d %d %d %d %d %d %d", pPlayerInfos[playerid][dBoucher], pPlayerInfos[playerid][dMedecine], pPlayerInfos[playerid][dSante], pPlayerInfos[playerid][dArtisan],
 		pPlayerInfos[playerid][dTransporteur], pPlayerInfos[playerid][dPecheur], pPlayerInfos[playerid][dMecano], pPlayerInfos[playerid][dJardinier], pPlayerInfos[playerid][dAthlete], pPlayerInfos[playerid][dSurvivaliste],
 		pPlayerInfos[playerid][dTank], pPlayerInfos[playerid][dBomberman], pPlayerInfos[playerid][dHydra]);
+		
 		for(new i = 0; i < 50; i++)
 		{
 			format(itemstogive, sizeof(itemstogive), "%s%d ", itemstogive, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
 		}
+		
 		for(new i = 0; i < 9; i++)
 		{
 			new tmp[32];
@@ -2523,19 +2565,23 @@ public SaveUser(playerid)
 			format(tmp, sizeof(tmp), "%f ", pPlayerInfos[playerid][fPosTorse][i]);
 			strcat(infobody, tmp);
 		}
+		
 		format(infohat, sizeof(infohat), "%s%d", infohat, pPlayerInfos[playerid][pChapeau]);
 		format(infoglasses, sizeof(infoglasses), "%s%d", infoglasses, pPlayerInfos[playerid][pLunettes]);
 		format(infomask, sizeof(infomask), "%s%d", infomask, pPlayerInfos[playerid][pMasque]);
 		format(infobody, sizeof(infobody), "%s%d", infobody, pPlayerInfos[playerid][pTorse]);
+		
 		for(new i = 1; i < 38; i++)
 		{
 			new tmp[10];
-			format(tmp, sizeof(tmp), "%d ", GetPlayerSlotObject(playerid, i));
+			format(tmp, sizeof(tmp), "%d@%d ", GetPlayerSlotObject(playerid, i), GetPlayerSlotObjectExtraVal(playerid, i));
 			strcat(inventory, tmp);
 		}
+		
 		format(weapons, sizeof(weapons), "%d,%d,%d %d,%d,%d %d,%d,%d %d,%d,%d", pPlayerInfos[playerid][pArme1][0], pPlayerInfos[playerid][pArme1][1], pPlayerInfos[playerid][pArme1][2],
 		pPlayerInfos[playerid][pArme2][0], pPlayerInfos[playerid][pArme2][1], pPlayerInfos[playerid][pArme2][2], pPlayerInfos[playerid][pArme3][0], pPlayerInfos[playerid][pArme3][1], pPlayerInfos[playerid][pArme3][2],
 		pPlayerInfos[playerid][pArme4][0], pPlayerInfos[playerid][pArme4][1], pPlayerInfos[playerid][pArme4][2]);
+		
 		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET username = \"%s\", password = \"%s\", salt = \"%s\", adminlevel = %d, idvip = %d, goldtogive = %d, itemstogive = \"%s\", \
 		viptime = %d, language = %d, gold = %d, gametime = %d, bagtype = %d, hunger = %d, thirst = %d, sleep = %d, health = %d, armour = %d, x = %f, y = %f, z = %f, a = %f, \
 		legs = %b, bleed = %b, temperature = %d, infohat = \"%s\", infoglasses = \"%s\", infomask = \"%s\", infobody = \"%s\", infoweapon = \"%s\", inventory = \"%s\", level = %d, exp = %d, competence = %d, \
@@ -2546,6 +2592,7 @@ public SaveUser(playerid)
 		pPlayerInfos[playerid][bLeg], pPlayerInfos[playerid][bHemorragie], pPlayerInfos[playerid][pTemperature], infohat, infoglasses, infomask, infobody, infoweapon, inventory, pPlayerInfos[playerid][pLevel], pPlayerInfos[playerid][pExp], pPlayerInfos[playerid][pCompetence],
 		pPlayerInfos[playerid][dAide1_16], pPlayerInfos[playerid][dAide17_32], skills, pPlayerInfos[playerid][pReggaeShark], pPlayerInfos[playerid][pIntro], pPlayerInfos[playerid][pAmy], pPlayerInfos[playerid][pKen], pPlayerInfos[playerid][pDPO],
 		pPlayerInfos[playerid][pZombies], pPlayerInfos[playerid][pBosses], pPlayerInfos[playerid][pKills], pPlayerInfos[playerid][pDeaths], weapons, pPlayerInfos[playerid][pSkin], pPlayerInfos[playerid][dPlayerID]);
+
 		mysql_tquery(mysqlPool, query);			
 	}
 }
@@ -6566,7 +6613,7 @@ GetGunInfo(playerid, slot)
 }
 #endif
 //DÉCLARATIONS DE FONCTIONS
-GivePlayerHandObject(playerid, objectid)//Fonction pour give un objet à un mec dans son main
+GivePlayerHandObject(playerid, objectid, extraVal = 1)//Fonction pour give un objet à un mec dans son main
 {
 	if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 	{
@@ -6575,14 +6622,19 @@ GivePlayerHandObject(playerid, objectid)//Fonction pour give un objet à un mec d
 	}
 	else
 	{
-		if(pPlayerInfos[playerid][HandObject] != objectid) UpdatePlayerHand(playerid, objectid);
+		if(pPlayerInfos[playerid][HandObject] != objectid)
+			UpdatePlayerHand(playerid, objectid);
+
 		pPlayerInfos[playerid][HandObject] = objectid;
-		if(!pPlayerInfos[playerid][bAide][1]) ShowPlayerHelp(playerid, 2, 10000);
+		pPlayerInfos[playerid][HandObjectExtraVal] = extraVal;
+
+		if(!pPlayerInfos[playerid][bAide][1])
+			ShowPlayerHelp(playerid, 2, 10000);
 	}
 	return 1;
 }
 
-GivePlayerInventoryObject(playerid, objectid, slotid)//Fonction pour give un objet à un mec dans son sac
+GivePlayerInventoryObject(playerid, objectid, slotid, extraVal = 1)//Fonction pour give un objet à un mec dans son sac
 {
 	if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 	{
@@ -6591,28 +6643,40 @@ GivePlayerInventoryObject(playerid, objectid, slotid)//Fonction pour give un obj
 	}
 	else
 	{
-		if(pPlayerInfos[playerid][BagObject][slotid] != objectid) UpdatePlayerInventory(playerid, slotid, objectid);
+		if(pPlayerInfos[playerid][BagObject][slotid] != objectid)
+			UpdatePlayerInventory(playerid, slotid, objectid);
+			
 		pPlayerInfos[playerid][BagObject][slotid] = objectid;
-		if(!pPlayerInfos[playerid][bAide][1]) ShowPlayerHelp(playerid, 2, 10000);
+		pPlayerInfos[playerid][BagObjectExtraVal][slotid] = extraVal;
+		
+		if(!pPlayerInfos[playerid][bAide][1])
+			ShowPlayerHelp(playerid, 2, 10000);
 	}
 	UpdatePlayerInventorySlots(playerid);
 	return 1;
 }
 
-GivePlayerTrunkObject(playerid, vehicleid, objectid, slotid)//Fonction pour foutre un objet dans le coffre d'une bagnole
+GivePlayerTrunkObject(playerid, vehicleid, objectid, slotid, extraVal)//Fonction pour foutre un objet dans le coffre d'une bagnole
 {
 	if(vehicleid != -1)
 	{
 		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 		{
-		    if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != 0) UpdateVehicleInventory(playerid, vehicleid, slotid, 0);
+		    if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != 0) 
+				UpdateVehicleInventory(playerid, vehicleid, slotid, 0);
+
 			dVehicleInfos[vehicleid][TrunkObject][slotid] = 0;
+			dVehicleInfos[vehicleid][TrunkObjectExtraVal][slotid] = 1;
 		}
 		else
 		{
-			if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != objectid) UpdateVehicleInventory(playerid, vehicleid, slotid, objectid);
+			if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != objectid) 
+				UpdateVehicleInventory(playerid, vehicleid, slotid, objectid);
+
 			dVehicleInfos[vehicleid][TrunkObject][slotid] = objectid;
+			dVehicleInfos[vehicleid][TrunkObjectExtraVal][slotid] = extraVal;
 		}
+
 		for(new i = 0, j = GetPlayerPoolSize(); i <= j; i ++)
 		{
 		    if(i != playerid && pVehicleInventory[i] == vehicleid)
@@ -6646,29 +6710,34 @@ public GetPlayerFreeSlots(playerid)
 	return dFreeSlots;
 }
 
-public GivePlayerSlotObject(playerid, objectid, slot)
+RemovePlayerSlotObject(playerid, slot)
+{
+	GivePlayerSlotObject(playerid, -1, slot, 1);
+}
+
+public GivePlayerSlotObject(playerid, objectid, slot, extraVal)
 {
 	switch(slot)
 	{
 	    case 0, 37:
 		{
-			GivePlayerHandObject(playerid, objectid);
+			GivePlayerHandObject(playerid, objectid, extraVal);
 		}
 	    case 1 .. 36:
 		{
-			GivePlayerInventoryObject(playerid, objectid, slot - 1);
+			GivePlayerInventoryObject(playerid, objectid, slot - 1, extraVal);
 		}
 	    case 38 .. 43:
 		{
 			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s du vehicule %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]), pVehicleInventory[playerid]);
 			else LogInfo(true, "[ADMIN]%s met %s dans le vehicule %d.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]), pVehicleInventory[playerid]);
-			GivePlayerTrunkObject(playerid, pVehicleInventory[playerid], objectid, slot - 38);
+			GivePlayerTrunkObject(playerid, pVehicleInventory[playerid], objectid, slot - 38, extraVal);
 		}
 	    case 44 .. 55:
 		{
 			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s d'un coffre'.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]));
 			else LogInfo(true, "[ADMIN]%s met %s dans un coffre.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]));
-			GivePlayerSafeObject(playerid, pPlayerSafe[playerid], objectid, slot - 44);
+			GivePlayerSafeObject(playerid, pPlayerSafe[playerid], objectid, slot - 44, extraVal);
 		}
 	}
 }
@@ -8327,12 +8396,13 @@ RemoveAuctionHouseItem(category, slotid)
 
 BuyAuctionHouseItem(playerid, category, itemid)
 {
-	new dPrice, itemID, idPlayer;
+	new dPrice, itemID, idPlayer, extraVal;
+	new dFreeSlot = GetPlayerNextFreeSlot(playerid);
+
     switch(category)
     {
         case 0:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerTool[itemid][dItemPrice])) return -1;
 			if(dAuctionSellerTool[itemid][dItemSale] == 0) return 0;
@@ -8341,14 +8411,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerTool[itemid][sSalesman]);
             itemID = dAuctionSellerTool[itemid][dItemSale];
 			idPlayer = dAuctionSellerTool[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerTool[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerTool[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerTool[itemid][dSaleManID], dAuctionSellerTool[itemid][dItemPrice]);
         }
         case 1:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerMedic[itemid][dItemPrice])) return -1;
             if(dAuctionSellerMedic[itemid][dItemSale] == 0) return 0;
@@ -8357,14 +8422,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerMedic[itemid][sSalesman]);
 			idPlayer = dAuctionSellerMedic[itemid][dSaleManID];
             itemID = dAuctionSellerMedic[itemid][dItemSale];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerMedic[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerMedic[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerMedic[itemid][dSaleManID], dAuctionSellerMedic[itemid][dItemPrice]);
         }
         case 2:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerWeapon[itemid][dItemPrice])) return -1;
             if(dAuctionSellerWeapon[itemid][dItemSale] == 0) return 0;
@@ -8373,14 +8433,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerWeapon[itemid][sSalesman]);
             itemID = dAuctionSellerWeapon[itemid][dItemSale];
 			idPlayer = dAuctionSellerWeapon[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerWeapon[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerWeapon[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerWeapon[itemid][dSaleManID], dAuctionSellerWeapon[itemid][dItemPrice]);
         }
         case 3:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerOther[itemid][dItemPrice])) return -1;
             if(dAuctionSellerOther[itemid][dItemSale] == 0) return 0;
@@ -8389,14 +8444,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerOther[itemid][sSalesman]);
             itemID = dAuctionSellerOther[itemid][dItemSale];
 			idPlayer = dAuctionSellerOther[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerOther[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerOther[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerOther[itemid][dSaleManID], dAuctionSellerOther[itemid][dItemPrice]);
         }
         case 4:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerVehicle[itemid][dItemPrice])) return -1;
             if(dAuctionSellerVehicle[itemid][dItemSale] == 0) return 0;
@@ -8405,14 +8455,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerVehicle[itemid][sSalesman]);
             itemID = dAuctionSellerVehicle[itemid][dItemSale];
 			idPlayer = dAuctionSellerVehicle[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerVehicle[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerVehicle[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerVehicle[itemid][dSaleManID], dAuctionSellerVehicle[itemid][dItemPrice]);
         }
         case 5:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerClothes[itemid][dItemPrice])) return -1;
             if(dAuctionSellerClothes[itemid][dItemSale] == 0) return 0;
@@ -8421,14 +8466,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerClothes[itemid][sSalesman]);
             itemID = dAuctionSellerClothes[itemid][dItemSale];
 			idPlayer = dAuctionSellerClothes[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerClothes[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerClothes[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerClothes[itemid][dSaleManID], dAuctionSellerClothes[itemid][dItemPrice]);
         }
         case 6:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerFood[itemid][dItemPrice])) return -1;
             if(dAuctionSellerFood[itemid][dItemSale] == 0) return 0;
@@ -8437,14 +8477,9 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerFood[itemid][sSalesman]);
             itemID = dAuctionSellerFood[itemid][dItemSale];
 			idPlayer = dAuctionSellerFood[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerFood[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerFood[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerFood[itemid][dSaleManID], dAuctionSellerFood[itemid][dItemPrice]);
         }
         case 7:
         {
-    		new dFreeSlot = GetPlayerNextFreeSlot(playerid);
     		if(dFreeSlot == -1) return -2;
             if(!HasPlayerGold(playerid, dAuctionSellerRessource[itemid][dItemPrice])) return -1;
             if(dAuctionSellerRessource[itemid][dItemSale] == 0) return 0;
@@ -8453,12 +8488,13 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //strcpy(sSeller, dAuctionSellerRessource[itemid][sSalesman]);
             itemID = dAuctionSellerRessource[itemid][dItemSale];
 			idPlayer = dAuctionSellerRessource[itemid][dSaleManID];
-            //---
-    		GivePlayerGold(playerid, -dAuctionSellerRessource[itemid][dItemPrice]);
-    		GivePlayerSlotObject(playerid, dAuctionSellerRessource[itemid][dItemSale], dFreeSlot);
-    		PayAuctionSeller(dAuctionSellerRessource[itemid][dSaleManID], dAuctionSellerRessource[itemid][dItemPrice]);
         }
     }
+
+	GivePlayerGold(playerid, -dPrice);
+	GivePlayerSlotObject(playerid, itemID, dFreeSlot, extraVal);
+	PayAuctionSeller(idPlayer, dPrice);
+
 	LogInfo(true, "[JOUEUR]%s achete le %s du joueur d'ID %d pour %.1fg d'or a l'HDV.", GetName(playerid), NoNewLineSign(aObjects[itemID][ObjectFrName]), idPlayer, floatdiv(dPrice, 10));
     RemoveAuctionHouseItem(category, itemid);
 	HidePlayerAuctionHouse(playerid);
@@ -10103,7 +10139,7 @@ ChangeSafeDoorState(Pointer:safeid, bool:open)
 	MEM_set_arr(safeid, _, safe);
 }
 
-GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid)//Fonction pour foutre un objet dans un coffre fort
+GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid, extraVal)//Fonction pour foutre un objet dans un coffre fort
 {
 
 	if(!IsNull(safeid))
@@ -10114,15 +10150,19 @@ GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid)//Fonction pour 
 		{
 		    if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != 0) UpdateSafe(playerid, safeid, slotid, 0);
 			safe[dItemContained][slotid] = 0;
+			safe[dItemContainedExtraVal][slotid] = 1;
 		}
 		else
 		{
 			if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != objectid) UpdateSafe(playerid, safeid, slotid, objectid);
 			safe[dItemContained][slotid] = objectid;
+			safe[dItemContainedExtraVal][slotid] = extraVal;
 		}
 		new string[64];
+
 		for(new i = 0; i < 12; i++)
-			format(string, sizeof(string), "%s%d ",string, safe[dItemContained][i]);
+			format(string, sizeof(string), "%s%d@%d ", string, safe[dItemContained][i], safe[dItemContainedExtraVal][i]);
+
 		new query[256];
 		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `safe` SET content = \"%s\" WHERE idsafe = %d", string, safe[dSafeID]);
 		mysql_tquery(mysqlPool, query);
@@ -10160,6 +10200,20 @@ GetPlayerSlotObject(playerid, slot)
 	    case 1 .. 36: return pPlayerInfos[playerid][BagObject][slot - 1];
 		case 38 .. 43: return (pVehicleInventory[playerid] != -1) ? dVehicleInfos[pVehicleInventory[playerid]][TrunkObject][slot - 38] : 0;
 	    case 44 .. 55: return (!IsNull(pPlayerSafe[playerid]) ? safe[dItemContained][slot - 44] : 0);
+	}
+	return 0;
+}
+
+GetPlayerSlotObjectExtraVal(playerid, slot)
+{
+	new safe[SafeInfos];
+	MEM_get_arr(pPlayerSafe[playerid], _, safe);
+	switch(slot)
+	{
+	    case 0, 37: return pPlayerInfos[playerid][HandObjectExtraVal];
+	    case 1 .. 36: return pPlayerInfos[playerid][BagObjectExtraVal][slot - 1];
+		case 38 .. 43: return (pVehicleInventory[playerid] != -1) ? dVehicleInfos[pVehicleInventory[playerid]][TrunkObjectExtraVal][slot - 38] : 0;
+	    case 44 .. 55: return (!IsNull(pPlayerSafe[playerid]) ? safe[dItemContainedExtraVal][slot - 44] : 0);
 	}
 	return 0;
 }
@@ -10247,19 +10301,25 @@ ChangeSafeDoorState(safeid, bool:open)
 	dSafeInfos[safeid][bOpenSafe] = open;
 }
 
-GivePlayerSafeObject(playerid, safeid, objectid, slotid)//Fonction pour foutre un objet dans un coffre fort
+GivePlayerSafeObject(playerid, safeid, objectid, slotid, extraVal)//Fonction pour foutre un objet dans un coffre fort
 {
 	if(safeid != -1)
 	{
 		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 		{
-		    if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != 0) UpdateSafe(playerid, safeid, slotid, 0);
+		    if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != 0) 
+				UpdateSafe(playerid, safeid, slotid, 0);
+
 			dSafeInfos[safeid][dItemContained][slotid] = 0;
+			dSafeInfos[safeid][dItemContainedExtraVal][slotid] = 1;
 		}
 		else
 		{
-			if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != objectid) UpdateSafe(playerid, safeid, slotid, objectid);
+			if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != objectid) 
+				UpdateSafe(playerid, safeid, slotid, objectid);
+
 			dSafeInfos[safeid][dItemContained][slotid] = objectid;
+			dSafeInfos[safeid][dItemContainedExtraVal][slotid] = extraVal;
 		}
 	}
 	return 1;
@@ -17662,7 +17722,7 @@ CheckItemsRoundPlayer(playerid)
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Não há objetos perto do senhor", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
-	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot);
+	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
 			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
 			if(aObjects[item[ItemID]][bHeavy])
 			{
@@ -17745,12 +17805,12 @@ CheckItemsRoundPlayer(playerid)
 		    {
 		        case 1:
 				{
-					if(Success(33)) GivePlayerSlotObject(playerid, 80, dFreeSlot);
+					if(Success(33)) GivePlayerSlotObject(playerid, 80, dFreeSlot, 1);
 			    	else SendClientMessageEx(playerid, ROUGE, "This bed's broken!", "Le lit s'est cassé !", "Espagnol", "Portugais", "Italien", "Allemand");
 				}
 		        case 2:
 				{
-					GivePlayerSlotObject(playerid, 151, dFreeSlot);
+					GivePlayerSlotObject(playerid, 151, dFreeSlot, 1);
 				}
 		    }
         	DestroyBed(nodeFound[playerid][0]);
@@ -17764,7 +17824,7 @@ CheckItemsRoundPlayer(playerid)
 			    return 1;
 	        }
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 1, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 1, dFreeSlot, 1);
         	DestroyTent(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 4)//Si cet objet est un collecteur d'eau
@@ -17787,7 +17847,7 @@ CheckItemsRoundPlayer(playerid)
 			}
 			#else
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 95, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 95, dFreeSlot, 1);
         	DestroyCollector(nodeFound[playerid][0]);
 			#endif
 	    }
@@ -17812,7 +17872,7 @@ CheckItemsRoundPlayer(playerid)
 	            return 1;
 	        }
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 97, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 97, dFreeSlot, 1);
         	DestroySafe(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 6)//Si cet objet est de l'or
@@ -17844,7 +17904,7 @@ CheckItemsRoundPlayer(playerid)
 			}
 			#else
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 117, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 117, dFreeSlot, 1);
         	DestroyShredder(pAroundItems[playerid][0][0]);
         	#endif
 	    }
@@ -17862,7 +17922,7 @@ CheckItemsRoundPlayer(playerid)
 	            return 1;
 	        }
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 127, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 127, dFreeSlot, 1);
         	DestroyGunRack(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 9)//Si cet objet est un brasero
@@ -17874,7 +17934,7 @@ CheckItemsRoundPlayer(playerid)
 			    return 1;
 	        }
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 128, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 128, dFreeSlot, 1);
         	DestroyBrasero(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 10)//Si cet objet est une décoration
@@ -17888,7 +17948,7 @@ CheckItemsRoundPlayer(playerid)
 			new furn[Furniture];
 			MEM_get_arr(nodeFound[playerid][0], _, furn);
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot);
+		    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot, 1);
         	DestroyFurniture(nodeFound[playerid][0]);
 	    }
 	    else if(pAroundItems[playerid][0][1] == 11)//Si cet objet est un Fauteuil
@@ -17906,7 +17966,7 @@ CheckItemsRoundPlayer(playerid)
 		    {
 		        case 1729:
 				{
-					GivePlayerSlotObject(playerid, 155, dFreeSlot);
+					GivePlayerSlotObject(playerid, 155, dFreeSlot, 1);
 				}
 		    }
         	DestroySeat(nodeFound[playerid][0]);
@@ -17931,7 +17991,7 @@ CheckItemsRoundPlayer(playerid)
 			}
 			#else
 			ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-		    GivePlayerSlotObject(playerid, 130, dFreeSlot);
+		    GivePlayerSlotObject(playerid, 130, dFreeSlot, 1);
 	     	DestroyFridge(nodeFound[playerid][0]);
 			#endif
 	    }
@@ -18672,7 +18732,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 	        GetPlayerFacingAngle(playerid, a);
 			ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
 	        CreateTent(x, y, z, a);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 	    }
 	    case 2://MEDIKIT
 	    {
@@ -18681,7 +18741,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 	    	pPlayerInfos[playerid][bHemorragie] = false;
 	    	UpdateInfo(playerid, 8);
 	    	UpdateInfo(playerid, 9);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			SetHealthForPlayer(playerid, 1250, REASON_HEAL);
 		}
 	    case 3://MATRAQUE
@@ -18696,7 +18756,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more weapons!", "Vous ne pouvez pas porter plus d'armes !", "¡No puede llevar más armas!", "Portugais", "Italien", "Sie können nicht mehr Waffen tragen!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 3, 1), WEAPON_SIMPLE);
 		}
 	    case 4://COUTEAU
@@ -18711,7 +18771,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more weapons!", "Vous ne pouvez pas porter plus d'armes !", "¡No puede llevar más armas!", "Portugais", "Italien", "Sie können nicht mehr Waffen tragen!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			new dWeaponSlot = GivePlayerWeaponEx(playerid, 4, 1);
 			SetPlayerWeaponSkill(playerid, dWeaponSlot, WEAPON_SIMPLE);
 		}
@@ -18727,7 +18787,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more weapons!", "Vous ne pouvez pas porter plus d'armes !", "¡No puede llevar más armas!", "Portugais", "Italien", "Sie können nicht mehr Waffen tragen!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 5, 1), WEAPON_SIMPLE);
 		}
 		case 6://KATANA
@@ -18742,7 +18802,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more weapons!", "Vous ne pouvez pas porter plus d'armes !", "¡No puede llevar más armas!", "Portugais", "Italien", "Sie können nicht mehr Waffen tragen!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 8, 1), WEAPON_SIMPLE);
 		}
 		case 7://TRONCONNEUSE
@@ -18763,8 +18823,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You need gas for using a chainsaw!", "Vous avez besoin d'essence pour une tronçonneuse !", "¡Necessita tener gasolina!", "O senhor precisa gasolina para uma serra de motoserra !", "Italien", "Sie müssen Benzin haben!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dGasSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dGasSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 9, 1), WEAPON_SIMPLE);
 		}
 		case 8://GRENADES
@@ -18774,7 +18834,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You can't throw anything while in a vehicle!", "Vous ne pouvez pas lancer de projectiles depuis un véhicule !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			//GivePlayerWeapon(playerid, 16, 1);
 			PlayerThrowProjectile(playerid, THROW_GRENADE);
 		}
@@ -18785,7 +18845,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You can't throw anything while in a vehicle!", "Vous ne pouvez pas lancer de projectiles depuis un véhicule !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			//GivePlayerWeapon(playerid, 18, 1);
 			PlayerThrowProjectile(playerid, THROW_MOLOTOV);
 		}
@@ -18807,7 +18867,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    }
 				ApplyReloadAnim(playerid, 22);
 	    		SetPlayerWeaponSkill(playerid, dWeaponSlot, WEAPON_AKIMBO);
-				GivePlayerSlotObject(playerid, -1, slot);
+				RemovePlayerSlotObject(playerid, slot);
 	    		return 1;
 			}
 			//---
@@ -18823,8 +18883,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 22);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 22, 25), WEAPON_SIMPLE);
 		}
 		case 11://SILENCIEUX
@@ -18846,8 +18906,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 23);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 23, 25), WEAPON_SIMPLE);
 		}
 		case 12://DESERT EAGLE
@@ -18869,8 +18929,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 24);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 24, 10), WEAPON_SIMPLE);
 		}
 		case 13://FUSIL À POMPE
@@ -18892,8 +18952,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 25);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 25, 10), WEAPON_SIMPLE);
 		}
 		case 14://FUSILS À CANONS SCIÉS
@@ -18914,7 +18974,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    }
 				ApplyReloadAnim(playerid, 25);
 	    		SetPlayerWeaponSkill(playerid, dWeaponSlot, WEAPON_AKIMBO);
-				GivePlayerSlotObject(playerid, -1, slot);
+				RemovePlayerSlotObject(playerid, slot);
 	    		return 1;
 			}
 			//---
@@ -18930,8 +18990,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 26);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 26, 10), WEAPON_SIMPLE);
 		}
 		case 15://SPAS 12
@@ -18953,8 +19013,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 27);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 27, 10), WEAPON_SIMPLE);
 		}
 		case 16://UZI
@@ -18975,7 +19035,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    }
 				ApplyReloadAnim(playerid, 28);
 	    		SetPlayerWeaponSkill(playerid, dWeaponSlot, WEAPON_AKIMBO);
-				GivePlayerSlotObject(playerid, -1, slot);
+				RemovePlayerSlotObject(playerid, slot);
 	    		return 1;
 			}
 			//---
@@ -18991,8 +19051,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 28);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 28, 25), WEAPON_SIMPLE);
 		}
 		case 17://MP-5
@@ -19014,8 +19074,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 29);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 29, 25), WEAPON_SIMPLE);
 		}
 		case 18://AK-47
@@ -19037,8 +19097,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 30);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 30, 30), WEAPON_SIMPLE);
 		}
 		case 19://M4
@@ -19060,8 +19120,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 31);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 31, 30), WEAPON_SIMPLE);
 		}
 		case 20://TEC-9
@@ -19081,7 +19141,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    	return 1;
 			    }
 	    		ApplyAnimation(playerid,"TEC","TEC_reload", 4.0, 0, 0, 0, 0, 0);
-				GivePlayerSlotObject(playerid, -1, slot);
+				RemovePlayerSlotObject(playerid, slot);
 	    		SetPlayerWeaponSkill(playerid, dWeaponSlot, WEAPON_AKIMBO);
 	    		return 1;
 			}
@@ -19098,8 +19158,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 32);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 32, 25), WEAPON_SIMPLE);
 		}
 		case 21://FUSIL DE CHASSE
@@ -19121,8 +19181,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 33);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 33, 10), WEAPON_SIMPLE);
 		}
 		case 22://SNIPER
@@ -19144,8 +19204,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 34);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 34, 10), WEAPON_SIMPLE);
 		}
 		case 23://LANCE-ROQUETTES
@@ -19155,7 +19215,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You already have this type of weapon!", "Vous avez déjà une arme de ce type !", "¡Ya tiene una arma de esto tipo!", "Portugais", "Già hai una arma di questo tipo !", "Sie haben schon so eine Waffe!");
 			    return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			GivePlayerWeapon(playerid, 35, 1);
 		}
 		case 24://MINIGUN
@@ -19177,17 +19237,17 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			ApplyReloadAnim(playerid, 38);
-			GivePlayerSlotObject(playerid, -1, slot);
-			GivePlayerSlotObject(playerid, -1, dAmmoSlot);
+			RemovePlayerSlotObject(playerid, slot);
+			RemovePlayerSlotObject(playerid, dAmmoSlot);
 			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 38, 30), WEAPON_SIMPLE);
 		}
 		case 25://7.62
 		{
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 30: GivePlayerWeaponEx(playerid, 30, 30), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 30);
-		        case 31: GivePlayerWeaponEx(playerid, 31, 30), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 31);
-		        case 38: GivePlayerWeaponEx(playerid, 38, 30), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 38);
+		        case 30: GivePlayerWeaponEx(playerid, 30, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 30);
+		        case 31: GivePlayerWeaponEx(playerid, 31, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 31);
+		        case 38: GivePlayerWeaponEx(playerid, 38, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 38);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
@@ -19195,11 +19255,11 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		{
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 22: GivePlayerWeaponEx(playerid, 22, 25), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 22);
-		        case 23: GivePlayerWeaponEx(playerid, 23, 25), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 23);
-		        case 28: GivePlayerWeaponEx(playerid, 28, 25), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 28);
-		        case 29: GivePlayerWeaponEx(playerid, 29, 25), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 29);
-		        case 32: GivePlayerWeaponEx(playerid, 32, 25), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 32);
+		        case 22: GivePlayerWeaponEx(playerid, 22, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 22);
+		        case 23: GivePlayerWeaponEx(playerid, 23, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 23);
+		        case 28: GivePlayerWeaponEx(playerid, 28, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 28);
+		        case 29: GivePlayerWeaponEx(playerid, 29, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 29);
+		        case 32: GivePlayerWeaponEx(playerid, 32, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 32);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
@@ -19207,7 +19267,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		{
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 24: GivePlayerWeaponEx(playerid, 24, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 24);
+		        case 24: GivePlayerWeaponEx(playerid, 24, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 24);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
@@ -19215,9 +19275,9 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		{
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 25: GivePlayerWeaponEx(playerid, 25, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 25);
-		        case 26: GivePlayerWeaponEx(playerid, 26, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 26);
-		        case 27: GivePlayerWeaponEx(playerid, 27, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 27);
+		        case 25: GivePlayerWeaponEx(playerid, 25, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 25);
+		        case 26: GivePlayerWeaponEx(playerid, 26, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 26);
+		        case 27: GivePlayerWeaponEx(playerid, 27, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 27);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
@@ -19225,8 +19285,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		{
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 33: GivePlayerWeaponEx(playerid, 33, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 33);
-		        case 34: GivePlayerWeaponEx(playerid, 34, 10), GivePlayerSlotObject(playerid, -1, slot), ApplyReloadAnim(playerid, 34);
+		        case 33: GivePlayerWeaponEx(playerid, 33, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 33);
+		        case 34: GivePlayerWeaponEx(playerid, 34, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 34);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
@@ -19238,7 +19298,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			if(!IsNull(dShredderID) && shredder[dBroyeur] != 1)
 		    {
 				ChangeShredderState(dShredderID, 1);
-				GivePlayerSlotObject(playerid, 31, slot);
+				GivePlayerSlotObject(playerid, 31, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -19254,7 +19314,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			        return 1;
 			    }
 			    GiveTankFuel(TankID, 2000);
-				GivePlayerSlotObject(playerid, 31, slot);
+				GivePlayerSlotObject(playerid, 31, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -19289,7 +19349,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			//---
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			GiveVehicleFuel(vehicle, 2000);
-			GivePlayerSlotObject(playerid, 31, slot);
+			GivePlayerSlotObject(playerid, 31, slot, 1);
 		}
 		case 31://BIDON VIDE D'ESSENCE
 		{
@@ -19304,7 +19364,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			        return 1;
 			    }
 			    GiveTankFuel(TankID, -2000);
-				GivePlayerSlotObject(playerid, 30, slot);
+				GivePlayerSlotObject(playerid, 30, slot, 2000);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -19322,7 +19382,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			}
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			GiveStationFuel(dStation, -2000);
-			GivePlayerSlotObject(playerid, 30, slot);
+			GivePlayerSlotObject(playerid, 30, slot, 2000);
 		}
 		case 32://CZECH VEST
 		{
@@ -19331,7 +19391,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You already have a better backpack!", "Vous avez déjà un meilleur sac à dos !", "¡Ya tiene un mejor mochila!", "Portugais", "Italien", "Sie haben schon eine besseren Rucksack!");
 				return 1;
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = CZECH_VEST;
 			AttachPlayerBackPack(playerid);
 		}
@@ -19346,7 +19406,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			{
 				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = ASSAULT_PACK;
 			AttachPlayerBackPack(playerid);
 		}
@@ -19362,7 +19422,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
 				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10));
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = ALICE_PACK;
 			AttachPlayerBackPack(playerid);
 		}
@@ -19379,7 +19439,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10));
 				case ALICE_PACK: PlayerDropObject(playerid, 34, floatdiv(RandomEx(5, 20), 10));
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = COYOTE_PACK;
 			AttachPlayerBackPack(playerid);
 		}
@@ -19390,7 +19450,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You are not bleeding!", "Vous ne faites pas d'hémorragie !", "¡No esta sangrando!", "Portugais", "Italien", "Sie bluten nicht!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 	    	ApplyAnimation(playerid,"FAT","IDLE_tired", 4.0, 0, 0, 0, 0, 0);
 	    	pPlayerInfos[playerid][bHemorragie] = false;
 	    	UpdateInfo(playerid, 9);
@@ -19402,14 +19462,14 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "Your leg is not broken!", "Votre jambe n'est pas cassée !", "¡Su pierna no esta rotta!", "Portugais", "Italien", "Ihren Bein ist nicht gebrochen!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 	    	ApplyAnimation(playerid,"FAT","IDLE_tired", 4.0, 0, 0, 0, 0, 0);
 	    	pPlayerInfos[playerid][bLeg] = true;
 	    	UpdateInfo(playerid, 8);
 		}
 		case 38://POCHE DE SANG
 		{
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			SetHealthForPlayer(playerid, 1250, REASON_HEAL);
 		}
 		case 39://CAFÉINE
@@ -19419,7 +19479,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not sleepy!", "Vous n'êtes pas fatigué !", "¡No esta cansado!", "Portugais", "Non sei stanco!", "Sie sint nicht müde!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerSleep(playerid, 50);
 		}
@@ -19436,7 +19496,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			        return 1;
 			    }
 			    GiveTankFuel(TankID, -500);
-				GivePlayerSlotObject(playerid, 98, slot);
+				GivePlayerSlotObject(playerid, 98, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -19448,7 +19508,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        if(GetCollectorWater(CollectorID) >= 3)
 		        {
 			        GiveCollectorWater(CollectorID, -3);
-					GivePlayerSlotObject(playerid, 81, slot);
+					GivePlayerSlotObject(playerid, 81, slot, 1);
 					return 1;
 				}
 		    }
@@ -19461,124 +19521,124 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				}
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				GiveStationFuel(dStation, -500);
-				GivePlayerSlotObject(playerid, 98, slot);
+				GivePlayerSlotObject(playerid, 98, slot, 1);
 				return 1;
 			}
 			else if(IsPlayerInWater(playerid))
 			{
-				GivePlayerSlotObject(playerid, 126, slot);
+				GivePlayerSlotObject(playerid, 126, slot, 1);
 				return 1;
 			}
 		}
 		case 41://CHAPEAU LÉOPARD
 		{
 			GivePlayerClothe(playerid, 1, 41, 0.1262, 0.0324, -0.0042, 0.0, 89.4055, 91.9544, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 42://CHAPEAU LÉOPARD 2
 		{
 			GivePlayerClothe(playerid, 1, 42, 0.1262, 0.0324, -0.0042, 0.0, 89.4055, 91.9544, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 43://BOB
 		{
 			GivePlayerClothe(playerid, 1, 43, 0.1262, 0.0324, -0.0042, 0.0, 89.4055, 91.9544, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 44://CHAPEAU DISCO
 		{
 			GivePlayerClothe(playerid, 1, 44, 0.1262, 0.0324, -0.0042, 0.0, 89.4055, 91.9544, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 45://CHEPEAU DE SORCIERE
 		{
 			GivePlayerClothe(playerid, 1, 45, 0.1441, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 46://BÉRÊT
 		{
 			GivePlayerClothe(playerid, 1, 46, 0.1650, 0.0097, -0.0060, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 47://CASQUE MILITAIRE
 		{
 			GivePlayerClothe(playerid, 1, 47, 0.1460, 0.0036, 0.0053, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 48://CASQUE DE MARIN
 		{
 			GivePlayerClothe(playerid, 1, 48, 0.1460, 0.0036, 0.0053, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 49://CASQUETTE BLEUE
 		{
 			GivePlayerClothe(playerid, 1, 49, 0.1460, 0.0036, 0.0053, 0.0, 0.0, 0.0, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 50://CASQUETTE ROUGE
 		{
 			GivePlayerClothe(playerid, 1, 50, 0.1460, 0.0036, 0.0053, 0.0, 0.0, 0.0, 1.1, 1.1, 1.1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 51://CHAPEAU MELON VERT
 		{
 			GivePlayerClothe(playerid, 1, 51, 0.1460, 0.0036, 0.0053, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 52://PREDATORS ROUGES
 		{
 			GivePlayerClothe(playerid, 2, 52, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 53://PREDATORS JAUNES
 		{
 			GivePlayerClothe(playerid, 2, 53, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 54://PREDATORS VERTES
 		{
 			GivePlayerClothe(playerid, 2, 54, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 55://PREDATORS BLEUES
 		{
 			GivePlayerClothe(playerid, 2, 55, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 56://AVIATORS NOIRES
 		{
 			GivePlayerClothe(playerid, 2, 56, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 57://AVIATORS ROUGES
 		{
 			GivePlayerClothe(playerid, 2, 57, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 58://AVIATORS MAUVES
 		{
 			GivePlayerClothe(playerid, 2, 58, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 59://AVIATORS ROSES
 		{
 			GivePlayerClothe(playerid, 2, 59, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 60://AVIATORS NOIRES
 		{
 			GivePlayerClothe(playerid, 2, 60, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 61://AVIATORS ORANGES
 		{
 			GivePlayerClothe(playerid, 2, 61, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 62://WAYFARERS NOIRES
 		{
 			GivePlayerClothe(playerid, 2, 62, 0.1004, 0.0491, 0.0, 90.0, 90.0, 0.0, 1.0, 1.0, 1.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 63://ROUE
 		{
@@ -19625,7 +19685,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 
 			SetVehicleWheels(vehicle);
 			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			new query[256], wheelsstate = 0;
 			
 			wheelsstate = (dVehicleInfos[vehicleid][bWheel][0] ? 1 : 0) + (dVehicleInfos[vehicleid][bWheel][1] ? 2 : 0) + (dVehicleInfos[vehicleid][bWheel][2] ? 4 : 0) + (dVehicleInfos[vehicleid][bWheel][3] ? 8 : 0);
@@ -19663,14 +19723,14 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			dVehicleInfos[vehicle][bEngine] = true;
 			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			mysql_format(mysqlPool, query, sizeof(query), "UPDATE `vehicles` SET engine = %b WHERE idvehicle = %d", dVehicleInfos[vehicleid][bEngine], dVehicleInfos[vehicleid][dVehID]);
 			mysql_tquery(mysqlPool, query);
 		}
 		case 65://MASQUE À GAZ
 		{
 		    GivePlayerClothe(playerid, 3, 65, -0.0173, 0.094, 0.0, 330.0, 180.0, 15.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 66://BURGER
 		{
@@ -19679,7 +19739,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 15);
 		    GivePlayerSleep(playerid, 3);
@@ -19691,7 +19751,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 15);
 		    GivePlayerSleep(playerid, 3);
@@ -19703,7 +19763,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 3);
 		}
@@ -19714,7 +19774,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 10);
 		    GivePlayerSleep(playerid, 3);
@@ -19726,7 +19786,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not thirsty!", "Vous n'avez pas soif !", "¡No tiene sed!", "Portugais", "Non hai sete!", "Sie sint nicht durstig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, 40, slot);
+			GivePlayerSlotObject(playerid, 40, slot, 1);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerThirst(playerid, 25);
 		    PlayerPlaySound(playerid, 32200, 0.0, 0.0, 0.0);
@@ -19773,27 +19833,27 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		case 75://BANDANA CARREAUX
 		{
 		    GivePlayerClothe(playerid, 3, 75, 0.0855, 0.0368, 0.0, 90.0, 180.0, 90.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 76://BANDANA CRÂNES
 		{
 		    GivePlayerClothe(playerid, 3, 76, 0.0855, 0.0368, 0.0, 90.0, 180.0, 90.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 77://BANDANA ARMÉE
 		{
 		    GivePlayerClothe(playerid, 3, 77, 0.0855, 0.0368, 0.0, 90.0, 180.0, 90.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 78://BANDANA VERT
 		{
 		    GivePlayerClothe(playerid, 3, 78, 0.0855, 0.0368, 0.0, 90.0, 180.0, 90.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 79://BANDANA NOIR
 		{
 		    GivePlayerClothe(playerid, 3, 79, 0.0855, 0.0368, 0.0, 90.0, 180.0, 90.0, 1.0, 1.0, 1.0);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 80://Lit miteux
 		{
@@ -19817,7 +19877,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pBed[playerid] = CreateBed(1, x, y, z, a);
 			MEM_get_arr(pBed[playerid], _, bed);
 			EditDynamicObject(playerid, bed[oBed]);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 81://BOUTEILLE D'EAU
 		{
@@ -19835,7 +19895,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 							plant[dGrowTime] -= 2;
 							if(plant[dGrowTime] < 0) plant[dGrowTime] = 0;
 							if(plant[dGrowTime] == 0) GrowPlant(data_ptr);
-							GivePlayerSlotObject(playerid, 40, slot);
+							GivePlayerSlotObject(playerid, 40, slot, 1);
 							ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
 							MEM_set_arr(data_ptr, _, plant);
 							mysql_format(mysqlPool, query, sizeof(query), "UPDATE `plant` SET growtime = %d WHERE idplant = %d", plant[dGrowTime], plant[dPlantID]);
@@ -19851,7 +19911,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not thirsty!", "Vous n'avez pas soif !", "¡No tiene sed!", "Portugais", "Non hai sete!", "Sie sint nicht durstig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, 40, slot);
+			GivePlayerSlotObject(playerid, 40, slot, 1);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerThirst(playerid, 20);
 		    PlayerPlaySound(playerid, 32200, 0.0, 0.0, 0.0);
@@ -19863,17 +19923,17 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		{
 		    GivePlayerClothe(playerid, 4, 83, 0.0675, 0.0458, 0.0, 0.0, 0.0, 0.0, 1.2, 1.2, 1.2);
 		    SetArmourForPlayer(playerid, 1250);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 84://GILET PARE-BALLE SWAT UTILISÉ
 		{
 		    GivePlayerClothe(playerid, 4, 84, 0.0675, 0.0458, 0.0, 0.0, 0.0, 0.0, 1.2, 1.2, 1.2);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 85://CAMOUFLAGE
 		{
 		    GivePlayerClothe(playerid, 4, 85, -0.2753, -0.0488, -0.3086, 90.0, 0.0, 0.0, 0.4, 0.4, 0.4);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 86://POISSON CRU
 		{
@@ -19882,7 +19942,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 2);
 		}
@@ -19893,26 +19953,19 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 12);
 		    GivePlayerSleep(playerid, 3);
 		}
 		case 88://BRÊME
 		{
-			/*if(IsPlayerNextToFire(playerid))
-			{
-				GivePlayerSlotObject(playerid, 89, slot);
-				ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
-				return 1;
-			}*/
-			//---
 		    if(pPlayerInfos[playerid][pHunger] > 90)
 		    {
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 2);
 		}
@@ -19923,7 +19976,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 20);
 		    GivePlayerSleep(playerid, 5);
@@ -20084,7 +20137,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    CreateFire(x, y, z, angle, 10);
 			PlayerPlaySound(playerid, 14200, 0.0, 0.0, 0.0);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GivePlayerSlotObject(playerid, -1, dLogSlot);
+			RemovePlayerSlotObject(playerid, dLogSlot);
 		}
 		case 92://GRAINES D'ORANGE
 		{
@@ -20098,7 +20151,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    GetPlayerFacingAngle(playerid, angle);
 		    CreatePlant(2, 5, 20 - pPlayerInfos[playerid][dJardinier] * 3, x, y, z, angle);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 93://GRAINES DE POMME
 		{
@@ -20112,7 +20165,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    GetPlayerFacingAngle(playerid, angle);
 		    CreatePlant(3, 5, 30 - pPlayerInfos[playerid][dJardinier] * 3, x, y, z, angle);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 94://GRAINES DE TOMATES
 		{
@@ -20126,7 +20179,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    GetPlayerFacingAngle(playerid, angle);
 		    CreatePlant(4, 5, 10 - pPlayerInfos[playerid][dJardinier] * 3, x, y, z, angle);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 95://RÉCUPÉRATEUR D'EAU
 		{
@@ -20146,7 +20199,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			}
 			GetXYInFrontOfPoint(x, y, angle, 0.56);
 			CreateCollector(x, y, z, angle, 0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 96://CLÉ ANGLAISE
 		{
@@ -20218,7 +20271,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			GetXYInFrontOfPoint(x, y, angle, 0.4);
 			pCreateSafe[playerid] = CreateSafe(x, y, z, angle);
 			MEM_get_arr(pCreateSafe[playerid], _, safe);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			//---
 			EditDynamicObject(playerid, safe[oSafe][0]);
 		}
@@ -20235,7 +20288,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			        return 1;
 			    }
 			    GiveTankFuel(TankID, 500);
-				GivePlayerSlotObject(playerid, 40, slot);
+				GivePlayerSlotObject(playerid, 40, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -20269,7 +20322,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			//---
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			GiveVehicleFuel(vehicle, 500);
-			GivePlayerSlotObject(playerid, 40, slot);
+			GivePlayerSlotObject(playerid, 40, slot, 1);
 		}
 		case 99://MINE
 		{
@@ -20281,7 +20334,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		   	else if(IsPlayerInAnyVehicle(playerid)) CreateBomb(1, -5, GetPlayerVehicleID(playerid), x, y, z, angle, -1, 0);
 		   	else if(GetPlayerSurfingVehicleID(playerid) == INVALID_VEHICLE_ID) CreateBomb(1, -5, 0, x, y, z, angle, -1, 0);
 			ShowPlayerTextInfo(playerid, 5000, "~r~If somebody approches the mine it will blow.", "~r~Si quelqu'un s'approche de cette mine, elle explosera.", "~r~Si alguien viene cerca de la bomba, explotará.", "~r~Portugais", "~r~Italien", "~r~Allemand");
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 100://BOMBE À TIMER
 		{
@@ -20298,12 +20351,12 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		   	else if(IsPlayerInAnyVehicle(playerid)) CreateBomb(2, 15, GetPlayerVehicleID(playerid), x, y, z, angle, -1, 0);
 		   	else if(GetPlayerSurfingVehicleID(playerid) == INVALID_VEHICLE_ID) CreateBomb(2, 15, 0, x, y, z, angle, -1, 0);
 			ShowPlayerTextInfo(playerid, 5000, "~r~You have 15 seconds to run.", "~r~Vous avez 15 secondes pour partir.", "~r~Tiene 15 segundos para escapar.", "~r~Portugais", "~r~Italien", "~r~Sie haben 15 Sekunden zum Fluchten.");
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 101://CAGOULE
 		{
 		    GivePlayerClothe(playerid, 3, 101, 0.0805, -0.0216, 0.0, 180.0, 90.0, 0.0, 1.1, 1.1, 1.1);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 102://CASSEROLE
 		{
@@ -20368,7 +20421,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 50);
 		    GivePlayerSleep(playerid, 5);
@@ -20380,7 +20433,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 20);
 		    GivePlayerSleep(playerid, 5);
@@ -20473,7 +20526,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    	CreatePlant(1, 0, 5 - pPlayerInfos[playerid][dJardinier], x, y, z, angle);
 		    }
 			ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 116://BLÉ
 		{
@@ -20496,7 +20549,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        angle += 180.0 + float(RandomEx(-20, 20));
 		        GetXYInFrontOfPoint(x, y, angle, floatdiv(RandomEx(55, 70), 100));
 		        CreateItem(108, x, y, z, false, -1, 1, -1);
-				GivePlayerSlotObject(playerid, -1, slot);
+				RemovePlayerSlotObject(playerid, slot);
 				PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 		    }
 		}
@@ -20515,7 +20568,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pShredder[playerid] = CreateShredder(x, y, z, angle, 0);
 			MEM_get_arr(pShredder[playerid], _, shredder);
 			EditDynamicObject(playerid, shredder[oBroyeur]);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 118://JUS D'ORANGES
 		{
@@ -20524,7 +20577,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not thirsty!", "Vous n'avez pas soif !", "¡No tiene sed!", "Portugais", "Non hai sete!", "Sie sint nicht durstig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerThirst(playerid, 50);
 		    PlayerPlaySound(playerid, 32200, 0.0, 0.0, 0.0);
@@ -20536,7 +20589,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not thirsty!", "Vous n'avez pas soif !", "¡No tiene sed!", "Portugais", "Non hai sete!", "Sie sint nicht durstig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerThirst(playerid, 35);
 		    PlayerPlaySound(playerid, 32200, 0.0, 0.0, 0.0);
@@ -20548,7 +20601,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 30);
 		    GivePlayerThirst(playerid, 20);
@@ -20561,7 +20614,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 30);
 		    GivePlayerSleep(playerid, 5);
@@ -20596,7 +20649,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 							plant[dGrowTime] -= 2;
 							if(plant[dGrowTime] < 0) plant[dGrowTime] = 0;
 							if(plant[dGrowTime] == 0) GrowPlant(data_ptr);
-							GivePlayerSlotObject(playerid, 40, slot);
+							GivePlayerSlotObject(playerid, 40, slot, 1);
 							ApplyAnimation(playerid, "GRENADE", "WEAPON_throwu", 4.0, 0, 0, 0, 0, 0, 1);
 							MEM_set_arr(data_ptr, _, plant);
 							mysql_format(mysqlPool, query, sizeof(query), "UPDATE `plant` SET growtime = %d WHERE idplant = %d", plant[dGrowTime], plant[dPlantID]);
@@ -20627,7 +20680,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pRack[playerid] = CreateGunRack(x, y, z, angle);
 			MEM_get_arr(pRack[playerid], _, gunrack);
 			EditDynamicObject(playerid, gunrack[oRack]);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 128://BRASERO
 		{
@@ -20646,7 +20699,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pBrasero[playerid] = CreateBrasero(x, y, z, angle, 1);
 			MEM_get_arr(pBrasero[playerid], _, brasero);
 			EditDynamicObject(playerid, brasero[oBrasero]);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 130://FRIGO
 		{
@@ -20666,17 +20719,17 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			new fridge[FridgeInfo];
 			MEM_get_arr(pFridge[playerid], _, fridge);
 			EditDynamicObject(playerid, fridge[oFridge]);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 132://EXP
 		{
 		    GivePlayerExp(playerid, 125);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 135://GILET THERMIQUE
 		{
 		    GivePlayerClothe(playerid, 4, 135, 0.0955, 0.0528, -0.009, 172.8, 90.7, 0.0, 1.2, 1.2, 1.2);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 137://LAMPE
 		{
@@ -20685,7 +20738,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You must be at a house to set up furniture!", "Vous devez être dans une maison pour poser des meubles !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			PlayerSetFurniture(playerid, 1);
 		}
 		case 138://LACRYMOGÈNE
@@ -20695,7 +20748,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You can't throw anything while in a vehicle!", "Vous ne pouvez pas lancer de projectiles depuis un véhicule !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			//GivePlayerWeapon(playerid, 18, 1);
 			PlayerThrowProjectile(playerid, THROW_GAS);
 		}
@@ -20706,7 +20759,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You must be at a house to set up furniture!", "Vous devez être dans une maison pour poser des meubles !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			PlayerSetFurniture(playerid, 2);
 		}
 		case 144://TAPIS
@@ -20716,7 +20769,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You must be at a house to set up furniture!", "Vous devez être dans une maison pour poser des meubles !", "Espagnol", "Portugais", "Italien", "Allemand");
 		        return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			PlayerSetFurniture(playerid, 3);
 		}
 		case 146://BOITE
@@ -20725,7 +20778,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    {
 		        90, 96, 97, 104, 111, 113, 129, 134, 147, 148
 		    };
-			GivePlayerSlotObject(playerid, dBoxItems[random(sizeof(dBoxItems))], slot);
+			GivePlayerSlotObject(playerid, dBoxItems[random(sizeof(dBoxItems))], slot, 1);
 		}
 		case 148://POUSSE DE SAPIN
 		{
@@ -20739,7 +20792,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    GetPlayerFacingAngle(playerid, angle);
 		    CreatePlant(5, 0, 45 - pPlayerInfos[playerid][dJardinier] * 5, x, y, z, angle);
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 149://BOITE
 		{
@@ -20747,7 +20800,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    {
 		        2, 10, 26, 30, 71, 91, 99, 126
 		    };
-			GivePlayerSlotObject(playerid, dBoxItems[random(sizeof(dBoxItems))], slot);
+			GivePlayerSlotObject(playerid, dBoxItems[random(sizeof(dBoxItems))], slot, 1);
 		}
 		case 151://LIT
 		{
@@ -20771,7 +20824,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pBed[playerid] = CreateBed(2, x, y, z, a);
 			MEM_get_arr(pBed[playerid], _, bed);
 			EditDynamicObject(playerid, bed[oBed]);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 153://Hotdog
 		{
@@ -20780,7 +20833,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		        SendClientMessageEx(playerid, ROUGE, "You're not hungry!", "Vous n'avez pas faim !", "¡No tiene hambre!", "Portugais", "Non hai fame!", "Sie sint nicht hungrig!");
 				return 1;
 		    }
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 		    GivePlayerHunger(playerid, 15);
 		    GivePlayerSleep(playerid, 5);
@@ -20802,7 +20855,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			pSeat[playerid] = CreateSeat(1729, x, y, z, a);
 			MEM_get_arr(pSeat[playerid], _, seat);
 			EditDynamicObject(playerid, seat[oSeat]);
-		    GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		case 156://PANNEAU
 		{
@@ -20819,7 +20872,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			new board[Board];
 			GetXYInFrontOfPoint(x, y, angle, 0.4);
 			pBoard[playerid] = CreateBoard(x, y, z, angle);
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 			MEM_get_arr(pBoard[playerid], _, board);
 			//---
 			EditDynamicObject(playerid, board[oBoard][0]);
@@ -20844,7 +20897,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			{
 		    	SendClientMessageEx(playerid, ROUGE, "There is nothing to retrieve!", "Il n'y a rien à récupérer !", "Espagnol", "Portugais", "Italien", "Allemand");
 			}
-			GivePlayerSlotObject(playerid, -1, slot);
+			RemovePlayerSlotObject(playerid, slot);
 		}
 		//HasPlayerItem(playerid, objectid)
 	}
@@ -20892,7 +20945,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	return 1;
 }
 
-public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, extraVal = 1, spawnid)
+public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, extraVal, spawnid)
 {
 	new Pointer: res;
 	if(objectid != 0)
@@ -21616,12 +21669,13 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 		if(0 >= time)
 		{
 		    new dObjectID[7], dPrice, dChances;
+			new const dItemExtraVal = 1;
 		    GetEngineerFormula(category, formula, dObjectID[6], dObjectID[0], dObjectID[1], dObjectID[2], dObjectID[3], dObjectID[4], dObjectID[5], dPrice, dChances);
 		    //---
 		    GivePlayerGold(playerid, -dPrice);
 		    for(new i = 0; i < 6; i ++) if(dObjectID[i] != 0)
 			{
-				GivePlayerSlotObject(playerid, ((dObjectID[i] == 70 || dObjectID[i] == 81 || dObjectID[i] == 98) ? 40 : -1), HasPlayerItem(playerid, dObjectID[i]));
+				GivePlayerSlotObject(playerid, ((dObjectID[i] == 70 || dObjectID[i] == 81 || dObjectID[i] == 98) ? 40 : -1), HasPlayerItem(playerid, dObjectID[i]), dItemExtraVal);
 			}
 			//---CHANCES EN PLUS
 			switch(pPlayerInfos[playerid][dArtisan])
@@ -21640,7 +21694,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 				{
 					GivePlayerExp(playerid, 2);
 					ShowPlayerTextInfo(playerid, 5000, "~g~It's ready!", "~g~Bon appétit !", "Espagnol", "Portugais", "Buonappetito !", "Allemand");
-		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot);
+		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dItemExtraVal);
 					LogInfo(true, "[ADMIN]%s cuisine %s", GetName(playerid), NoNewLineSign(aObjects[dObjectID[6]][ObjectFrName]));
 		        	//SwapPlayerObjects(playerid, dFreeSlot, 0);
 					if(IsPlayerNextToFire(playerid)) ShowPlayerKitchen(playerid), SetEngineerFormula(playerid, category, formula);
@@ -21664,7 +21718,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 						case 4: aDiff = 270.0;
 						case 5: aDiff = 0.0;
 					}
-		    		GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 113));
+		    		GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 113), dItemExtraVal);
 					if(formula == 5)//CITERNE
 					{
 						new tank[Tank];
@@ -21692,7 +21746,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 				{
 					GivePlayerExp(playerid, floatround(dPrice * floatdiv(100 - dChances, 100), floatround_ceil));
 					ShowPlayerTextInfo(playerid, 5000, "~g~The engineer has successfully crafted your item!", "~g~La fabrication a réussi !", "Espagnol", "Portugais", "Italien", "Allemand");
-		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot);
+		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dItemExtraVal);
 					LogInfo(true, "[ADMIN]%s a fabrique %s avec succes !", GetName(playerid), NoNewLineSign(aObjects[dObjectID[6]][ObjectFrName]));
 		        	SwapPlayerObjects(playerid, dFreeSlot, 0);
 					if(category == 0 && formula == 15 && CallRemoteFunction("GetPlayerMission", "i", playerid) == MISSION_SHORTCUT_CRAFT)//Mission où on doit craft une bombe
@@ -22610,7 +22664,7 @@ S_RemovePlayerAttachedObject(playerid, index)
 //---SYSTÈME PÊCHE
 public OnLineRaiseUp(playerid)
 {
-	GivePlayerSlotObject(playerid, GetFishObjectID(pFishInfo[playerid][Fish]), GetPlayerNextFreeSlot(playerid));
+	GivePlayerSlotObject(playerid, GetFishObjectID(pFishInfo[playerid][Fish]), GetPlayerNextFreeSlot(playerid), 1);
 	GivePlayerExp(playerid, pFishInfo[playerid][Fish]  * 3);
 	DestroyObject(pFishInfo[playerid][FishObject]);
 	pFishInfo[playerid][FishObject] = INVALID_OBJECT_ID;
@@ -24533,7 +24587,7 @@ public OnPlayerDies(playerid, killerid, reason)
 		    if(dObjectID != 0)
 		    {
 				PlayerDropObject(playerid, dObjectID, floatdiv(RandomEx(5, 20), 10));
-		        GivePlayerSlotObject(playerid, -1, i);
+				RemovePlayerSlotObject(playerid, i);
 		    }
 		}
 		//ARMES
@@ -25814,7 +25868,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 						return 1;
 				    }
 				    GivePlayerGold(playerid, -2);
-    				GivePlayerSlotObject(playerid, 153, dFreeSlot);
+    				GivePlayerSlotObject(playerid, 153, dFreeSlot, 1);
 			        ShowPlayerTextInfo(playerid, 5000, "~r~Chef~w~: Bon appetite!", "~r~Chef~w~: Bon appétit !", "~r~Jefe~w~: Buen provecho.", "~r~Portugais~w~:", "~r~Chef~w~: Buonappetito !", "~r~Chef~w~: Guten appetit!");
 			    }
 			    else
@@ -25843,7 +25897,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
-				    GivePlayerSlotObject(playerid, 158, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 158, dFreeSlot, 1);
 					ShowPlayerTextInfo(playerid, 5000, "~r~Auction man~w~: I've got some unsold stuff for you.", "~r~Commissaire~w~: J'ai quelques invendus à vous rendre.", "Espagnol", "Portugais", "Italien", "Allemand");
 				    return 1;
 				}
@@ -27302,7 +27356,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 							}
 							LogInfo(true, "[JOUEUR]%s depose %s", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]));
 							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8), floatdiv(RandomEx(5, 20), 10));
-							GivePlayerSlotObject(playerid, -1, pUseInventory[playerid] - 8);
+							RemovePlayerSlotObject(playerid, pUseInventory[playerid] - 8);
 							SelectTextDraw(playerid, VERT);
 							pUseInventory[playerid] = 0;
 						}
@@ -27339,7 +27393,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								LogInfo(true, "[JOUEUR]%s vend %s pour %.1fg d'or.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]), floatdiv(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dSellPrice], 10));
 								GivePlayerExp(playerid, aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dSellPrice]);
 								GivePlayerGold(playerid, aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dSellPrice]);
-								GivePlayerSlotObject(playerid, -1, pUseInventory[playerid] - 8);
+								RemovePlayerSlotObject(playerid, pUseInventory[playerid] - 8);
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 							}
@@ -27355,8 +27409,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		    	           	 	new dSlots = dParts[0][1] + dParts[1][1] + dParts[2][1];
 		    	           	 	if(GetPlayerFreeSlots(playerid) > dSlots - 1)
 		    	           	 	{
-									GivePlayerSlotObject(playerid, -1, pUseInventory[playerid] - 8);
-									for(new i = 0; i < 3; i ++) if(dParts[i][0] != 0) for(new j = 0; j < dParts[i][1]; j ++) GivePlayerSlotObject(playerid, dParts[i][0], GetPlayerNextFreeSlot(playerid));
+									RemovePlayerSlotObject(playerid, pUseInventory[playerid] - 8);
+									for(new i = 0; i < 3; i ++) 
+									{
+										if(dParts[i][0] != 0) 
+										{
+											for(new j = 0; j < dParts[i][1]; j ++) 
+											{
+												GivePlayerSlotObject(playerid, dParts[i][0], GetPlayerNextFreeSlot(playerid), GetObjectDefaultExtraVal(dParts[i][0]));
+											}
+										}
+									}
 									ShowPlayerTextInfo(playerid, 5000, "~g~Object succesfully taken apart!", "Objet démonté avec succès !", "Espagnol", "Portugais", "Italien", "~g~Er folgreich auseinandermontiertet Objkete!");
 		    	           	 	}
 		    	           	 	else
@@ -27383,7 +27446,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								//---
                                 new dAmount = AddFridgeFood(dFridge, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8), 1);
 								LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur : %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]), dAmount);
-								GivePlayerSlotObject(playerid, -1, pUseInventory[playerid] - 8);
+								RemovePlayerSlotObject(playerid, pUseInventory[playerid] - 8);
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 			    	        }
@@ -27404,7 +27467,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								return 1;
 							}
 							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, 0), floatdiv(RandomEx(5, 20), 10));
-							GivePlayerSlotObject(playerid, -1, 0);
+							RemovePlayerSlotObject(playerid, 0);
 							SelectTextDraw(playerid, VERT);
 							pUseInventory[playerid] = 0;
 						}
@@ -27441,7 +27504,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								LogInfo(true, "[JOUEUR]%s vend %s pour %.1fg d'or.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]), floatdiv(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][dSellPrice], 10));
 								GivePlayerExp(playerid, aObjects[GetPlayerSlotObject(playerid, 0)][dSellPrice]);
 								GivePlayerGold(playerid, aObjects[GetPlayerSlotObject(playerid, 0)][dSellPrice]);
-								GivePlayerSlotObject(playerid, -1, 0);
+								RemovePlayerSlotObject(playerid, 0);
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 							}
@@ -27457,8 +27520,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		    	           	 	new dSlots = dParts2[0][1] + dParts2[1][1] + dParts2[2][1];
 		    	           	 	if(GetPlayerFreeSlots(playerid) > dSlots - 1)
 		    	           	 	{
-									GivePlayerSlotObject(playerid, -1, 0);
-									for(new i = 0; i < 3; i ++) if(dParts2[i][0] != 0) for(new j = 0; j < dParts2[i][1]; j ++) GivePlayerSlotObject(playerid, dParts2[i][0], GetPlayerNextFreeSlot(playerid));
+									RemovePlayerSlotObject(playerid, 0);
+									for(new i = 0; i < 3; i ++) 
+									{
+										if(dParts2[i][0] != 0) 
+										{
+											for(new j = 0; j < dParts2[i][1]; j ++) 
+											{
+												GivePlayerSlotObject(playerid, dParts2[i][0], GetPlayerNextFreeSlot(playerid), GetObjectDefaultExtraVal(dParts2[i][0]));
+											}
+										}
+									}
 									ShowPlayerTextInfo(playerid, 5000, "~g~Object succesfully taken apart!", "Objet démonté avec succès !", "Espagnol", "Portugais", "Italien", "~g~Er folgreich auseinandermontiertet Objkete!");
 		    	           	 	}
 		    	           	 	else
@@ -27485,7 +27557,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								//---
 								LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, 0)][ObjectFrName]));
                                 AddFridgeFood(dFridge, GetPlayerSlotObject(playerid, 0), 1);
-								GivePlayerSlotObject(playerid, -1, 0);
+								RemovePlayerSlotObject(playerid, 0);
 								SelectTextDraw(playerid, VERT);
 								pUseInventory[playerid] = 0;
 			    	        }
@@ -27519,7 +27591,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
-			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot);
+			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
 					if(aObjects[item[ItemID]][bHeavy])
 					{
 						ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -27608,8 +27680,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			        }
 				    switch(bed[dBedType])
 				    {
-				        case 1: GivePlayerSlotObject(playerid, 80, dFreeSlot);
-				        case 2: GivePlayerSlotObject(playerid, 151, dFreeSlot);
+				        case 1: GivePlayerSlotObject(playerid, 80, dFreeSlot, 1);
+				        case 2: GivePlayerSlotObject(playerid, 151, dFreeSlot, 1);
 				    }
 					DestroyBed(nodeFound[playerid][listitem]);
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -27629,7 +27701,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Portugais", "Italien", "Sie können nicht mehr Objekte tragen!");
 					    return 1;
 			        }
-				    GivePlayerSlotObject(playerid, 1, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 1, dFreeSlot, 1);
         			DestroyTent(nodeFound[playerid][listitem]);
 					ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			    }
@@ -27662,7 +27734,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        	pAroundItems[playerid][0][1] = pAroundItems[playerid][listitem][1];
 					#else
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 95, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 95, dFreeSlot, 1);
 		        	DestroyCollector(nodeFound[playerid][listitem]);
 		        	#endif
 			    }
@@ -27692,7 +27764,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			            return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 97, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 97, dFreeSlot, 1);
 		        	DestroySafe(nodeFound[playerid][listitem]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 6)//Si cet objet est de l'or
@@ -27739,7 +27811,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        	pAroundItems[playerid][0][1] = pAroundItems[playerid][listitem][1];
 					#else
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 117, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 117, dFreeSlot, 1);
 		        	DestroyShredder(nodeFound[playerid][listitem]);
 		        	#endif
 			    }
@@ -27764,7 +27836,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			            return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 127, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 127, dFreeSlot, 1);
 		        	DestroyGunRack(nodeFound[playerid][listitem]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 9)//Si cet objet est un brasero
@@ -27783,7 +27855,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 128, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 128, dFreeSlot, 1);
 		        	DestroyBrasero(nodeFound[playerid][listitem]);
 			    }
 				else if(pAroundItems[playerid][listitem][1] == 10)//Si cet objet est une décoration
@@ -27797,7 +27869,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot);
+				    GivePlayerSlotObject(playerid, GetFurnitureObjectID(furn[dFurnitureType], true), dFreeSlot, 1);
 		        	DestroyFurniture(nodeFound[playerid][listitem]);
 			    }
 			    else if(pAroundItems[playerid][listitem][1] == 11)//Si cet objet est un fauteuil
@@ -27817,7 +27889,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			        }
 				    switch(seat[dSeatType])
 				    {
-				        case 1729: GivePlayerSlotObject(playerid, 155, dFreeSlot);
+				        case 1729: GivePlayerSlotObject(playerid, 155, dFreeSlot, 1);
 				    }
 					DestroySeat(nodeFound[playerid][listitem]);
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -27889,7 +27961,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			{
 				DestroySafe(pCreateSafe[playerid]);
 				pCreateSafe[playerid] = MEM_NULLPTR;
-				GivePlayerSlotObject(playerid, 97, GetPlayerNextFreeSlot(playerid));
+				GivePlayerSlotObject(playerid, 97, GetPlayerNextFreeSlot(playerid), 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			}
 	    }
@@ -27961,7 +28033,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				new house[House], query[256];
 				MEM_get_arr(dHouseID[playerid], _, house);
 			    
-				GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 112));
+				RemovePlayerSlotObject(playerid, HasPlayerItem(playerid, 112));
 				//---
 				new type, Float:x, Float:y, Float:z, Float:angle;
 				x = house[xHouse];
@@ -29104,7 +29176,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		            return 1;
 		        }
 		        //---
-				GivePlayerSlotObject(pAdminInfos[playerid][dPuniID], itemID, dFreeSlot);
+				new extraVal = GetObjectDefaultExtraVal(itemID);
+				GivePlayerSlotObject(pAdminInfos[playerid][dPuniID], itemID, dFreeSlot, extraVal);
 				SwapPlayerObjects(pAdminInfos[playerid][dPuniID], dFreeSlot, 0);
 				LogInfo(true, "[ADMIN]%s donne %s a %s", GetName(playerid), NoNewLineSign(aObjects[itemID][ObjectFrName]), GetName(pAdminInfos[playerid][dPuniID]));
     			SendClientMessageEx(playerid, ADMIN_COLOR, "[ADMIN]Object given.", "[ADMIN]Objet donné.", "Espagnol", "Portugais", "Italien", "Allemand");
@@ -30144,7 +30217,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 95, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 95, dFreeSlot, 1);
 		        	DestroyCollector(nodeFound[playerid][0]);
 				}
 				else if(pAroundItems[playerid][0][1] == 7)//BROYEUR
@@ -30157,7 +30230,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 117, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 117, dFreeSlot, 1);
 		        	DestroyShredder(nodeFound[playerid][0]);
 				}
 				else if(pAroundItems[playerid][0][1] == 12)//RÉFRIGÉRATEUR
@@ -30170,7 +30243,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
-				    GivePlayerSlotObject(playerid, 130, dFreeSlot);
+				    GivePlayerSlotObject(playerid, 130, dFreeSlot, 1);
 		        	DestroyFridge(nodeFound[playerid][0]);
 					nodeFound[playerid][0] = MEM_NULLPTR;
 				}
@@ -30532,7 +30605,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 					GivePlayerGold(playerid, -2);
 					//---
-			        GivePlayerSlotObject(playerid, 30, dFreeSlot);
+			        GivePlayerSlotObject(playerid, 30, dFreeSlot, 2000);
 					SwapPlayerObjects(playerid, 0, dFreeSlot);
 	 				LogInfo(true, "[JOUEUR]%s a siphoné le véhicule %d.", GetName(playerid), vehicle);
 				}
@@ -30564,7 +30637,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					SetVehicleWheels(vehicle);
 					GivePlayerGold(playerid, -3);
 					//---
-			        GivePlayerSlotObject(playerid, 63, dFreeSlot);
+			        GivePlayerSlotObject(playerid, 63, dFreeSlot, 1);
 					SwapPlayerObjects(playerid, 0, dFreeSlot);
 	 				LogInfo(true, "[JOUEUR]%s a retiré une roue du véhicule %d.", GetName(playerid), vehicle);
 					new query[256], wheelsstate = 0;
@@ -30589,7 +30662,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 					GivePlayerGold(playerid, -5);
 					//---
-			        GivePlayerSlotObject(playerid, 64, dFreeSlot);
+			        GivePlayerSlotObject(playerid, 64, dFreeSlot, 1);
 					SwapPlayerObjects(playerid, 0, dFreeSlot);
 	 				LogInfo(true, "[JOUEUR]%s a retiré le moteur du véhicule %d.", GetName(playerid), vehicle);
 					new query[256];
@@ -30616,15 +30689,15 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 	        if(pPlayerInfos[playerid][pTorse] == 84)
 	        {
 	            pPlayerInfos[playerid][pTorse] = 83;
-			    GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 103));
+				RemovePlayerSlotObject(playerid, HasPlayerItem(playerid, 103));
 		    	SetArmourForPlayer(playerid, 1250);
 				ShowPlayerTextInfo(playerid, 2500, "~g~Armour fixed!", "~g~Armure réparée !", "~g~¡Armadura reparada!", "Portugais", "Italien", "Allemand");
 	        }
 	        else
 	        {
 		        new dSlot = HasPlayerItem(playerid, 84);
-			    GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 103));
-			    GivePlayerSlotObject(playerid, -1, dSlot);
+				RemovePlayerSlotObject(playerid, HasPlayerItem(playerid, 103));
+				RemovePlayerSlotObject(playerid, dSlot);
 		        GivePlayerSlotObject(playerid, 83, dSlot);
 				SwapPlayerObjects(playerid, dSlot, 0);
 				ShowPlayerTextInfo(playerid, 2500, "~g~Armour fixed!", "~g~Armure réparée !", "~g~¡Armadura reparada!", "Portugais", "Italien", "Allemand");
@@ -31043,7 +31116,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				LogInfo(true, "[JOUEUR]%s depose %s pour %.1fg d'or a l'HDV.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]), fVal);
 				//---
 				GivePlayerGold(playerid, -2);
-				GivePlayerSlotObject(playerid, 0, pHDVSale[playerid][0]);
+				RemovePlayerSlotObject(playerid, pHDVSale[playerid][0]);
 				SelectTextDraw(playerid, VERT);
 				pUseInventory[playerid] = 0;
 				ShowPlayerTextInfo(playerid, 5000, "~g~Your item has been set for sale.~n~You will be notified if a customer buys!", "~g~Votre objet a été mis en vente.~n~Vous serez informé si un client achète !", "Espagnol", "Portugais", "Italien", "Allemand");
@@ -31091,7 +31164,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			else if(!response)
 			{
 				DestroyBoard(pBoard[playerid]);
-				GivePlayerSlotObject(playerid, 156, GetPlayerNextFreeSlot(playerid));
+				GivePlayerSlotObject(playerid, 156, GetPlayerNextFreeSlot(playerid), 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 			}
 	    }
@@ -31116,7 +31189,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				new house[House];
 				MEM_get_arr(dDoor[playerid], _, house);
 			    format(house[sCodePorte], 5, "%s", inputtext);
-				GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 106));
+				RemovePlayerSlotObject(playerid, HasPlayerItem(playerid, 106));
 				//---
 				dDoor[playerid] = MEM_NULLPTR;
 			}
@@ -31145,7 +31218,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						pFridge[playerid] = MEM_NULLPTR;
 						return 1;
 		    		}
-		    		GivePlayerSlotObject(playerid, food, dFreeSlot);
+		    		GivePlayerSlotObject(playerid, food, dFreeSlot, 1);
 					LogInfo(true, "[JOUEUR]%s met %s dans un réfrigérateur: %d.", GetName(playerid), NoNewLineSign(aObjects[food][ObjectFrName]), amount - 1);
 		    		AddFridgeFood(pFridge[playerid], food, -1);
                     pFridge[playerid] = MEM_NULLPTR;
@@ -31375,12 +31448,14 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				    }
 				    if(RandomEx(0, 7) < 2)
 				    {
-					    if(!pPlayerInfos[playerid][bAide][11]) ShowPlayerHelp(playerid, 12, 10000);
-				    	GivePlayerSlotObject(playerid, GetPlayerSlotObject(playerid, dUsingItem[playerid]) + 20, dUsingItem[playerid]);
+					    if(!pPlayerInfos[playerid][bAide][11]) 
+							ShowPlayerHelp(playerid, 12, 10000);
+
+				    	GivePlayerSlotObject(playerid, GetPlayerSlotObject(playerid, dUsingItem[playerid]) + 20, dUsingItem[playerid], 1);
 				    }
 				    else
 				    {
-				    	GivePlayerSlotObject(playerid, -1, dUsingItem[playerid]);
+						RemovePlayerSlotObject(playerid, dUsingItem[playerid]);
 				    }
 					ApplyAnimation(playerid, "FOOD", "EAT_Burger", 3.0, 0, 0, 0, 0, 0);
 				    GivePlayerHunger(playerid, 5);
@@ -31391,12 +31466,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				    if(RandomEx(0, 10) < 7)
 				    {
 					    if(!pPlayerInfos[playerid][bAide][11]) ShowPlayerHelp(playerid, 12, 10000);
-				    	GivePlayerSlotObject(playerid, GetPlayerSlotObject(playerid, dUsingItem[playerid]) + 20, dUsingItem[playerid]);
+				    	GivePlayerSlotObject(playerid, GetPlayerSlotObject(playerid, dUsingItem[playerid]) + 20, dUsingItem[playerid], 1);
 				    }
 				    else
 				    {
 				        SendClientMessageEx(playerid, ROUGE, "There is no seed in this one fruit!", "Il n'y a pas de graines dans ce fruit !", "¡Espagnol!", "Portugais", "Italien", "Allemand");
-				    	GivePlayerSlotObject(playerid, -1, dUsingItem[playerid]);
+						RemovePlayerSlotObject(playerid, dUsingItem[playerid]);
 				    }
 				}
 			}
@@ -33950,18 +34025,21 @@ public IsObjectNearToPlayer(Float:radi, playerid, objectid)
 
 public SwapPlayerObjects(playerid, slotid1, slotid2)//Fonction pour changer de place deux objets à partir des slots
 {
-	new info[2];
-	info[0] = GetPlayerSlotObject(playerid, slotid1);//On récupère l'id de l'objet dans le slot 1
-	info[1] = GetPlayerSlotObject(playerid, slotid2);//...pareil pour le slot 2
+	new info[2][2];
+	info[0][0] = GetPlayerSlotObject(playerid, slotid1);//On récupère l'id de l'objet dans le slot 1
+	info[0][1] = GetPlayerSlotObjectExtraVal(playerid, slotid1);
+	
+	info[1][0] = GetPlayerSlotObject(playerid, slotid2);//...pareil pour le slot 2
+	info[1][1] = GetPlayerSlotObject(playerid, slotid2);
 	//---
 	#if defined TOO_HEAVY_FOR_BAG
 	if((aObjects[info[0]][bHeavy] && 36 > slotid2 > 1) || (aObjects[info[1]][bHeavy] && 36 > slotid1 >= 1)) return 0;
 	#endif
 	//---
-	if(info[0] != info[1])
+	if(info[0][0] != info[1][0] && info[0][1] != info[1][1])
 	{
-		GivePlayerSlotObject(playerid, info[0], slotid2);//Et on give l'objet 1 dans le slot 2 et vice versa
-		GivePlayerSlotObject(playerid, info[1], slotid1);
+		GivePlayerSlotObject(playerid, info[0][0], slotid2, info[0][1]);//Et on give l'objet 1 dans le slot 2 et vice versa
+		GivePlayerSlotObject(playerid, info[1][0], slotid1, info[1][1]);
 	}
 	return 1;
 }
