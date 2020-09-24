@@ -510,6 +510,7 @@ new MySQL:mysqlPool;
 #define MAX_TANKS                           (50)
 #define MAX_TANK_FUEL      					(15000)
 #define BUD_BED                             (MAX_BEDS + 1)
+#define MAX_OBJECT_NAME						(30)
 
 //---ESSENCE---//
 #define BIKE_FUEL                       	(2000)
@@ -760,7 +761,7 @@ forward HidePlayerHelp(playerid);//Fonction pour cacher l'aide
 forward LoadMap(playerid);
 forward HidePlayerHUD(playerid, bool:hide);
 forward GetObjectName(playerid, objectid, language);
-forward GetObjectDefaultExtraVal(playerid, objectid);
+forward GetObjectDefaultExtraVal(objectid);
 //PEDS
 forward RespawnPlayer(playerid);
 forward ReSpawnZombie(zombieid);
@@ -879,12 +880,12 @@ enum ObjectsInfos
 	//---EXTRA VAL
 	dExtraVal,
 	//---NOMS---//
-	ObjectEnName[30],
-	ObjectFrName[30],
-	ObjectEsName[30],
-	ObjectPgName[30],
-	ObjectItName[30],
-	ObjectDeName[30]
+	ObjectEnName[MAX_OBJECT_NAME],
+	ObjectFrName[MAX_OBJECT_NAME],
+	ObjectEsName[MAX_OBJECT_NAME],
+	ObjectPgName[MAX_OBJECT_NAME],
+	ObjectItName[MAX_OBJECT_NAME],
+	ObjectDeName[MAX_OBJECT_NAME]
 }
 
 enum Environment
@@ -1802,7 +1803,7 @@ public GetObjectName(playerid, objectid, language)
 	}
 }
 
-public GetObjectDefaultExtraVal(playerid, objectid)
+public GetObjectDefaultExtraVal(objectid)
 {
 	new extraVal = 1;
 
@@ -1814,17 +1815,7 @@ public GetObjectDefaultExtraVal(playerid, objectid)
 
 GetItemName(objectid, language)
 {
-	new string[30];
-	switch(language)
-	{
-	    case LANGUAGE_EN: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectEnName]));
-	    case LANGUAGE_FR: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectFrName]));
-	    case LANGUAGE_ES: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectEsName]));
-	    case LANGUAGE_PG: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectPgName]));
-	    case LANGUAGE_IT: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectItName]));
-	    case LANGUAGE_DE: strcpy(string, NoNewLineSign(aObjects[objectid][ObjectDeName]));
-	}
-	return string;
+	return GetFormattedObjectName(language, objectid, 1, true);
 }
 
 //AUTRES
@@ -6560,6 +6551,7 @@ public OnWeaponsLoaded()
 	LogInfo(true,"[INIT] %d armes au sol chargees !", cache_num_rows());
 	return 1;
 }
+
 GetGunName(gunid, language = LANGUAGE_EN)
 {
 	new sWeapon[31];
@@ -6729,14 +6721,14 @@ public GivePlayerSlotObject(playerid, objectid, slot, extraVal)
 		}
 	    case 38 .. 43:
 		{
-			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s du vehicule %d.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]), pVehicleInventory[playerid]);
-			else LogInfo(true, "[ADMIN]%s met %s dans le vehicule %d.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]), pVehicleInventory[playerid]);
+			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s du vehicule %d.", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, GetPlayerSlotObject(playerid, slot), GetPlayerSlotObjectExtraVal(playerid, slot), true), pVehicleInventory[playerid]);
+			else LogInfo(true, "[ADMIN]%s met %s dans le vehicule %d.", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, GetPlayerSlotObject(playerid, slot), GetPlayerSlotObjectExtraVal(playerid, slot), true), pVehicleInventory[playerid]);
 			GivePlayerTrunkObject(playerid, pVehicleInventory[playerid], objectid, slot - 38, extraVal);
 		}
 	    case 44 .. 55:
 		{
-			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s d'un coffre'.", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, slot)][ObjectFrName]));
-			else LogInfo(true, "[ADMIN]%s met %s dans un coffre.", GetName(playerid), NoNewLineSign(aObjects[objectid][ObjectFrName]));
+			if(objectid == 0) LogInfo(true, "[ADMIN]%s prend %s d'un coffre'.", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, GetPlayerSlotObject(playerid, slot), GetPlayerSlotObjectExtraVal(playerid, slot), true));
+			else LogInfo(true, "[ADMIN]%s met %s dans un coffre.", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, GetPlayerSlotObject(playerid, slot), GetPlayerSlotObjectExtraVal(playerid, slot), true));
 			GivePlayerSafeObject(playerid, pPlayerSafe[playerid], objectid, slot - 44, extraVal);
 		}
 	}
@@ -7761,6 +7753,7 @@ enum _:ItemForSale
 	dItemSale,//ID de l'objet
 	dItemPrice,//Prix
 	dSalesID,//
+	dSaleExtraVal,
 	//sSalesman[MAX_PLAYER_NAME + 1],
 	dTimeLeft,
 	dSellType,
@@ -8221,7 +8214,7 @@ UpdatePlayerAuctionHouse(playerid, category, item)
 	}
 }
 
-AddAuctionHouseItem(playerid, category, item, price, time, slotid = -1)
+AddAuctionHouseItem(playerid, category, item, price, time, slotid = -1, extraVal = 1)
 {
 	if(item == 0) return -1;
 	//---
@@ -8279,12 +8272,13 @@ AddAuctionHouseItem(playerid, category, item, price, time, slotid = -1)
 	new sale[ItemForSale];
     //---
 	sale[dItemSale] = item;
+	sale[dSaleExtraVal] = extraVal;
 	sale[dItemPrice] = price;
 	sale[dTimeLeft] = time;
 	sale[dSaleManID] = pPlayerInfos[playerid][dPlayerID];
 	sale[dSellType] = category;
 	new string[512], Cache: result;
-	mysql_format(mysqlPool, string, sizeof(string), "CALL `insertSale`(%d, %d, %d, %d, %d)", item, price, time, sale[dSaleManID], category);
+	mysql_format(mysqlPool, string, sizeof(string), "CALL `insertSale`(%d, %d, %d, %d, %d, %d)", item, extraVal, price, time, sale[dSaleManID], category);
 	result = mysql_query(mysqlPool, string);
 	cache_set_active(result);
 	cache_get_value_name_int(0, "nextID", sale[dSalesID]);
@@ -8326,6 +8320,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 0:
         {
             dAuctionSellerTool[slotid][dItemSale] = 0;
+			dAuctionSellerTool[slotid][dSaleExtraVal] = 1;
             dAuctionSellerTool[slotid][dItemPrice] = 0;
             dAuctionSellerTool[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerTool[slotid][dSalesID];
@@ -8334,6 +8329,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 1:
         {
             dAuctionSellerMedic[slotid][dItemSale] = 0;
+			dAuctionSellerMedic[slotid][dSaleExtraVal] = 1;
             dAuctionSellerMedic[slotid][dItemPrice] = 0;
             dAuctionSellerMedic[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerMedic[slotid][dSalesID];
@@ -8342,6 +8338,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 2:
         {
             dAuctionSellerWeapon[slotid][dItemSale] = 0;
+			dAuctionSellerWeapon[slotid][dSaleExtraVal] = 1;
             dAuctionSellerWeapon[slotid][dItemPrice] = 0;
             dAuctionSellerWeapon[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerWeapon[slotid][dSalesID];
@@ -8350,6 +8347,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 3:
         {
             dAuctionSellerOther[slotid][dItemSale] = 0;
+			dAuctionSellerOther[slotid][dSaleExtraVal] = 1;
             dAuctionSellerOther[slotid][dItemPrice] = 0;
             dAuctionSellerOther[slotid][dTimeLeft] = 0;
             //format(dAuctionSellerOther[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
@@ -8358,6 +8356,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 4:
         {
             dAuctionSellerVehicle[slotid][dItemSale] = 0;
+			dAuctionSellerVehicle[slotid][dSaleExtraVal] = 1;
             dAuctionSellerVehicle[slotid][dItemPrice] = 0;
             dAuctionSellerVehicle[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerVehicle[slotid][dSalesID];
@@ -8366,6 +8365,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 5:
         {
             dAuctionSellerClothes[slotid][dItemSale] = 0;
+			dAuctionSellerClothes[slotid][dSaleExtraVal] = 1;
             dAuctionSellerClothes[slotid][dItemPrice] = 0;
             dAuctionSellerClothes[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerClothes[slotid][dSalesID];
@@ -8374,6 +8374,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 6:
         {
             dAuctionSellerFood[slotid][dItemSale] = 0;
+			dAuctionSellerFood[slotid][dSaleExtraVal] = 1;
             dAuctionSellerFood[slotid][dItemPrice] = 0;
             dAuctionSellerFood[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerFood[slotid][dSalesID];
@@ -8382,6 +8383,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 7:
         {
             dAuctionSellerRessource[slotid][dItemSale] = 0;
+			dAuctionSellerRessource[slotid][dSaleExtraVal] = 1;
             dAuctionSellerRessource[slotid][dItemPrice] = 0;
             dAuctionSellerRessource[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerRessource[slotid][dSalesID];
@@ -8409,6 +8411,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerTool[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerTool[itemid][sSalesman]);
+			extraVal = dAuctionSellerTool[itemid][dSaleExtraVal];
             itemID = dAuctionSellerTool[itemid][dItemSale];
 			idPlayer = dAuctionSellerTool[itemid][dSaleManID];
         }
@@ -8420,6 +8423,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerMedic[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerMedic[itemid][sSalesman]);
+			extraVal = dAuctionSellerMedic[itemid][dSaleExtraVal];
 			idPlayer = dAuctionSellerMedic[itemid][dSaleManID];
             itemID = dAuctionSellerMedic[itemid][dItemSale];
         }
@@ -8431,6 +8435,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerWeapon[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerWeapon[itemid][sSalesman]);
+			extraVal = dAuctionSellerWeapon[itemid][dSaleExtraVal];
             itemID = dAuctionSellerWeapon[itemid][dItemSale];
 			idPlayer = dAuctionSellerWeapon[itemid][dSaleManID];
         }
@@ -8442,6 +8447,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerOther[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerOther[itemid][sSalesman]);
+			extraVal = dAuctionSellerOther[itemid][dSaleExtraVal];
             itemID = dAuctionSellerOther[itemid][dItemSale];
 			idPlayer = dAuctionSellerOther[itemid][dSaleManID];
         }
@@ -8453,6 +8459,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerVehicle[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerVehicle[itemid][sSalesman]);
+			extraVal = dAuctionSellerVehicle[itemid][dSaleExtraVal];
             itemID = dAuctionSellerVehicle[itemid][dItemSale];
 			idPlayer = dAuctionSellerVehicle[itemid][dSaleManID];
         }
@@ -8464,6 +8471,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerClothes[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerClothes[itemid][sSalesman]);
+			extraVal = dAuctionSellerClothes[itemid][dSaleExtraVal];
             itemID = dAuctionSellerClothes[itemid][dItemSale];
 			idPlayer = dAuctionSellerClothes[itemid][dSaleManID];
         }
@@ -8475,6 +8483,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerFood[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerFood[itemid][sSalesman]);
+			extraVal = dAuctionSellerFood[itemid][dSaleExtraVal];
             itemID = dAuctionSellerFood[itemid][dItemSale];
 			idPlayer = dAuctionSellerFood[itemid][dSaleManID];
         }
@@ -8486,6 +8495,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerRessource[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerRessource[itemid][sSalesman]);
+			extraVal = dAuctionSellerRessource[itemid][dSaleExtraVal];
             itemID = dAuctionSellerRessource[itemid][dItemSale];
 			idPlayer = dAuctionSellerRessource[itemid][dSaleManID];
         }
@@ -8495,6 +8505,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
 	GivePlayerSlotObject(playerid, itemID, dFreeSlot, extraVal);
 	PayAuctionSeller(idPlayer, dPrice);
 
+	//GetFormattedObjectName(LANGUAGE_FR, GetPlayerSlotObject(playerid, slot), GetPlayerSlotObjectExtraVal(playerid, slot), true)
 	LogInfo(true, "[JOUEUR]%s achete le %s du joueur d'ID %d pour %.1fg d'or a l'HDV.", GetName(playerid), NoNewLineSign(aObjects[itemID][ObjectFrName]), idPlayer, floatdiv(dPrice, 10));
     RemoveAuctionHouseItem(category, itemid);
 	HidePlayerAuctionHouse(playerid);
@@ -8537,6 +8548,7 @@ public OnAuctionHouseLoaded()
 			cache_get_value_name_int(i, "idauction", sale[dSalesID]);
 			cache_get_value_name_int(i, "categorie", sale[dSellType]);
 			cache_get_value_name_int(i, "idobject", sale[dItemSale]);
+			cache_get_value_name_int(i, "extraval", sale[dSaleExtraVal]);
 			cache_get_value_name_int(i, "idplayer", sale[dSaleManID]);
 			cache_get_value_name_int(i, "price", sale[dItemPrice]);
 			cache_get_value_name_int(i, "time", sale[dTimeLeft]);
@@ -21669,13 +21681,15 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 		if(0 >= time)
 		{
 		    new dObjectID[7], dPrice, dChances;
-			new const dItemExtraVal = 1;
+			new dCraftExtraVal;
+			dCraftExtraVal = 1;
 		    GetEngineerFormula(category, formula, dObjectID[6], dObjectID[0], dObjectID[1], dObjectID[2], dObjectID[3], dObjectID[4], dObjectID[5], dPrice, dChances);
 		    //---
 		    GivePlayerGold(playerid, -dPrice);
+
 		    for(new i = 0; i < 6; i ++) if(dObjectID[i] != 0)
 			{
-				GivePlayerSlotObject(playerid, ((dObjectID[i] == 70 || dObjectID[i] == 81 || dObjectID[i] == 98) ? 40 : -1), HasPlayerItem(playerid, dObjectID[i]), dItemExtraVal);
+				GivePlayerSlotObject(playerid, ((dObjectID[i] == 70 || dObjectID[i] == 81 || dObjectID[i] == 98) ? 40 : -1), HasPlayerItem(playerid, dObjectID[i]), dCraftExtraVal);
 			}
 			//---CHANCES EN PLUS
 			switch(pPlayerInfos[playerid][dArtisan])
@@ -21694,7 +21708,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 				{
 					GivePlayerExp(playerid, 2);
 					ShowPlayerTextInfo(playerid, 5000, "~g~It's ready!", "~g~Bon appétit !", "Espagnol", "Portugais", "Buonappetito !", "Allemand");
-		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dItemExtraVal);
+		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dCraftExtraVal);
 					LogInfo(true, "[ADMIN]%s cuisine %s", GetName(playerid), NoNewLineSign(aObjects[dObjectID[6]][ObjectFrName]));
 		        	//SwapPlayerObjects(playerid, dFreeSlot, 0);
 					if(IsPlayerNextToFire(playerid)) ShowPlayerKitchen(playerid), SetEngineerFormula(playerid, category, formula);
@@ -21718,7 +21732,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 						case 4: aDiff = 270.0;
 						case 5: aDiff = 0.0;
 					}
-		    		GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 113), dItemExtraVal);
+		    		GivePlayerSlotObject(playerid, -1, HasPlayerItem(playerid, 113), dCraftExtraVal);
 					if(formula == 5)//CITERNE
 					{
 						new tank[Tank];
@@ -21746,7 +21760,7 @@ public OnPlayerCraftItem(playerid, time, category, formula)
 				{
 					GivePlayerExp(playerid, floatround(dPrice * floatdiv(100 - dChances, 100), floatround_ceil));
 					ShowPlayerTextInfo(playerid, 5000, "~g~The engineer has successfully crafted your item!", "~g~La fabrication a réussi !", "Espagnol", "Portugais", "Italien", "Allemand");
-		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dItemExtraVal);
+		        	GivePlayerSlotObject(playerid, dObjectID[6], dFreeSlot, dCraftExtraVal);
 					LogInfo(true, "[ADMIN]%s a fabrique %s avec succes !", GetName(playerid), NoNewLineSign(aObjects[dObjectID[6]][ObjectFrName]));
 		        	SwapPlayerObjects(playerid, dFreeSlot, 0);
 					if(category == 0 && formula == 15 && CallRemoteFunction("GetPlayerMission", "i", playerid) == MISSION_SHORTCUT_CRAFT)//Mission où on doit craft une bombe
@@ -30698,7 +30712,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        new dSlot = HasPlayerItem(playerid, 84);
 				RemovePlayerSlotObject(playerid, HasPlayerItem(playerid, 103));
 				RemovePlayerSlotObject(playerid, dSlot);
-		        GivePlayerSlotObject(playerid, 83, dSlot);
+		        GivePlayerSlotObject(playerid, 83, dSlot, 1);
 				SwapPlayerObjects(playerid, dSlot, 0);
 				ShowPlayerTextInfo(playerid, 2500, "~g~Armour fixed!", "~g~Armure réparée !", "~g~¡Armadura reparada!", "Portugais", "Italien", "Allemand");
 			}
@@ -31101,13 +31115,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			    }
 			    //---
 			    new objectid = GetPlayerSlotObject(playerid, pHDVSale[playerid][0]);
+				new objectExtraVal = GetPlayerSlotObjectExtraVal(playerid, pHDVSale[playerid][0]);
+
+				//---
+
 				if(CallRemoteFunction("OnPlayerDropMissionItem", "ii", playerid, objectid))
 				{
 					CloseTextDraws(playerid);
 					return 1;
 				}
 				//---
-				new dReturn = AddAuctionHouseItem(playerid, aObjects[objectid][dObjectType] - 1, objectid, pHDVSale[playerid][1], 2520, -1);
+				new dReturn = AddAuctionHouseItem(playerid, aObjects[objectid][dObjectType] - 1, objectid, pHDVSale[playerid][1], 2520, -1, objectExtraVal);
 				if(dReturn == -1)
 				{
 					ShowPlayerTextInfo(playerid, 5000, "~r~Your item could not be set for sale!", "~g~Votre objet n'a pas pu être mis en vente.", "Espagnol", "Portugais", "Italien", "Allemand");
@@ -33739,6 +33757,29 @@ NoNewLineSign(const string[])//Fonction pour changer '~n~' en ' ' pour genre écr
 	return str;
 }
 
+GetFormattedObjectName(language, objectid, extraVal, bool:newlinesign)
+{
+	new string[MAX_OBJECT_NAME + 10];
+	switch(language)
+	{
+	    case LANGUAGE_EN: strcat(string, aObjects[objectid][ObjectEnName]);
+	    case LANGUAGE_FR: strcat(string, aObjects[objectid][ObjectFrName]);
+	    case LANGUAGE_ES: strcat(string, aObjects[objectid][ObjectEsName]);
+	    case LANGUAGE_PG: strcat(string, aObjects[objectid][ObjectPgName]);
+	    case LANGUAGE_IT: strcat(string, aObjects[objectid][ObjectItName]);
+	    case LANGUAGE_DE: strcat(string, aObjects[objectid][ObjectDeName]);
+	}
+
+	if(extraVal > 1)
+	{
+		new amount[10];
+		format(amount, sizeof(amount), "[%d]", extraVal);
+		strcat(string, amount);
+	}
+
+	return string;
+}
+
 SetPlayerFacingToPos(playerid, Float:x, Float:y)//Faire regarder un joueur vers quelque part
 {
 	new Float:pX, Float:pY, Float:pZ;
@@ -34110,6 +34151,8 @@ public CreateRandomVehicle()
 	if(vehicleid != -1 && !IsValidVehicle(dVehicleInfos[vehicleid][dVehicleID]))
 	{
 	    new dType = RandomEx(0, 10);
+		new dRandomItem = 0;
+		new dItemsGiven = 0;
 	    if((dType == 4 || dType == 5 || dType == 6) && RandomEx(0, 5) > 2) dType = RandomEx(0, 10);
 	    switch(dType)
 	    {
@@ -34138,10 +34181,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(d4x4IDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (d4x4IDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34169,10 +34214,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dBikesIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dBikesIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 			}
@@ -34199,10 +34246,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dInduIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dInduIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 10, 15, 30, 15, 5, 15), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34231,10 +34280,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 2)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 25, 25, 25, 15, 5, 5), 0);
-					if(dSportIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dSportIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 25, 25, 25, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 25, 25, 25, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34258,10 +34309,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dPlaneIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dPlaneIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34286,10 +34339,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dBoatIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dBoatIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34313,10 +34368,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 3)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dHeliIDs[dRand][1] > 1 && RandomEx(0, 10) < 3)
+					dItemsGiven = (dHeliIDs[dRand][1] > 1 && RandomEx(0, 10) < 3) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34343,14 +34400,18 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 5)//PickRandomItem(neutral, gun, vehicle, medic, clothes, bag)
 			    {
-					if(dRand == 0 || dRand == 2) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					else if(dRand == 1) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 20, 10, 10, 50, 5, 5), 0);
-					else if(dRand == 3 || dRand == 4 || dRand == 5) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 15, 50, 15, 10, 5, 5), 0);
-					if(dPublicIDs[dRand][1] > 1 && RandomEx(0, 10) < 5)
+					dItemsGiven = (dPublicIDs[dRand][1] > 1 && RandomEx(0, 10) < 5) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						if(dRand == 0 || dRand == 2) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-						else if(dRand == 1) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 20, 10, 10, 50, 5, 5), 0);
-						else if(dRand == 3 || dRand == 4 || dRand == 5) GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 15, 50, 15, 10, 5, 5), 0);
+						if(dRand == 0 || dRand == 2) 
+							dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						else if(dRand == 1) 
+							dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 20, 10, 10, 50, 5, 5);
+						else if(dRand == 3 || dRand == 4 || dRand == 5) 
+							dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 15, 50, 15, 10, 5, 5);
+
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
@@ -34396,10 +34457,12 @@ public CreateRandomVehicle()
 			    //---
 			    if(RandomEx(0, 10) < 5)
 			    {
-					GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 0);
-					if(dNormIDs[dRand][1] > 1 && RandomEx(0, 10) < 5)
+					dItemsGiven = (dNormIDs[dRand][1] > 1 && RandomEx(0, 10) < 5) ? 2 : 1;
+					
+					for(new i = 0; i < dItemsGiven; i ++)
 					{
-						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5), 1);
+						dRandomItem = CallRemoteFunction("PickRandomItem", "dddddd", 30, 15, 30, 15, 5, 5);
+						GivePlayerTrunkObject(INVALID_PLAYER_ID, vehicleid, dRandomItem, i, GetObjectDefaultExtraVal(dRandomItem));
 					}
 			    }
 	        }
