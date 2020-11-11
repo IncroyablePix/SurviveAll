@@ -1815,7 +1815,9 @@ public GetObjectDefaultExtraVal(objectid)
 
 GetItemName(objectid, language)
 {
-	return GetFormattedObjectName(language, objectid, 1, true);
+	new string[MAX_OBJECT_NAME + 10];
+	strcpy(string, GetFormattedObjectName(language, objectid, 1, true));
+	return string;
 }
 
 //AUTRES
@@ -17735,7 +17737,7 @@ CheckItemsRoundPlayer(playerid)
 			    return 1;
 	        }
 	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
-			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
+			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemExtraVal], true));
 			if(aObjects[item[ItemID]][bHeavy])
 			{
 				ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -18020,7 +18022,7 @@ CheckItemsRoundPlayer(playerid)
 						new furn[Furniture], item[Items], gun[Guns];
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) MEM_get_arr(nodeFound[playerid][i], _, item), strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectEnName]));
+   				        if(pAroundItems[playerid][i][1] == 0) MEM_get_arr(nodeFound[playerid][i], _, item), strcat(string, GetFormattedObjectName(LANGUAGE_EN, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) MEM_get_arr(nodeFound[playerid][i], _, gun), strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectEnName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Bed");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tent");
@@ -18048,7 +18050,7 @@ CheckItemsRoundPlayer(playerid)
 						
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectFrName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Lit");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tente");
@@ -18075,7 +18077,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectEsName]));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_ES, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectEsName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Cama");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tienda");
@@ -18102,7 +18104,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectPgName]));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_PG, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectPgName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Cama");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tenda");
@@ -18129,7 +18131,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectItName]));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_IT, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectItName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Letto");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tenda");
@@ -18156,7 +18158,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, NoNewLineSign(aObjects[item[ItemID]][ObjectDeName]));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_DE, item[ItemID], item[dItemExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectDeName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Bett");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Zelt");
@@ -20970,7 +20972,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 		item[zItem] = z;
 		item[dItemExtraVal] = extraVal;
 		if(spawned) item[bAutoSpawn] = true, dSpawnedItems ++;
-	    item[ObjectText] = CreateDynamic3DTextLabel(NoNewLineSign(aObjects[objectid][ObjectEnName]), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
+	    item[ObjectText] = CreateDynamic3DTextLabel(GetFormattedObjectName(LANGUAGE_EN, objectid, extraVal, true), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
 		item[dItemID] = id;
 		item[dSpawnID] = spawnid;
 		if(id == -1)
@@ -21182,7 +21184,7 @@ public CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, extraVal = 
 		dItems[(load == -1) ? slotid : load][zItem] = z;
 		dItems[(load == -1) ? slotid : load][dItemExtraVal] = extraVal;
 		if(spawned) dItems[(load == -1) ? slotid : load][bAutoSpawn] = true, dSpawnedItems ++;
-	    dItems[(load == -1) ? slotid : load][ObjectText] = CreateDynamic3DTextLabel(NoNewLineSign(aObjects[objectid][ObjectEnName]), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
+	    dItems[(load == -1) ? slotid : load][ObjectText] = CreateDynamic3DTextLabel(GetFormattedObjectName(LANGUAGE_EN, objectid, extraVal, true), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
     }
 	slotid ++;
 	if(slotid == MAX_GROUND_ITEMS) slotid = 0;
@@ -21236,12 +21238,7 @@ UpdatePlayerHand(playerid, objectid)//Fonction pour update l'objet que le mec a 
 	PlayerTextDrawSetPreviewRot(playerid, tInventObjet[playerid][0], aObjects[objectid][ObjectRotX], aObjects[objectid][ObjectRotY], aObjects[objectid][ObjectRotZ], aObjects[objectid][ObjectZoom]);
 	if(!IsHUDHiddenForPlayer(playerid)) PlayerTextDrawShow(playerid, tInventObjet[playerid][0]);
 	//---
-	if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectEnName]);
-	else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectFrName]);
-	else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectEsName]);
-	else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectPgName]);
-	else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectItName]);
-	else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], aObjects[objectid][ObjectDeName]);
+	PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, 0), false));
 	if(!IsHUDHiddenForPlayer(playerid)) PlayerTextDrawShow(playerid, tInventObjet[playerid][1]);
 	//---
 	if(aObjects[objectid][bHeavy]) SetPlayerSpecialAction(playerid,SPECIAL_ACTION_CARRY);
@@ -21262,12 +21259,7 @@ UpdatePlayerInventory(playerid, slotid, objectid)//Fonction pour update une case
 			PlayerTextDrawSetSelectable(playerid,tInventory[playerid][slotid][0], false);
 			PlayerTextDrawHide(playerid, tInventory[playerid][slotid][0]);
 			//---
-			if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
 			PlayerTextDrawHide(playerid, tInventory[playerid][slotid][1]);
 		}
 		else
@@ -21277,12 +21269,7 @@ UpdatePlayerInventory(playerid, slotid, objectid)//Fonction pour update une case
 			PlayerTextDrawSetSelectable(playerid,tInventory[playerid][slotid][0], true);
 			PlayerTextDrawShow(playerid, tInventory[playerid][slotid][0]);
 			//---
-			if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
 			PlayerTextDrawShow(playerid, tInventory[playerid][slotid][1]);
 		}
 	}
@@ -21300,12 +21287,8 @@ UpdateVehicleInventory(playerid, vehicleid, slotid, objectid)//Fonction pour upd
 			PlayerTextDrawSetSelectable(playerid,tVehicleTrunk[playerid][slotid][0], false);
 			PlayerTextDrawHide(playerid, tVehicleTrunk[playerid][slotid][0]);
 			//---
-			if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+			
+			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
 			PlayerTextDrawHide(playerid, tVehicleTrunk[playerid][slotid][1]);
 		}
 		else
@@ -21315,12 +21298,7 @@ UpdateVehicleInventory(playerid, vehicleid, slotid, objectid)//Fonction pour upd
 			PlayerTextDrawSetSelectable(playerid,tVehicleTrunk[playerid][slotid][0], true);
 			PlayerTextDrawShow(playerid, tVehicleTrunk[playerid][slotid][0]);
 			//---
-			if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-			else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
 			PlayerTextDrawShow(playerid, tVehicleTrunk[playerid][slotid][1]);
 		}
 	}
@@ -22881,6 +22859,7 @@ public OnGameModeInit()
 		return 0;
 	}
 	LogInfo(true, "[MYSQL] Connected to MYSQL Database !");
+	mysql_set_charset("utf8", mysqlPool);
 	#endif
 	//---CHARGEMENT MÉTEO & TEMPS & OBJETS DATA---//
 	#if defined MYSQL_SYSTEM
@@ -23531,7 +23510,7 @@ public OnGameModeInit()
 	{
 		dZombie[i][dZombieID] = INVALID_PLAYER_ID;
 		dZombie[i][dZombieClass] = 0;
- 		SetTimerEx("CreateZombie", (i == 0 ? 200 : i * 500), false, "i", i);
+ 		SetTimerEx("CreateZombie", (i == 0 ? 200 : i * 200), false, "i", i);
 	}
 	for(new i = 0; i < MAX_JOHNS; i ++)
 	{
@@ -33757,7 +33736,7 @@ NoNewLineSign(const string[])//Fonction pour changer '~n~' en ' ' pour genre écr
 	return str;
 }
 
-GetFormattedObjectName(language, objectid, extraVal, bool:newlinesign)
+GetFormattedObjectName(language, objectid, extraVal, bool:nonewlinesign)
 {
 	new string[MAX_OBJECT_NAME + 10];
 	switch(language)
@@ -33773,9 +33752,12 @@ GetFormattedObjectName(language, objectid, extraVal, bool:newlinesign)
 	if(extraVal > 1)
 	{
 		new amount[10];
-		format(amount, sizeof(amount), "[%d]", extraVal);
+		format(amount, sizeof(amount), "(%d)", extraVal);
 		strcat(string, amount);
 	}
+
+	if(nonewlinesign)
+		strcpy(string, NoNewLineSign(string));
 
 	return string;
 }
@@ -34067,11 +34049,18 @@ public IsObjectNearToPlayer(Float:radi, playerid, objectid)
 public SwapPlayerObjects(playerid, slotid1, slotid2)//Fonction pour changer de place deux objets à partir des slots
 {
 	new info[2][2];
+	new string[128];
 	info[0][0] = GetPlayerSlotObject(playerid, slotid1);//On récupère l'id de l'objet dans le slot 1
 	info[0][1] = GetPlayerSlotObjectExtraVal(playerid, slotid1);
-	
+
+	format(string, sizeof(string), "slot1: %d | id: %d | ev: %d", slotid1, info[0][0], info[0][1]);
+	SendClientMessage(playerid, 0xCC0000FF, string);
+
 	info[1][0] = GetPlayerSlotObject(playerid, slotid2);//...pareil pour le slot 2
-	info[1][1] = GetPlayerSlotObject(playerid, slotid2);
+	info[1][1] = GetPlayerSlotObjectExtraVal(playerid, slotid2);
+
+	format(string, sizeof(string), "slot2: %d | id: %d | ev: %d", slotid2, info[1][0], info[1][1]);
+	SendClientMessage(playerid, 0xCC0000FF, string);
 	//---
 	#if defined TOO_HEAVY_FOR_BAG
 	if((aObjects[info[0]][bHeavy] && 36 > slotid2 > 1) || (aObjects[info[1]][bHeavy] && 36 > slotid1 >= 1)) return 0;
@@ -34082,6 +34071,11 @@ public SwapPlayerObjects(playerid, slotid1, slotid2)//Fonction pour changer de p
 		GivePlayerSlotObject(playerid, info[0][0], slotid2, info[0][1]);//Et on give l'objet 1 dans le slot 2 et vice versa
 		GivePlayerSlotObject(playerid, info[1][0], slotid1, info[1][1]);
 	}
+	SendClientMessage(playerid, 0xCC0000FF, "_____________________");
+	format(string, sizeof(string), "slot1: %d | id: %d | ev: %d", slotid1, GetPlayerSlotObject(playerid, slotid1), GetPlayerSlotObjectExtraVal(playerid, slotid1));
+	SendClientMessage(playerid, 0xCC0000FF, string);
+	format(string, sizeof(string), "slot2: %d | id: %d | ev: %d", slotid2, GetPlayerSlotObject(playerid, slotid2), GetPlayerSlotObjectExtraVal(playerid, slotid2));
+	SendClientMessage(playerid, 0xCC0000FF, string);
 	return 1;
 }
 
