@@ -29,6 +29,8 @@ forward CreateRemoteExplosionEx(playerid, Float:x, Float:y, Float:z, type, Float
 
 //---MACROS
 #define IsMultiple(%0,%1) 					(((%0)%(%1))==0)
+#define Max(%0,%1)							(%0>%1?%0:%1)
+#define Min(%0,%1)							(%0>%1?%1:%0)
 #define GetZAngleBetweenPos(%0,%1,%2,%3)    (atan2(%3 - %1, %2 - %0))
 #define Log	                        		printf
 

@@ -743,7 +743,7 @@ forward OnAntiCheatStrikes();
 
 //OBJETS
 forward Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id, extraVal, spawnid);
-forward PlayerDropObject(playerid, objectid, Float:distance);
+forward PlayerDropObject(playerid, objectid, Float:distance, extraVal);
 forward GetSpawnedObjects();
 forward GetObjectID(Pointer:slotid);
 forward Pointer:GetItemWithinDistance(Float:x1, Float:y1, Float:z1, Float:dist);
@@ -1003,7 +1003,8 @@ enum PlayerOffInfos
 {
 	//---HDV
 	dRecievedGold,
-	dReturnedItem[50]
+	dReturnedItem[50],
+	dReturnedItemExtraVal[50]
 }
 
 enum Admin
@@ -2196,8 +2197,9 @@ public LoadPlayerExtraGold(playerid)
 }*/
 public OnPlayerLoaded(playerid)
 {
-	new infomask[256], infobody[256], infoglasses[256], infohat[256], weapons[128], skills[128], inventory[192], itemstogive[128];
-	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][11], items[50][4], bool: noBan;
+ 	new content[2][6];
+	new infomask[256], infobody[256], infoglasses[256], infohat[256], weapons[128], skills[128], inventory[512], itemstogive[512];
+	new mask[10][10], body[10][10], glasses[10][10], hat[10][10], weapon[4][16], skill[13][10], invent[37][11], items[50][11], bool: noBan;
 	cache_get_value_name(0, "registerdate", pPlayerInfos[playerid][sFirstCo]);
 	cache_get_value_name(0, "lastco", pPlayerInfos[playerid][sLastCo]);
 	cache_get_value_name(0, "password", pPlayerInfos[playerid][pPassword]);
@@ -2269,7 +2271,13 @@ public OnPlayerLoaded(playerid)
 
 	for(new i = 0; i < 50; i++)
 	{
-		pPlayerOfflineInfos[playerid][dReturnedItem][i] = strval(items[i]);
+	 	content[0] = "0";
+	 	content[1] = "1";
+
+		strexplode(content, items[i], "@");
+
+		pPlayerOfflineInfos[playerid][dReturnedItem][i] = strval(content[0]);
+		pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = strval(content[1]);
 	}
 	
 	for(new i = 0; i < 4; i++)
@@ -2316,7 +2324,6 @@ public OnPlayerLoaded(playerid)
 	pPlayerInfos[playerid][dHydra] = strval(skill[12]);
 
 	//---
- 	new content[2][6];
 	
 	for(new i = 0; i < 36; i++)
 	{
@@ -2536,14 +2543,14 @@ public SaveUser(playerid)
 	if(pPlayerInfos[playerid][dLogState] != UNLOGGED)
 	{
 		ProcessPlayerSave(playerid, .save = true);
-		new query[1512], itemstogive[256] = "", infomask[256], infohat[256], infobody[256], infoglasses[256], infoweapon[64], inventory[256], skills[64], weapons[64];
+		new query[1792], itemstogive[256] = "", infomask[256], infohat[256], infobody[256], infoglasses[256], infoweapon[64], inventory[256], skills[64], weapons[64];
 		format(skills, sizeof(skills),"%d %d %d %d %d %d %d %d %d %d %d %d %d", pPlayerInfos[playerid][dBoucher], pPlayerInfos[playerid][dMedecine], pPlayerInfos[playerid][dSante], pPlayerInfos[playerid][dArtisan],
 		pPlayerInfos[playerid][dTransporteur], pPlayerInfos[playerid][dPecheur], pPlayerInfos[playerid][dMecano], pPlayerInfos[playerid][dJardinier], pPlayerInfos[playerid][dAthlete], pPlayerInfos[playerid][dSurvivaliste],
 		pPlayerInfos[playerid][dTank], pPlayerInfos[playerid][dBomberman], pPlayerInfos[playerid][dHydra]);
 		
 		for(new i = 0; i < 50; i++)
 		{
-			format(itemstogive, sizeof(itemstogive), "%s%d ", itemstogive, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
+			format(itemstogive, sizeof(itemstogive), "%s%d@%d ", itemstogive, pPlayerOfflineInfos[playerid][dReturnedItem][i], pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i]);
 		}
 		
 		for(new i = 0; i < 9; i++)
@@ -2765,6 +2772,8 @@ public LoadUserOffline_auctions(playerid, name[], value[])
 	{
 		format(string, sizeof(string), "Return%d", i);
     	INI_Int(string, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
+		format(string, sizeof(string), "ReturnExtraVal%d", i);
+    	INI_Int(string, pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i]);
     }
     return 1;
 }
@@ -2781,6 +2790,8 @@ SaveUserOffline(playerid)
 	{
 		format(string, sizeof(string), "Return%d", i);
     	INI_WriteInt(File,string, pPlayerOfflineInfos[playerid][dReturnedItem][i]);
+		format(string, sizeof(string), "ReturnExtraVal%d", i);
+    	INI_WriteInt(File,string, pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i]);
     }
 	INI_Close(File);
 }
@@ -6062,7 +6073,7 @@ public OnVehiclesLoaded()
 	{
 		for(new i = 0; i < cache_num_rows(); i++)
 		{
-			new wheelsstate, content[32], items[6][3];
+			new wheelsstate, content[32], items[6][11], infos[2][6];
 			cache_get_value_name_int(i, "idvehicle", dVehicleInfos[i][dVehID]);
 			cache_get_value_name_int(i, "model", dVehicleInfos[i][dVehicleModel]);
 			cache_get_value_name_int(i, "wheels", dVehicleInfos[i][dWheels]);
@@ -6082,8 +6093,19 @@ public OnVehiclesLoaded()
 			cache_get_value_name_float(i, "aveh", dVehicleInfos[i][aVeh]);
 			cache_get_value_name(i, "content", content);
 			strexplode(items, content, " ");
+
 			for(new j = 0; j < 6; j++)
-				dVehicleInfos[i][TrunkObject][j] = strval(items[j]);
+			{
+				infos[0] = "0";
+				infos[1] = "1";
+
+				strexplode(infos, items[j], "@");
+
+				dVehicleInfos[i][TrunkObject][j] = strval(infos[0]);
+				dVehicleInfos[i][TrunkObjectExtraVal][j] = strval(infos[1]); 
+			}
+
+
 			cache_get_value_name_int(i, "col1", dVehicleInfos[i][dColor][0]);
 			cache_get_value_name_int(i, "col2", dVehicleInfos[i][dColor][1]);
 			dVehicleInfos[i][dVehicleID] = CreateVehicle(dVehicleInfos[i][dVehicleModel], dVehicleInfos[i][xVeh], dVehicleInfos[i][yVeh], dVehicleInfos[i][zVeh],dVehicleInfos[i][aVeh], dVehicleInfos[i][dColor][0],dVehicleInfos[i][dColor][1], -1, false);
@@ -6096,6 +6118,27 @@ public OnVehiclesLoaded()
 	LogInfo(true, "[INIT] %d vehicules charges !", cache_num_rows());
 	return 1;
 }
+
+stock SaveVehicles() 
+{
+	for(new i = 0; i < MAX_SPAWN_VEHICLES; i++)
+	{
+		new query[512], Float:x, Float:y, Float:z, Float:a, Float:health, content[128];
+		GetVehicleHealth(dVehicleInfos[i][dVehicleID], health);
+		GetVehiclePos(dVehicleInfos[i][dVehicleID], x, y, z);
+		GetVehicleZAngle(dVehicleInfos[i][dVehicleID], a);
+		format(content, sizeof(content), "%d@%d %d@%d %d@%d %d@%d %d@%d %d@%d", \
+		dVehicleInfos[i][TrunkObject][0], dVehicleInfos[i][TrunkObjectExtraVal][0], \
+		dVehicleInfos[i][TrunkObject][1], dVehicleInfos[i][TrunkObjectExtraVal][1], \
+		dVehicleInfos[i][TrunkObject][2], dVehicleInfos[i][TrunkObjectExtraVal][2], \
+		dVehicleInfos[i][TrunkObject][3], dVehicleInfos[i][TrunkObjectExtraVal][3], \
+		dVehicleInfos[i][TrunkObject][4], dVehicleInfos[i][TrunkObjectExtraVal][4], \
+		dVehicleInfos[i][TrunkObject][5], dVehicleInfos[i][TrunkObjectExtraVal][5]);
+		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `vehicles` SET xveh = %f, yveh = %f, zveh = %f, aveh = %f, health = %f, content=\"%s\" WHERE idvehicle = %d", x, y, z, a, health, content, dVehicleInfos[i][dVehID]);
+		mysql_tquery(mysqlPool, query);
+	}
+}
+
 #else
 public LoadVehicles_data(name[],value[])
 {
@@ -6611,13 +6654,14 @@ GivePlayerHandObject(playerid, objectid, extraVal = 1)//Fonction pour give un ob
 {
 	if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 	{
-	    if(pPlayerInfos[playerid][HandObject] != 0) UpdatePlayerHand(playerid, 0);
+	    if(pPlayerInfos[playerid][HandObject] != 0) UpdatePlayerHand(playerid, 0, 1);
 		pPlayerInfos[playerid][HandObject] = 0;
+		pPlayerInfos[playerid][HandObjectExtraVal] = 1;
 	}
 	else
 	{
 		if(pPlayerInfos[playerid][HandObject] != objectid)
-			UpdatePlayerHand(playerid, objectid);
+			UpdatePlayerHand(playerid, objectid, extraVal);
 
 		pPlayerInfos[playerid][HandObject] = objectid;
 		pPlayerInfos[playerid][HandObjectExtraVal] = extraVal;
@@ -6632,13 +6676,14 @@ GivePlayerInventoryObject(playerid, objectid, slotid, extraVal = 1)//Fonction po
 {
 	if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 	{
-	    if(pPlayerInfos[playerid][BagObject][slotid] != 0) UpdatePlayerInventory(playerid, slotid, 0);
+	    if(pPlayerInfos[playerid][BagObject][slotid] != 0) UpdatePlayerInventory(playerid, slotid, 0, 1);
 		pPlayerInfos[playerid][BagObject][slotid] = 0;
+		pPlayerInfos[playerid][BagObjectExtraVal][slotid] = 1;
 	}
 	else
 	{
 		if(pPlayerInfos[playerid][BagObject][slotid] != objectid)
-			UpdatePlayerInventory(playerid, slotid, objectid);
+			UpdatePlayerInventory(playerid, slotid, objectid, extraVal);
 			
 		pPlayerInfos[playerid][BagObject][slotid] = objectid;
 		pPlayerInfos[playerid][BagObjectExtraVal][slotid] = extraVal;
@@ -6657,7 +6702,7 @@ GivePlayerTrunkObject(playerid, vehicleid, objectid, slotid, extraVal)//Fonction
 		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 		{
 		    if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != 0) 
-				UpdateVehicleInventory(playerid, vehicleid, slotid, 0);
+				UpdateVehicleInventory(playerid, vehicleid, slotid, 0, 1);
 
 			dVehicleInfos[vehicleid][TrunkObject][slotid] = 0;
 			dVehicleInfos[vehicleid][TrunkObjectExtraVal][slotid] = 1;
@@ -6665,7 +6710,7 @@ GivePlayerTrunkObject(playerid, vehicleid, objectid, slotid, extraVal)//Fonction
 		else
 		{
 			if(playerid != INVALID_PLAYER_ID && dVehicleInfos[vehicleid][TrunkObject][slotid] != objectid) 
-				UpdateVehicleInventory(playerid, vehicleid, slotid, objectid);
+				UpdateVehicleInventory(playerid, vehicleid, slotid, objectid, extraVal);
 
 			dVehicleInfos[vehicleid][TrunkObject][slotid] = objectid;
 			dVehicleInfos[vehicleid][TrunkObjectExtraVal][slotid] = extraVal;
@@ -6675,7 +6720,7 @@ GivePlayerTrunkObject(playerid, vehicleid, objectid, slotid, extraVal)//Fonction
 		{
 		    if(i != playerid && pVehicleInventory[i] == vehicleid)
 		    {
-				UpdateVehicleInventory(i, vehicleid, slotid, (objectid == -1 || objectid == 0) ? 0 : objectid);
+				UpdateVehicleInventory(i, vehicleid, slotid, (objectid == -1 || objectid == 0) ? 0 : objectid, (objectid == -1 || objectid == 0) ? 1 : extraVal);
 		    }
 		}
 	}
@@ -7040,6 +7085,19 @@ GetWeaponAmmoType(weaponid)
 	return NO_AMMO;
 }
 
+GetWeaponAmmoItem(ammotype)
+{
+	switch(ammotype)
+	{
+	    case ASSAULT_AMMO: return 25;
+	    case PISTOL_AMMO: return 26;
+	    case DEAGLE_AMMO: return 27;
+		case SHOTGUN_AMMO: return 28;
+		case RIFLE_AMMO: return 29;
+	}
+	return 1;
+}
+
 public HasPlayerSameTypeWeapon(playerid, weaponid)//Retourne 0 si le mec n'a pas d'armes du même type, 1 si le mec a une arme du même type, 2 si le mec a l'arme en question
 {
 	switch(weaponid)
@@ -7224,6 +7282,30 @@ GetPlayerWeaponSkill(playerid, slotid)
 	return WEAPON_SIMPLE;
 }
 
+GetPlayerSlotWeapon(playerid, slotid)
+{
+	switch(slotid)
+	{
+		case 1: return pPlayerInfos[playerid][pArme1][0];
+		case 2: return pPlayerInfos[playerid][pArme2][0];
+		case 3: return pPlayerInfos[playerid][pArme3][0];
+		case 4: return pPlayerInfos[playerid][pArme4][0];
+	}
+	return 0;
+}
+
+GetPlayerSlotWeaponAmmo(playerid, slotid)
+{
+	switch(slotid)
+	{
+		case 1: return pPlayerInfos[playerid][pArme1][1];
+		case 2: return pPlayerInfos[playerid][pArme2][1];
+		case 3: return pPlayerInfos[playerid][pArme3][1];
+		case 4: return pPlayerInfos[playerid][pArme4][1];
+	}
+	return 0;
+}
+
 RemovePlayerWeapon(playerid, weaponid)
 {
 	new dRemoveSlot = -1;
@@ -7249,6 +7331,122 @@ RemovePlayerWeapon(playerid, weaponid)
 	ResetPlayerWeapons(playerid);
 	for(new i = 0; i < 13; i ++) if(i != dRemoveSlot) GivePlayerWeapon(playerid, dWeapons[i][0], dWeapons[i][1]);
 	SetPlayerArmedWeapon(playerid, (dArmedWeapon != weaponid) ? dArmedWeapon : 0);
+}
+
+stock ClearPlayerWeaponSlot(playerid, weaponslot) 
+{
+	switch(weaponslot) 
+	{
+		case 1:
+		{
+			pPlayerInfos[playerid][pArme1][0] = 0;
+			pPlayerInfos[playerid][pArme1][1] = 0;
+		}
+		case 2:
+		{
+			pPlayerInfos[playerid][pArme2][0] = 0;
+			pPlayerInfos[playerid][pArme2][1] = 0;
+		}
+		case 3:
+		{
+			pPlayerInfos[playerid][pArme3][0] = 0;
+			pPlayerInfos[playerid][pArme3][1] = 0;
+		}
+		case 4:
+		{
+			pPlayerInfos[playerid][pArme4][0] = 0;
+			pPlayerInfos[playerid][pArme4][1] = 0;
+		}
+	}
+}
+
+stock TreatPlayerWeapon(playerid, weaponslot, option) 
+{
+	new string[128];
+	new dChoice = -1;
+	new dWeaponID = GetPlayerSlotWeapon(playerid, weaponslot);
+	new dWeaponAmmo = GetPlayerSlotWeaponAmmo(playerid, weaponslot);
+
+	format(string, sizeof(string), "%d - %d", weaponslot, dWeaponID);
+	SendClientMessage(playerid, 0xCC0000FF, string);
+
+	for(new i = 1; i <= 4; i ++) 
+	{
+		format(string, sizeof(string), "%d -> %d", i, GetPlayerSlotWeapon(playerid, i));
+		SendClientMessage(playerid, 0xCC0000FF, string);
+	}
+	
+	if(option == 0) dChoice = 0;
+	else if(option == 1) dChoice = (IsWeaponFirearm(dWeaponID)) ? 1 : 2;
+	else if(option == 2) dChoice = 2;
+
+	if(dChoice == 0)//POSER
+	{
+		if(GetPlayerWeaponSkill(playerid, weaponslot) == WEAPON_AKIMBO)
+		{
+			PlayerDropWeapon(playerid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
+			PlayerDropWeapon(playerid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
+		}
+		else
+		{
+			PlayerDropWeapon(playerid, dWeaponID, dWeaponAmmo, floatdiv(RandomEx(5, 20), 10));
+		}
+		PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
+		SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
+		RemovePlayerWeapon(playerid, dWeaponID);
+		ClearPlayerWeaponSlot(playerid, weaponslot);
+	}
+	else if(dChoice == 1)//DÉCHARGER
+	{
+		SendClientMessage(playerid, 0xCC0000FF, "Test unload");
+		new dAmmoItem = GetWeaponAmmoItem(GetWeaponAmmoType(dWeaponID));
+
+		if(GetPlayerWeaponSkill(playerid, weaponslot) == WEAPON_AKIMBO)
+		{
+			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
+			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
+		}
+		else
+		{
+			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
+		}
+		
+		PlayerDropObject(playerid, dAmmoItem, floatdiv(RandomEx(5, 20), 10), dWeaponAmmo);
+
+		PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
+		SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
+		RemovePlayerWeapon(playerid, dWeaponID);
+		ClearPlayerWeaponSlot(playerid, weaponslot);
+	}
+	else if(dChoice == 2)//RANGER
+	{
+		new Pointer:rackid = IsPlayerNearRack(playerid);
+		if(!IsNull(rackid))
+		{
+			new slotid = GetRackNextFreeSlot(rackid);
+			if(slotid != -1)
+			{
+				if(GetPlayerWeaponSkill(playerid, 1) == WEAPON_AKIMBO)
+				{
+					AddGunRackWeapon(rackid, slotid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round));
+					GivePlayerWeaponEx(playerid, dWeaponID, -floatround(floatdiv(dWeaponAmmo, 2), floatround_round));
+					SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
+				}
+				else
+				{
+					AddGunRackWeapon(rackid, slotid, dWeaponID, dWeaponAmmo);
+					RemovePlayerWeapon(playerid, dWeaponID);
+					ClearPlayerWeaponSlot(playerid, weaponslot);
+				}
+			}
+			else
+			{
+				SendClientMessageEx(playerid, ROUGE, "This gunrack cannot contain any extra weapon!", "Cette étagère ne peut contenir plus d'armes !", "Espagnol", "Portugais", "Italien", "Allemand");
+			}
+		}
+	}
+
+	return dChoice;
 }
 
 KnockPlayer(playerid, bool:heavy = false)
@@ -7753,9 +7951,9 @@ new pHDV[MAX_PLAYERS][2];
 enum _:ItemForSale
 {
 	dItemSale,//ID de l'objet
+	dItemSaleExtraVal,
 	dItemPrice,//Prix
 	dSalesID,//
-	dSaleExtraVal,
 	//sSalesman[MAX_PLAYER_NAME + 1],
 	dTimeLeft,
 	dSellType,
@@ -8165,7 +8363,7 @@ SetPlayerAuctionHouse(playerid, category, item)
 UpdatePlayerAuctionHouse(playerid, category, item)
 {
 	new string[128];
-	new dAuctionInfos[2];
+	new dAuctionInfos[3];
 	//---MENU---//
 	for(new i = 0; i < 8; i ++)
 	{
@@ -8187,14 +8385,14 @@ UpdatePlayerAuctionHouse(playerid, category, item)
 	{
 		switch(pHDV[playerid][0])
 		{
-			case 0: dAuctionInfos[0] = dAuctionSellerTool[item][dItemSale], dAuctionInfos[1] = dAuctionSellerTool[item][dItemPrice];
-			case 1: dAuctionInfos[0] = dAuctionSellerMedic[item][dItemSale], dAuctionInfos[1] = dAuctionSellerMedic[item][dItemPrice];
-			case 2: dAuctionInfos[0] = dAuctionSellerWeapon[item][dItemSale], dAuctionInfos[1] = dAuctionSellerWeapon[item][dItemPrice];
-			case 3: dAuctionInfos[0] = dAuctionSellerOther[item][dItemSale], dAuctionInfos[1] = dAuctionSellerOther[item][dItemPrice];
-			case 4: dAuctionInfos[0] = dAuctionSellerVehicle[item][dItemSale], dAuctionInfos[1] = dAuctionSellerVehicle[item][dItemPrice];
-			case 5: dAuctionInfos[0] = dAuctionSellerClothes[item][dItemSale], dAuctionInfos[1] = dAuctionSellerClothes[item][dItemPrice];
-			case 6: dAuctionInfos[0] = dAuctionSellerFood[item][dItemSale], dAuctionInfos[1] = dAuctionSellerFood[item][dItemPrice];
-			case 7: dAuctionInfos[0] = dAuctionSellerRessource[item][dItemSale], dAuctionInfos[1] = dAuctionSellerRessource[item][dItemPrice];
+			case 0: dAuctionInfos[0] = dAuctionSellerTool[item][dItemSale], dAuctionInfos[1] = dAuctionSellerTool[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerTool[item][dItemSaleExtraVal];
+			case 1: dAuctionInfos[0] = dAuctionSellerMedic[item][dItemSale], dAuctionInfos[1] = dAuctionSellerMedic[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerMedic[item][dItemSaleExtraVal];
+			case 2: dAuctionInfos[0] = dAuctionSellerWeapon[item][dItemSale], dAuctionInfos[1] = dAuctionSellerWeapon[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerWeapon[item][dItemSaleExtraVal];
+			case 3: dAuctionInfos[0] = dAuctionSellerOther[item][dItemSale], dAuctionInfos[1] = dAuctionSellerOther[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerOther[item][dItemSaleExtraVal];
+			case 4: dAuctionInfos[0] = dAuctionSellerVehicle[item][dItemSale], dAuctionInfos[1] = dAuctionSellerVehicle[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerVehicle[item][dItemSaleExtraVal];
+			case 5: dAuctionInfos[0] = dAuctionSellerClothes[item][dItemSale], dAuctionInfos[1] = dAuctionSellerClothes[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerClothes[item][dItemSaleExtraVal];
+			case 6: dAuctionInfos[0] = dAuctionSellerFood[item][dItemSale], dAuctionInfos[1] = dAuctionSellerFood[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerFood[item][dItemSaleExtraVal];
+			case 7: dAuctionInfos[0] = dAuctionSellerRessource[item][dItemSale], dAuctionInfos[1] = dAuctionSellerRessource[item][dItemPrice], dAuctionInfos[2] = dAuctionSellerRessource[item][dItemSaleExtraVal];
 		}
 		//---
 		PlayerTextDrawSetPreviewModel(playerid, tHDVItem[playerid][0], aObjects[dAuctionInfos[0]][ObjectModelID]);
@@ -8274,7 +8472,7 @@ AddAuctionHouseItem(playerid, category, item, price, time, slotid = -1, extraVal
 	new sale[ItemForSale];
     //---
 	sale[dItemSale] = item;
-	sale[dSaleExtraVal] = extraVal;
+	sale[dItemSaleExtraVal] = extraVal;
 	sale[dItemPrice] = price;
 	sale[dTimeLeft] = time;
 	sale[dSaleManID] = pPlayerInfos[playerid][dPlayerID];
@@ -8322,7 +8520,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 0:
         {
             dAuctionSellerTool[slotid][dItemSale] = 0;
-			dAuctionSellerTool[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerTool[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerTool[slotid][dItemPrice] = 0;
             dAuctionSellerTool[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerTool[slotid][dSalesID];
@@ -8331,7 +8529,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 1:
         {
             dAuctionSellerMedic[slotid][dItemSale] = 0;
-			dAuctionSellerMedic[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerMedic[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerMedic[slotid][dItemPrice] = 0;
             dAuctionSellerMedic[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerMedic[slotid][dSalesID];
@@ -8340,7 +8538,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 2:
         {
             dAuctionSellerWeapon[slotid][dItemSale] = 0;
-			dAuctionSellerWeapon[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerWeapon[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerWeapon[slotid][dItemPrice] = 0;
             dAuctionSellerWeapon[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerWeapon[slotid][dSalesID];
@@ -8349,7 +8547,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 3:
         {
             dAuctionSellerOther[slotid][dItemSale] = 0;
-			dAuctionSellerOther[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerOther[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerOther[slotid][dItemPrice] = 0;
             dAuctionSellerOther[slotid][dTimeLeft] = 0;
             //format(dAuctionSellerOther[slotid][sSalesman], MAX_PLAYER_NAME + 1, "N/A");
@@ -8358,7 +8556,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 4:
         {
             dAuctionSellerVehicle[slotid][dItemSale] = 0;
-			dAuctionSellerVehicle[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerVehicle[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerVehicle[slotid][dItemPrice] = 0;
             dAuctionSellerVehicle[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerVehicle[slotid][dSalesID];
@@ -8367,7 +8565,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 5:
         {
             dAuctionSellerClothes[slotid][dItemSale] = 0;
-			dAuctionSellerClothes[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerClothes[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerClothes[slotid][dItemPrice] = 0;
             dAuctionSellerClothes[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerClothes[slotid][dSalesID];
@@ -8376,7 +8574,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 6:
         {
             dAuctionSellerFood[slotid][dItemSale] = 0;
-			dAuctionSellerFood[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerFood[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerFood[slotid][dItemPrice] = 0;
             dAuctionSellerFood[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerFood[slotid][dSalesID];
@@ -8385,7 +8583,7 @@ RemoveAuctionHouseItem(category, slotid)
         case 7:
         {
             dAuctionSellerRessource[slotid][dItemSale] = 0;
-			dAuctionSellerRessource[slotid][dSaleExtraVal] = 1;
+			dAuctionSellerRessource[slotid][dItemSaleExtraVal] = 1;
             dAuctionSellerRessource[slotid][dItemPrice] = 0;
             dAuctionSellerRessource[slotid][dTimeLeft] = 0;
 			saleid = dAuctionSellerRessource[slotid][dSalesID];
@@ -8413,7 +8611,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerTool[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerTool[itemid][sSalesman]);
-			extraVal = dAuctionSellerTool[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerTool[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerTool[itemid][dItemSale];
 			idPlayer = dAuctionSellerTool[itemid][dSaleManID];
         }
@@ -8425,7 +8623,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerMedic[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerMedic[itemid][sSalesman]);
-			extraVal = dAuctionSellerMedic[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerMedic[itemid][dItemSaleExtraVal];
 			idPlayer = dAuctionSellerMedic[itemid][dSaleManID];
             itemID = dAuctionSellerMedic[itemid][dItemSale];
         }
@@ -8437,7 +8635,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerWeapon[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerWeapon[itemid][sSalesman]);
-			extraVal = dAuctionSellerWeapon[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerWeapon[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerWeapon[itemid][dItemSale];
 			idPlayer = dAuctionSellerWeapon[itemid][dSaleManID];
         }
@@ -8449,7 +8647,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerOther[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerOther[itemid][sSalesman]);
-			extraVal = dAuctionSellerOther[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerOther[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerOther[itemid][dItemSale];
 			idPlayer = dAuctionSellerOther[itemid][dSaleManID];
         }
@@ -8461,7 +8659,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerVehicle[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerVehicle[itemid][sSalesman]);
-			extraVal = dAuctionSellerVehicle[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerVehicle[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerVehicle[itemid][dItemSale];
 			idPlayer = dAuctionSellerVehicle[itemid][dSaleManID];
         }
@@ -8473,7 +8671,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerClothes[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerClothes[itemid][sSalesman]);
-			extraVal = dAuctionSellerClothes[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerClothes[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerClothes[itemid][dItemSale];
 			idPlayer = dAuctionSellerClothes[itemid][dSaleManID];
         }
@@ -8485,7 +8683,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerFood[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerFood[itemid][sSalesman]);
-			extraVal = dAuctionSellerFood[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerFood[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerFood[itemid][dItemSale];
 			idPlayer = dAuctionSellerFood[itemid][dSaleManID];
         }
@@ -8497,7 +8695,7 @@ BuyAuctionHouseItem(playerid, category, itemid)
             //---
             dPrice = dAuctionSellerRessource[itemid][dItemPrice];
             //strcpy(sSeller, dAuctionSellerRessource[itemid][sSalesman]);
-			extraVal = dAuctionSellerRessource[itemid][dSaleExtraVal];
+			extraVal = dAuctionSellerRessource[itemid][dItemSaleExtraVal];
             itemID = dAuctionSellerRessource[itemid][dItemSale];
 			idPlayer = dAuctionSellerRessource[itemid][dSaleManID];
         }
@@ -8550,7 +8748,7 @@ public OnAuctionHouseLoaded()
 			cache_get_value_name_int(i, "idauction", sale[dSalesID]);
 			cache_get_value_name_int(i, "categorie", sale[dSellType]);
 			cache_get_value_name_int(i, "idobject", sale[dItemSale]);
-			cache_get_value_name_int(i, "extraval", sale[dSaleExtraVal]);
+			cache_get_value_name_int(i, "extraval", sale[dItemSaleExtraVal]);
 			cache_get_value_name_int(i, "idplayer", sale[dSaleManID]);
 			cache_get_value_name_int(i, "price", sale[dItemPrice]);
 			cache_get_value_name_int(i, "time", sale[dTimeLeft]);
@@ -8783,24 +8981,30 @@ SaveAuctionHouse()
 	INI_Close(File);
 }
 #endif
-ReturnOfflinePlayerItem(const playername[], itemid, sqlID = -1)
+ReturnOfflinePlayerItem(const playername[], itemid, extraval, sqlID = -1)
 {
 	#if defined MYSQL_SYSTEM
 	new query[256];
+	new content[2][6];
 	if(sqlID == -1)
 		mysql_format(mysqlPool, query, sizeof(query), "SELECT itemstogive FROM `player` WHERE username = \"%s\"", playername);
 	else
 		mysql_format(mysqlPool, query, sizeof(query), "SELECT itemstogive FROM `player` WHERE idplayer = %d", sqlID);
-	new Cache: result = mysql_query(mysqlPool, query), itemstogive[256], items[50][5];
+	new Cache: result = mysql_query(mysqlPool, query), itemstogive[256], items[50][11];
 	cache_set_active(result);
 	cache_get_value_name(0, "itemstogive", itemstogive);
 	cache_delete(result);
 	strexplode(items, itemstogive, " ");
 	for(new i = 0; i < 50; i++)
 	{
-		new object = strval(items[i]);
-		if(object == 0)
-			valstr(items[i], itemid);
+		strexplode(content, items[i], "@");
+		new object = strval(content[0]);
+		if(object == 0) 
+		{
+			valstr(content[0], itemid);
+			valstr(content[1], extraval);
+		}
+		strimplode("@", items[i], _, content);
 	}
 	strimplode(" ", itemstogive, _, items);
 	if(sqlID != -1)
@@ -8808,7 +9012,9 @@ ReturnOfflinePlayerItem(const playername[], itemid, sqlID = -1)
 	else
 		mysql_format(mysqlPool, query, sizeof(query), "UPDATE `player` SET itemstogive = \"%s\" WHERE username = \"%s\"", itemstogive, playername);
 	mysql_tquery(mysqlPool, query);
+
 	#else
+
     new string[50];
     format(string,sizeof(string), OFFPATH, playername);
     if(!fexist(string)) return 0;
@@ -8839,13 +9045,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerTool[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerTool[itemid][dItemSale], dAuctionSellerTool[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerTool[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerTool[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerTool[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerTool[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8855,13 +9062,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerMedic[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerMedic[itemid][dItemSale], dAuctionSellerMedic[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerMedic[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerMedic[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerMedic[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerMedic[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8871,13 +9079,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerWeapon[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerWeapon[itemid][dItemSale], dAuctionSellerWeapon[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerWeapon[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerWeapon[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerWeapon[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerWeapon[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8887,13 +9096,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerOther[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerOther[itemid][dItemSale], dAuctionSellerOther[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerOther[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerOther[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerOther[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerOther[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8903,13 +9113,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerVehicle[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerVehicle[itemid][dItemSale], dAuctionSellerVehicle[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerVehicle[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerVehicle[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerVehicle[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerVehicle[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8919,13 +9130,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerClothes[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerClothes[itemid][dItemSale], dAuctionSellerClothes[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerClothes[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerClothes[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerClothes[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerClothes[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8935,13 +9147,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerFood[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerFood[itemid][dItemSale], dAuctionSellerFood[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerFood[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerFood[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerFood[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerFood[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8951,13 +9164,14 @@ ReturnPlayerItem(category, itemid)
 			playerid = PlayeridFromSQLId(dAuctionSellerRessource[itemid][dSaleManID]);
 			if(playerid == INVALID_PLAYER_ID)
 			{
-				ReturnOfflinePlayerItem("", dAuctionSellerRessource[itemid][dItemSale], dAuctionSellerRessource[itemid][dSaleManID]);
+				ReturnOfflinePlayerItem("", dAuctionSellerRessource[itemid][dItemSale], dAuctionSellerTool[itemid][dItemSaleExtraVal], dAuctionSellerRessource[itemid][dSaleManID]);
 			}
 			else
 			{
 				for(new i = 0; i < 50; i ++) if(pPlayerOfflineInfos[playerid][dReturnedItem][i] == 0)
 				{
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = dAuctionSellerRessource[itemid][dItemSale];
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = dAuctionSellerRessource[itemid][dItemSaleExtraVal];
 					break;
 				}
 			}
@@ -8980,6 +9194,7 @@ ReturnPlayerItem(category, itemid)
 /*enum ItemForSale
 {
 	dItemSale,//ID de l'objet
+	dItemExtraVal,//ID de l'objet
 	dItemPrice,//Prix
 	dSalesID,//
 	sSalesman[MAX_PLAYER_NAME + 1],
@@ -10078,7 +10293,7 @@ public OnSafesLoaded()
 	{
 		for(new i = 0; i < cache_num_rows(); i++)
 		{
-			new Float:x, Float:y, Float:z, Float:a, safeid, Pointer: pt, content[64], itemsExploded[12][4], safeCreated[SafeInfos];
+			new Float:x, Float:y, Float:z, Float:a, safeid, Pointer: pt, content[192], itemsExploded[12][11], infos[2][6], safeCreated[SafeInfos];
 			cache_get_value_name_int(i, "idsafe", safeid);
 			cache_get_value_name_float(i, "xsafe", x);
 			cache_get_value_name_float(i, "ysafe", y);
@@ -10088,8 +10303,18 @@ public OnSafesLoaded()
 			pt = CreateSafe(x, y, z, a, safeid);
 			MEM_get_arr(pt, _, safeCreated);
 			strexplode(itemsExploded, content, " ");
+
 			for(new j = 0; j < 12; j++)
-				safeCreated[dItemContained][j] = strval(itemsExploded[i]);
+			{
+				infos[0] = "0";
+				infos[1] = "1";
+
+				strexplode(infos, itemsExploded[j], "@");
+
+				safeCreated[dItemContained][j] = strval(infos[0]);
+				safeCreated[dItemContainedExtraVal][j] = strval(infos[1]);
+			}
+
 			MEM_set_arr(pt, _, safeCreated);
 		}
 
@@ -10162,13 +10387,13 @@ GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid, extraVal)//Fonc
 		MEM_get_arr(safeid, _, safe);
 		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 		{
-		    if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != 0) UpdateSafe(playerid, safeid, slotid, 0);
+		    if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != 0) UpdateSafe(playerid, safeid, slotid, 0, 1);
 			safe[dItemContained][slotid] = 0;
 			safe[dItemContainedExtraVal][slotid] = 1;
 		}
 		else
 		{
-			if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != objectid) UpdateSafe(playerid, safeid, slotid, objectid);
+			if(playerid != INVALID_PLAYER_ID && safe[dItemContained][slotid] != objectid) UpdateSafe(playerid, safeid, slotid, objectid, extraVal);
 			safe[dItemContained][slotid] = objectid;
 			safe[dItemContainedExtraVal][slotid] = extraVal;
 		}
@@ -10185,7 +10410,7 @@ GivePlayerSafeObject(playerid, Pointer:safeid, objectid, slotid, extraVal)//Fonc
 	return 1;
 }
 
-UpdateSafe(playerid, Pointer:safeid, slotid, objectid)//Fonction pour update une case du coffre fort
+UpdateSafe(playerid, Pointer:safeid, slotid, objectid, extraval)//Fonction pour update une case du coffre fort
 {
 	if(!IsNull(safeid))
 	{
@@ -10194,12 +10419,7 @@ UpdateSafe(playerid, Pointer:safeid, slotid, objectid)//Fonction pour update une
 		PlayerTextDrawSetSelectable(playerid, tSafe[playerid][slotid][0], true);
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][0]);
 		//---
-		if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+		//PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][1]);
 	}
 }
@@ -10322,7 +10542,7 @@ GivePlayerSafeObject(playerid, safeid, objectid, slotid, extraVal)//Fonction pou
 		if(objectid == -1 || objectid == 0)//Si l'objet est nul, on remet ses variables à 0
 		{
 		    if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != 0) 
-				UpdateSafe(playerid, safeid, slotid, 0);
+				UpdateSafe(playerid, safeid, slotid, 0, 1);
 
 			dSafeInfos[safeid][dItemContained][slotid] = 0;
 			dSafeInfos[safeid][dItemContainedExtraVal][slotid] = 1;
@@ -10330,7 +10550,7 @@ GivePlayerSafeObject(playerid, safeid, objectid, slotid, extraVal)//Fonction pou
 		else
 		{
 			if(playerid != INVALID_PLAYER_ID && dSafeInfos[safeid][dItemContained][slotid] != objectid) 
-				UpdateSafe(playerid, safeid, slotid, objectid);
+				UpdateSafe(playerid, safeid, slotid, objectid, extraVal);
 
 			dSafeInfos[safeid][dItemContained][slotid] = objectid;
 			dSafeInfos[safeid][dItemContainedExtraVal][slotid] = extraVal;
@@ -10339,7 +10559,7 @@ GivePlayerSafeObject(playerid, safeid, objectid, slotid, extraVal)//Fonction pou
 	return 1;
 }
 
-UpdateSafe(playerid, safeid, slotid, objectid)//Fonction pour update une case du coffre fort
+UpdateSafe(playerid, safeid, slotid, objectid, extraval)//Fonction pour update une case du coffre fort
 {
 	if(safeid != -1)
 	{
@@ -10348,12 +10568,7 @@ UpdateSafe(playerid, safeid, slotid, objectid)//Fonction pour update une case du
 		PlayerTextDrawSetSelectable(playerid, tSafe[playerid][slotid][0], true);
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][0]);
 		//---
-		if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEnName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_FR) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectFrName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_EN) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectEsName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_PG) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectPgName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_IT) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectItName]);
-		else if(pPlayerInfos[playerid][pLangue] == LANGUAGE_DE) PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], aObjects[objectid][ObjectDeName]);
+		PlayerTextDrawSetString(playerid, tSafe[playerid][1],  );
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][1]);
 	}
 }
@@ -17736,8 +17951,8 @@ CheckItemsRoundPlayer(playerid)
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Não há objetos perto do senhor", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
-	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
-			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemExtraVal], true));
+	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemSaleExtraVal]);
+			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemSaleExtraVal], true));
 			if(aObjects[item[ItemID]][bHeavy])
 			{
 				ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -17771,12 +17986,12 @@ CheckItemsRoundPlayer(playerid)
 			        }
 			        else
 			        {
-						PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+						PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 			        }
 		    	}
 		    	else
 		    	{
-					PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 		    	}
 				DestroyWeapon(nodeFound[playerid][0]);
 			    return 1;
@@ -17786,7 +18001,7 @@ CheckItemsRoundPlayer(playerid)
 				if(GetWeaponAmmoType(GetPlayerWeapon(playerid)) == GetWeaponAmmoType(gun[WeaponID]) && GetWeaponAmmoType(gun[WeaponID]) != NO_AMMO)
 				{
 					GivePlayerWeaponEx(playerid, GetPlayerWeapon(playerid), gun[WeaponAmmo]);
-					PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 					DestroyWeapon(nodeFound[playerid][0]);
 					return 1;
 				}
@@ -18022,7 +18237,7 @@ CheckItemsRoundPlayer(playerid)
 						new furn[Furniture], item[Items], gun[Guns];
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) MEM_get_arr(nodeFound[playerid][i], _, item), strcat(string, GetFormattedObjectName(LANGUAGE_EN, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) MEM_get_arr(nodeFound[playerid][i], _, item), strcat(string, GetFormattedObjectName(LANGUAGE_EN, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) MEM_get_arr(nodeFound[playerid][i], _, gun), strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectEnName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Bed");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tent");
@@ -18050,7 +18265,7 @@ CheckItemsRoundPlayer(playerid)
 						
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectFrName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Lit");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tente");
@@ -18077,7 +18292,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_ES, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_ES, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectEsName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Cama");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tienda");
@@ -18104,7 +18319,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_PG, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_PG, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectPgName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Cama");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tenda");
@@ -18131,7 +18346,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_IT, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_IT, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectItName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Letto");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Tenda");
@@ -18158,7 +18373,7 @@ CheckItemsRoundPlayer(playerid)
 						MEM_get_arr(nodeFound[playerid][i], _, furn);
    				        if(IsMultiple(i, 2)) strcat(string, "{CC0000}");
    				        else strcat(string, "{FFFFFF}");
-   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_DE, item[ItemID], item[dItemExtraVal], true));
+   				        if(pAroundItems[playerid][i][1] == 0) strcat(string, GetFormattedObjectName(LANGUAGE_DE, item[ItemID], item[dItemSaleExtraVal], true));
    				        else if(pAroundItems[playerid][i][1] == 1) strcat(string, NoNewLineSign(aObjects[GetObjectFromWeapon(gun[WeaponID])][ObjectDeName]));
    				        else if(pAroundItems[playerid][i][1] == 2) strcat(string, "Bett");
    				        else if(pAroundItems[playerid][i][1] == 3) strcat(string, "Zelt");
@@ -18271,7 +18486,7 @@ GivePlayerClothe(playerid, slot, objectid, Float:x, Float:y, Float:z, Float:rx, 
 	{
 		case 1://CHAPEAU
 		{
-			if(pPlayerInfos[playerid][pChapeau] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pChapeau], floatdiv(RandomEx(5, 20), 10));
+			if(pPlayerInfos[playerid][pChapeau] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pChapeau], floatdiv(RandomEx(5, 20), 10), 1);
  			pPlayerInfos[playerid][fPosChapeau][0] = x;
 			pPlayerInfos[playerid][fPosChapeau][1] = y;
 			pPlayerInfos[playerid][fPosChapeau][2] = z;
@@ -18287,7 +18502,7 @@ GivePlayerClothe(playerid, slot, objectid, Float:x, Float:y, Float:z, Float:rx, 
 		}
 		case 2://LUNETTES
 		{
-			if(pPlayerInfos[playerid][pLunettes] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pLunettes], floatdiv(RandomEx(5, 20), 10));
+			if(pPlayerInfos[playerid][pLunettes] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pLunettes], floatdiv(RandomEx(5, 20), 10), 1);
  			pPlayerInfos[playerid][fPosLunettes][0] = x;
 			pPlayerInfos[playerid][fPosLunettes][1] = y;
 			pPlayerInfos[playerid][fPosLunettes][2] = z;
@@ -18303,7 +18518,7 @@ GivePlayerClothe(playerid, slot, objectid, Float:x, Float:y, Float:z, Float:rx, 
 		}
 		case 3://MASQUE
 		{
-			if(pPlayerInfos[playerid][pMasque] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pMasque], floatdiv(RandomEx(5, 20), 10));
+			if(pPlayerInfos[playerid][pMasque] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pMasque], floatdiv(RandomEx(5, 20), 10), 1);
  			pPlayerInfos[playerid][fPosMasque][0] = x;
 			pPlayerInfos[playerid][fPosMasque][1] = y;
 			pPlayerInfos[playerid][fPosMasque][2] = z;
@@ -18319,7 +18534,7 @@ GivePlayerClothe(playerid, slot, objectid, Float:x, Float:y, Float:z, Float:rx, 
 		}
 		case 4://TORSE
 		{
-			if(pPlayerInfos[playerid][pTorse] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pTorse], floatdiv(RandomEx(5, 20), 10));
+			if(pPlayerInfos[playerid][pTorse] != 0) PlayerDropObject(playerid, pPlayerInfos[playerid][pTorse], floatdiv(RandomEx(5, 20), 10), 1);
  			pPlayerInfos[playerid][fPosTorse][0] = x;
 			pPlayerInfos[playerid][fPosTorse][1] = y;
 			pPlayerInfos[playerid][fPosTorse][2] = z;
@@ -18891,6 +19106,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 26);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 9mm ammo for this gun!", "Vous avez besoin de munitions 9mm !", "¡Necessita tener 9mm munición!", "Portugais", "Italien", "Sie müssen 9mm Munition haben!");
@@ -18899,7 +19115,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 22);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 22, 25), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 22, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 11://SILENCIEUX
 		{
@@ -18914,6 +19130,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 26);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 9mm ammo for this gun!", "Vous avez besoin de munitions 9mm !", "¡Necessita tener 9mm munición!", "Portugais", "Italien", "Sie müssen 9mm Munition haben!");
@@ -18922,7 +19139,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 23);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 23, 25), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 23, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 12://DESERT EAGLE
 		{
@@ -18937,6 +19154,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 27);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need .50AE ammo for this gun!", "Vous avez besoin de munitions .50AE !", "¡Necessita tener .50AE munición!", "Portugais", "Italien", "Sie müssen .50AE Munition haben!");
@@ -18945,7 +19163,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 24);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 24, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 24, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 13://FUSIL À POMPE
 		{
@@ -18960,6 +19178,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 28);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 12 Gauge ammo for this gun!", "Vous avez besoin de munitions 12 Gauge !", "¡Necessita tener 12 Gauge munición!", "Portugais", "Italien", "Sie müssen 12 Gauge Munition haben!");
@@ -18968,7 +19187,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 25);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 25, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 25, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 14://FUSILS À CANONS SCIÉS
 		{
@@ -18998,6 +19217,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 28);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 12 Gauge ammo for this gun!", "Vous avez besoin de munitions 12 Gauge !", "¡Necessita tener 12 Gauge munición!", "Portugais", "Italien", "Sie müssen 12 Gauge Munition haben!");
@@ -19006,7 +19226,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 26);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 26, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 26, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 15://SPAS 12
 		{
@@ -19021,6 +19241,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 28);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 12 Gauge ammo for this gun!", "Vous avez besoin de munitions 12 Gauge !", "¡Necessita tener 12 Gauge munición!", "Portugais", "Italien", "Sie müssen 12 Gauge Munition haben!");
@@ -19029,7 +19250,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 27);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 27, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 27, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 16://UZI
 		{
@@ -19059,6 +19280,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 26);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 9mm ammo for this gun!", "Vous avez besoin de munitions 9mm !", "¡Necessita tener 9mm munición!", "Portugais", "Italien", "Sie müssen 9mm Munition haben!");
@@ -19067,7 +19289,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 28);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 28, 25), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 28, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 17://MP-5
 		{
@@ -19082,6 +19304,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 26);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 9mm ammo for this gun!", "Vous avez besoin de munitions 9mm !", "¡Necessita tener 9mm munición!", "Portugais", "Italien", "Sie müssen 9mm Munition haben!");
@@ -19090,7 +19313,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 29);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 29, 25), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 29, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 18://AK-47
 		{
@@ -19105,6 +19328,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 25);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 7.62 ammo for this gun!", "Vous avez besoin de munitions 7.62 !", "¡Necessita tener 7.62 munición!", "Portugais", "Italien", "Sie müssen 7.62 Munition haben!");
@@ -19113,7 +19337,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 30);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 30, 30), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 30, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 19://M4
 		{
@@ -19128,6 +19352,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 25);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 7.62 ammo for this gun!", "Vous avez besoin de munitions 7.62 !", "¡Necessita tener 7.62 munición!", "Portugais", "Italien", "Sie müssen 7.62 Munition haben!");
@@ -19136,7 +19361,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 31);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 31, 30), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 31, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 20://TEC-9
 		{
@@ -19166,6 +19391,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 26);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 9mm ammo for this gun!", "Vous avez besoin de munitions 9mm !", "¡Necessita tener 9mm munición!", "Portugais", "Italien", "Sie müssen 9mm Munition haben!");
@@ -19174,7 +19400,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 32);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 32, 25), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 32, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 21://FUSIL DE CHASSE
 		{
@@ -19189,6 +19415,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 29);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need .222 ammo for this gun!", "Vous avez besoin de munitions .222 !", "¡Necessita tener .222 munición!", "Portugais", "Italien", "Sie müssen .222 Munition haben!");
@@ -19197,7 +19424,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 33);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 33, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 33, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 22://SNIPER
 		{
@@ -19212,6 +19439,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 29);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need .222 ammo for this gun!", "Vous avez besoin de munitions .222 !", "¡Necessita tener .222 munición!", "Portugais", "Italien", "Sie müssen .222 Munition haben!");
@@ -19220,7 +19448,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 34);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 34, 10), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 34, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 23://LANCE-ROQUETTES
 		{
@@ -19245,6 +19473,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    return 1;
 			}
 			new dAmmoSlot = HasPlayerItem(playerid, 25);
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, dAmmoSlot);
 			if(dAmmoSlot == -1)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "You need 7.62 ammo for this gun!", "Vous avez besoin de munitions 7.62 !", "¡Necessita tener 7.62 munición!", "Portugais", "Italien", "Sie müssen 7.62 Munition haben!");
@@ -19253,59 +19482,65 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			ApplyReloadAnim(playerid, 38);
 			RemovePlayerSlotObject(playerid, slot);
 			RemovePlayerSlotObject(playerid, dAmmoSlot);
-			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 38, 30), WEAPON_SIMPLE);
+			SetPlayerWeaponSkill(playerid, GivePlayerWeaponEx(playerid, 38, dAmmoAmount), WEAPON_SIMPLE);
 		}
 		case 25://7.62
 		{
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, slot);
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 30: GivePlayerWeaponEx(playerid, 30, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 30);
-		        case 31: GivePlayerWeaponEx(playerid, 31, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 31);
-		        case 38: GivePlayerWeaponEx(playerid, 38, 30), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 38);
+		        case 30: GivePlayerWeaponEx(playerid, 30, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 30);
+		        case 31: GivePlayerWeaponEx(playerid, 31, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 31);
+		        case 38: GivePlayerWeaponEx(playerid, 38, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 38);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
 		case 26://9MM
 		{
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, slot);
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 22: GivePlayerWeaponEx(playerid, 22, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 22);
-		        case 23: GivePlayerWeaponEx(playerid, 23, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 23);
-		        case 28: GivePlayerWeaponEx(playerid, 28, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 28);
-		        case 29: GivePlayerWeaponEx(playerid, 29, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 29);
-		        case 32: GivePlayerWeaponEx(playerid, 32, 25), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 32);
+		        case 22: GivePlayerWeaponEx(playerid, 22, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 22);
+		        case 23: GivePlayerWeaponEx(playerid, 23, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 23);
+		        case 28: GivePlayerWeaponEx(playerid, 28, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 28);
+		        case 29: GivePlayerWeaponEx(playerid, 29, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 29);
+		        case 32: GivePlayerWeaponEx(playerid, 32, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 32);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
 		case 27://.50AE
 		{
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, slot);
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 24: GivePlayerWeaponEx(playerid, 24, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 24);
+		        case 24: GivePlayerWeaponEx(playerid, 24, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 24);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
 		case 28://12 GAUGE
 		{
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, slot);
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 25: GivePlayerWeaponEx(playerid, 25, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 25);
-		        case 26: GivePlayerWeaponEx(playerid, 26, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 26);
-		        case 27: GivePlayerWeaponEx(playerid, 27, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 27);
+		        case 25: GivePlayerWeaponEx(playerid, 25, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 25);
+		        case 26: GivePlayerWeaponEx(playerid, 26, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 26);
+		        case 27: GivePlayerWeaponEx(playerid, 27, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 27);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
 		case 29://.222
 		{
+			new dAmmoAmount = GetPlayerSlotObjectExtraVal(playerid, slot);
 		    switch(GetPlayerWeapon(playerid))
 		    {
-		        case 33: GivePlayerWeaponEx(playerid, 33, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 33);
-		        case 34: GivePlayerWeaponEx(playerid, 34, 10), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 34);
+		        case 33: GivePlayerWeaponEx(playerid, 33, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 33);
+		        case 34: GivePlayerWeaponEx(playerid, 34, dAmmoAmount), RemovePlayerSlotObject(playerid, slot), ApplyReloadAnim(playerid, 34);
 		        default: SendClientMessageEx(playerid, ROUGE, "This ammo cannot be loaded on this type of weapon!", "Vous ne pouvez pas charger ces munitions dans cette arme !", "¡No puede recargar esta arma con esta munición!", "Portugais", "Italien", "Sie können nicht dieser Waffe mit dieser Munition laden!");
 		    }
 		}
 		case 30://BIDON PLEIN D'ESSENCE
 		{
+			new dGasAmount = GetPlayerSlotObjectExtraVal(playerid, slot) * 100;
 			new Pointer:dShredderID = IsPlayerNearShredder(playerid);
 			new shredder[Broyeur];
 			MEM_get_arr(dShredderID, _, shredder);
@@ -19322,12 +19557,12 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			MEM_get_arr(TankID, _, tank);
 			if(!IsNull(TankID) && tank[dTankGas] != 1)
 			{
-			    if(GetTankFuel(TankID) + 1500 > MAX_TANK_FUEL)
+			    if(GetTankFuel(TankID) + dGasAmount > MAX_TANK_FUEL)
 			    {
 			        SendClientMessageEx(playerid, ROUGE, "This tank is full!", "Cette citerne est pleine !", "Espagnol", "Portugais", "Italien", "Allemand");
 			        return 1;
 			    }
-			    GiveTankFuel(TankID, 2000);
+			    GiveTankFuel(TankID, dGasAmount);
 				GivePlayerSlotObject(playerid, 31, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
@@ -19355,30 +19590,38 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				return 1;
 			}
 			//---
-			if(dVehicleInfos[vehicle][dFuel] > GetVehicleMaxFuel(vehicle) - 1500)
+			if(dVehicleInfos[vehicle][dFuel] > GetVehicleMaxFuel(vehicle) - dGasAmount)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "This vehicle doesn't need gas!", "Ce véhicule n'a pas besoin d'essence !", "¡Esto vehículo no necessita gasolina!", "Portugais", "Italien", "Allemand");
 				return 1;
 			}
 			//---
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GiveVehicleFuel(vehicle, 2000);
+			GiveVehicleFuel(vehicle, dGasAmount);
 			GivePlayerSlotObject(playerid, 31, slot, 1);
 		}
 		case 31://BIDON VIDE D'ESSENCE
 		{
+			new dGasAmount = 0;
 			new Pointer:TankID = IsPlayerNearTank(playerid);
 			new tank[Tank];
 			MEM_get_arr(TankID, _, tank);
 			if(!IsNull(TankID) && tank[dTankGas] != 1)
 			{
-			    if(GetTankFuel(TankID) < 2000)
+			    if(GetTankFuel(TankID) <= 0)
 			    {
 			        SendClientMessageEx(playerid, ROUGE, "There is not enough gas left!", "Cette citerne ne contient pas assez d'essence !", "Espagnol", "Portugais", "Italien", "Allemand");
 			        return 1;
 			    }
-			    GiveTankFuel(TankID, -2000);
-				GivePlayerSlotObject(playerid, 30, slot, 2000);
+			    else if(GetTankFuel(TankID) < 2000)
+			    {
+					dGasAmount = GetTankFuel(TankID);
+			    }
+				else {
+					dGasAmount = Min(2000, GetTankFuel(TankID));
+				}
+			    GiveTankFuel(TankID, -dGasAmount);
+				GivePlayerSlotObject(playerid, 30, slot, (dGasAmount / 100));
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
 			}
@@ -19389,14 +19632,21 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			    SendClientMessageEx(playerid, ROUGE, "You are not near a gas station!", "Vous n'êtes pas proche d'une station service !", "¡No esta cerca de una estacíon de gasolíno!", "Portugais", "Italien", "Sie sint in der Nähe eines Tankstelle!");
 				return 1;
 			}
-			if(GetStationFuel(dStation) < 2000)
+			if(GetStationFuel(dStation) <= 0)
 			{
 			    SendClientMessageEx(playerid, ROUGE, "This gas station does not have enough gas left!", "Cette station service n'a pas assez d'essence !", "¡Esta estacíon de gasolíno no tiene suficiente de gasolíno!", "Portugais", "Italien", "Allemand");
 				return 1;
 			}
+			else if(GetStationFuel(dStation) < 2000)
+			{
+				dGasAmount = GetStationFuel(dStation);
+			}
+			else {
+				dGasAmount = Min(2000, GetStationFuel(dStation));
+			}
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GiveStationFuel(dStation, -2000);
-			GivePlayerSlotObject(playerid, 30, slot, 2000);
+			GiveStationFuel(dStation, -dGasAmount);
+			GivePlayerSlotObject(playerid, 30, slot, (dGasAmount / 100));
 		}
 		case 32://CZECH VEST
 		{
@@ -19418,7 +19668,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			}
 			switch(pPlayerInfos[playerid][pBag])
 			{
-				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
+				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10), 1);
 			}
 			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = ASSAULT_PACK;
@@ -19433,8 +19683,8 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			}
 			switch(pPlayerInfos[playerid][pBag])
 			{
-				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
-				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10));
+				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10), 1);
+				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10), 1);
 			}
 			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = ALICE_PACK;
@@ -19449,9 +19699,9 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			}
 			switch(pPlayerInfos[playerid][pBag])
 			{
-				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
-				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10));
-				case ALICE_PACK: PlayerDropObject(playerid, 34, floatdiv(RandomEx(5, 20), 10));
+				case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10), 1);
+				case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10), 1);
+				case ALICE_PACK: PlayerDropObject(playerid, 34, floatdiv(RandomEx(5, 20), 10), 1);
 			}
 			RemovePlayerSlotObject(playerid, slot);
 			pPlayerInfos[playerid][pBag] = COYOTE_PACK;
@@ -19499,6 +19749,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		}
 		case 40://BOUTEILLE VIDE
 		{
+			new dGasAmount = 0;
 			new Pointer:TankID = IsPlayerNearTank(playerid);
 			new tank[Tank];
 			MEM_get_arr(TankID, _, tank);
@@ -19528,14 +19779,21 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		    }
 			else if(!IsNull(dStation))
 			{
-				if(GetStationFuel(dStation) < 500)
+				if(GetStationFuel(dStation) <= 0)
 				{
-				    SendClientMessageEx(playerid, ROUGE, "This gas station does not have enough gas left!", "Cette station service n'a pas assez d'essence !", "¡Esta estacíon de gasolíno no tiene suficiente de gasolíno!", "Portugais", "Italien", "Allemand");
+					SendClientMessageEx(playerid, ROUGE, "This gas station does not have enough gas left!", "Cette station service n'a pas assez d'essence !", "¡Esta estacíon de gasolíno no tiene suficiente de gasolíno!", "Portugais", "Italien", "Allemand");
 					return 1;
 				}
+				else if(GetStationFuel(dStation) < 5000)
+				{
+					dGasAmount = GetStationFuel(dStation);
+				}
+				else {
+					dGasAmount = Min(500, GetStationFuel(dStation));
+				}
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-				GiveStationFuel(dStation, -500);
-				GivePlayerSlotObject(playerid, 98, slot, 1);
+				GiveStationFuel(dStation, -dGasAmount);
+				GivePlayerSlotObject(playerid, 98, slot, (dGasAmount / 100));
 				return 1;
 			}
 			else if(IsPlayerInWater(playerid))
@@ -20291,17 +20549,18 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 		}
 		case 98://BOUTEILLE D'ESSENCE
 		{
+			new dGasAmount = GetPlayerSlotObjectExtraVal(playerid, slot) * 100;
 			new Pointer:TankID = IsPlayerNearTank(playerid);
 			new tank[Tank];
 			MEM_get_arr(TankID, _, tank);
 			if(!IsNull(TankID) && tank[dTankGas] != 1)
 			{
-			    if(GetTankFuel(TankID) + 400 > MAX_TANK_FUEL)
+			    if(GetTankFuel(TankID) + (dGasAmount) > MAX_TANK_FUEL)
 			    {
 			        SendClientMessageEx(playerid, ROUGE, "This tank is full!", "Cette citerne est pleine !", "Espagnol", "Portugais", "Italien", "Allemand");
 			        return 1;
 			    }
-			    GiveTankFuel(TankID, 500);
+			    GiveTankFuel(TankID, (dGasAmount));
 				GivePlayerSlotObject(playerid, 40, slot, 1);
 				ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
 				return 1;
@@ -20328,14 +20587,14 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 				return 1;
 			}
 			//---
-			if(dVehicleInfos[vehicle][dFuel] > GetVehicleMaxFuel(vehicle) - 200)
+			if(dVehicleInfos[vehicle][dFuel] > GetVehicleMaxFuel(vehicle) - ((dGasAmount) / 2))
 			{
 			    SendClientMessageEx(playerid, ROUGE, "This vehicle doesn't need gas!", "Ce véhicule n'a pas besoin d'essence !", "¡Esto vehículo no necessita gasolina!", "Portugais", "Italien", "Allemand");
 				return 1;
 			}
 			//---
 			ApplyAnimation(playerid, "BOMBER", "BOM_Plant", 4.0, 0, 0, 0, 0, 0);
-			GiveVehicleFuel(vehicle, 500);
+			GiveVehicleFuel(vehicle, dGasAmount);
 			GivePlayerSlotObject(playerid, 40, slot, 1);
 		}
 		case 99://MINE
@@ -20898,8 +21157,9 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 			{
 			    if(pPlayerOfflineInfos[playerid][dReturnedItem][i] != 0)
 			    {
-					PlayerDropObject(playerid, pPlayerOfflineInfos[playerid][dReturnedItem][i], floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, pPlayerOfflineInfos[playerid][dReturnedItem][i], floatdiv(RandomEx(5, 20), 10), pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i]);
 					pPlayerOfflineInfos[playerid][dReturnedItem][i] = 0;
+					pPlayerOfflineInfos[playerid][dReturnedItemExtraVal][i] = 1;
 					if(!bItemFound) bItemFound = true;
 			    }
 			}
@@ -20920,7 +21180,7 @@ UsePlayerItem(playerid, slot = 0)//Fonction à appeler lorsque le mec appuie sur 
 
 //---OBJETS SUR LE SOL
 #if defined MYSQL_SYSTEM
-public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire qu'un objet soit drop par un joueur
+public PlayerDropObject(playerid, objectid, Float:distance, extraVal)//Fonction pour faire qu'un objet soit drop par un joueur
 {
 	if(!FCNPC_IsValid(playerid))//La seule fois où un NPC peut drop, c'est quand il meurt, donc on ne met l'animation que si c'est un joueur vivant
 	{
@@ -20949,7 +21209,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	{
     	CA_FindZ_For2DCoord(x2, y2, z2);
 	}
-	new Pointer:dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, -1, 1, -1);//On crée l'objet, là, au sol
+	new Pointer:dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, -1, extraVal, -1);//On crée l'objet, là, au sol
 	new item[Items];
 	MEM_get_arr(dSlotID, _, item);
 	SetDynamicObjectPos(item[dItemObjectID], x, y, z);//On remonte l'objet à hauteur du joueur
@@ -20970,7 +21230,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 		item[xItem] = x;
 		item[yItem] = y;
 		item[zItem] = z;
-		item[dItemExtraVal] = extraVal;
+		item[dItemSaleExtraVal] = extraVal;
 		if(spawned) item[bAutoSpawn] = true, dSpawnedItems ++;
 	    item[ObjectText] = CreateDynamic3DTextLabel(GetFormattedObjectName(LANGUAGE_EN, objectid, extraVal, true), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
 		item[dItemID] = id;
@@ -21002,7 +21262,7 @@ public DestroyItem(Pointer:itemid)
 	item[xItem] = 0.0;
 	item[yItem] = 0.0;
 	item[zItem] = 0.0;
-	item[dItemExtraVal] = 1;
+	item[dItemSaleExtraVal] = 1;
 	if(item[bAutoSpawn]) item[bAutoSpawn] = false, dSpawnedItems --;
 	item[ObjectText] = Text3D:INVALID_3DTEXT_ID;
 	itemid = MEM_NULLPTR;
@@ -21088,7 +21348,7 @@ public LoadItems_data(name[],value[])
 	    format(string, sizeof(string), "zItem%d", i);
 		INI_Float(string, dItems[i][zItem]);
 	    format(string, sizeof(string), "ItemExtraVal%d", i);
-		INI_Float(string, dItems[i][dItemExtraVal]);
+		INI_Float(string, dItems[i][dItemSaleExtraVal]);
 	}
 	return 1;
 }
@@ -21111,12 +21371,12 @@ SaveItems()
 	    format(string, sizeof(string), "zItem%d", i);
 		INI_WriteFloat(File,string, dItems[i][zItem]);
 	    format(string, sizeof(string), "ItemExtraVal%d", i);
-		INI_WriteInt(File,string, dItems[i][dItemExtraVal]);
+		INI_WriteInt(File,string, dItems[i][dItemSaleExtraVal]);
 	}
 	INI_Close(File);
 }
 
-public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire qu'un objet soit drop par un joueur
+public PlayerDropObject(playerid, objectid, Float:distance, extraVal)//Fonction pour faire qu'un objet soit drop par un joueur
 {
 	if(!FCNPC_IsValid(playerid))//La seule fois où un NPC peut drop, c'est quand il meurt, donc on ne met l'animation que si c'est un joueur vivant
 	{
@@ -21145,7 +21405,7 @@ public PlayerDropObject(playerid, objectid, Float:distance)//Fonction pour faire
 	{
     	CA_FindZ_For2DCoord(x2, y2, z2);
 	}
-	new dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, 1, -1);//On crée l'objet, là, au sol
+	new dSlotID = CreateItem(objectid, x2, y2, z2 + 1.0, false, 1, extraVal, -1);//On crée l'objet, là, au sol
 	SetDynamicObjectPos(dItems[dSlotID][dItemObjectID], x, y, z);//On remonte l'objet à hauteur du joueur
 	Streamer_Update(playerid);//On actualise le streamer pour que l'objet soit vu en train de tomber
 	//---
@@ -21182,7 +21442,7 @@ public CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, extraVal = 
 		dItems[(load == -1) ? slotid : load][xItem] = x;
 		dItems[(load == -1) ? slotid : load][yItem] = y;
 		dItems[(load == -1) ? slotid : load][zItem] = z;
-		dItems[(load == -1) ? slotid : load][dItemExtraVal] = extraVal;
+		dItems[(load == -1) ? slotid : load][dItemSaleExtraVal] = extraVal;
 		if(spawned) dItems[(load == -1) ? slotid : load][bAutoSpawn] = true, dSpawnedItems ++;
 	    dItems[(load == -1) ? slotid : load][ObjectText] = CreateDynamic3DTextLabel(GetFormattedObjectName(LANGUAGE_EN, objectid, extraVal, true), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
     }
@@ -21196,7 +21456,7 @@ public DestroyItem(itemid)
 	DestroyDynamicObject(dItems[itemid][dItemObjectID]);
 	dItems[itemid][dItemObjectID] = INVALID_OBJECT_ID;
 	dItems[itemid][ItemID] = 0;
-	dItems[itemid][dItemExtraVal] = 1;
+	dItems[itemid][dItemSaleExtraVal] = 1;
 	dItems[itemid][xItem] = 0.0;
 	dItems[itemid][yItem] = 0.0;
 	dItems[itemid][zItem] = 0.0;
@@ -21232,13 +21492,13 @@ public GetItemWithinDistance(Float:x1, Float:y1, Float:z1, Float:dist)//Fonction
 	return -1;
 }
 #endif
-UpdatePlayerHand(playerid, objectid)//Fonction pour update l'objet que le mec a en main
+UpdatePlayerHand(playerid, objectid, extraval)//Fonction pour update l'objet que le mec a en main
 {
 	PlayerTextDrawSetPreviewModel(playerid, tInventObjet[playerid][0], aObjects[objectid][ObjectModelID]);
 	PlayerTextDrawSetPreviewRot(playerid, tInventObjet[playerid][0], aObjects[objectid][ObjectRotX], aObjects[objectid][ObjectRotY], aObjects[objectid][ObjectRotZ], aObjects[objectid][ObjectZoom]);
 	if(!IsHUDHiddenForPlayer(playerid)) PlayerTextDrawShow(playerid, tInventObjet[playerid][0]);
 	//---
-	PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, 0), false));
+	PlayerTextDrawSetString(playerid, tInventObjet[playerid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 	if(!IsHUDHiddenForPlayer(playerid)) PlayerTextDrawShow(playerid, tInventObjet[playerid][1]);
 	//---
 	if(aObjects[objectid][bHeavy]) SetPlayerSpecialAction(playerid,SPECIAL_ACTION_CARRY);
@@ -21248,7 +21508,7 @@ UpdatePlayerHand(playerid, objectid)//Fonction pour update l'objet que le mec a 
 	else S_SetPlayerAttachedObject(playerid, HAND_OBJECT_ID, aObjects[objectid][ObjectModelID], 5, aObjects[objectid][HandOffSetX], aObjects[objectid][HandOffSetY], aObjects[objectid][HandOffSetZ], aObjects[objectid][HandRotX], aObjects[objectid][HandRotY], aObjects[objectid][HandRotZ], aObjects[objectid][HandZoom], aObjects[objectid][HandZoom], aObjects[objectid][HandZoom], -1, -1);
 }
 
-UpdatePlayerInventory(playerid, slotid, objectid)//Fonction pour update une case de l'inventaire
+UpdatePlayerInventory(playerid, slotid, objectid, extraval)//Fonction pour update une case de l'inventaire
 {
 	if(pUseInventory[playerid] != -1)
 	{
@@ -21259,7 +21519,7 @@ UpdatePlayerInventory(playerid, slotid, objectid)//Fonction pour update une case
 			PlayerTextDrawSetSelectable(playerid,tInventory[playerid][slotid][0], false);
 			PlayerTextDrawHide(playerid, tInventory[playerid][slotid][0]);
 			//---
-			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
+			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 			PlayerTextDrawHide(playerid, tInventory[playerid][slotid][1]);
 		}
 		else
@@ -21269,13 +21529,13 @@ UpdatePlayerInventory(playerid, slotid, objectid)//Fonction pour update une case
 			PlayerTextDrawSetSelectable(playerid,tInventory[playerid][slotid][0], true);
 			PlayerTextDrawShow(playerid, tInventory[playerid][slotid][0]);
 			//---
-			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
+			PlayerTextDrawSetString(playerid, tInventory[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 			PlayerTextDrawShow(playerid, tInventory[playerid][slotid][1]);
 		}
 	}
 }
 
-UpdateVehicleInventory(playerid, vehicleid, slotid, objectid)//Fonction pour update une case du coffre d'une bagnole
+UpdateVehicleInventory(playerid, vehicleid, slotid, objectid, extraval)//Fonction pour update une case du coffre d'une bagnole
 {
 	if(objectid == -1) objectid = 0;
   	if(vehicleid != INVALID_VEHICLE_ID)
@@ -21288,7 +21548,7 @@ UpdateVehicleInventory(playerid, vehicleid, slotid, objectid)//Fonction pour upd
 			PlayerTextDrawHide(playerid, tVehicleTrunk[playerid][slotid][0]);
 			//---
 			
-			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
+			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 			PlayerTextDrawHide(playerid, tVehicleTrunk[playerid][slotid][1]);
 		}
 		else
@@ -21298,7 +21558,7 @@ UpdateVehicleInventory(playerid, vehicleid, slotid, objectid)//Fonction pour upd
 			PlayerTextDrawSetSelectable(playerid,tVehicleTrunk[playerid][slotid][0], true);
 			PlayerTextDrawShow(playerid, tVehicleTrunk[playerid][slotid][0]);
 			//---
-			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, GetPlayerSlotObjectExtraVal(playerid, slotid), false));
+			PlayerTextDrawSetString(playerid, tVehicleTrunk[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 			PlayerTextDrawShow(playerid, tVehicleTrunk[playerid][slotid][1]);
 		}
 	}
@@ -23613,6 +23873,7 @@ public OnGameModeExit()
 			SaveUser(i), ResetPlayerVariables(i);
 	SaveGeneralInfos();
 	SaveGasStations();
+	SaveVehicles();
 	//SaveGold();
 	//SaveSeats();
 	mysql_close(mysqlPool);
@@ -24462,7 +24723,7 @@ public OnPlayerSpawn(playerid)
 		DressPlayer(playerid, 7);
 		DressPlayer(playerid, 8);
 		AttachPlayerBackPack(playerid);
-		UpdatePlayerHand(playerid, pPlayerInfos[playerid][HandObject]);
+		UpdatePlayerHand(playerid, pPlayerInfos[playerid][HandObject], pPlayerInfos[playerid][HandObjectExtraVal]);
     	for(new s = 0; s < 10; s ++)
         {
             if(pAcc[playerid][s][model] == 0) continue;
@@ -24571,15 +24832,16 @@ public OnPlayerDies(playerid, killerid, reason)
 		FindZPathCoord(x, y, z, x, y, z, false);
 		CreateMarker(x, y, z + 2.0);
 		//---PERTE OBJETS---//
-		new dBagSize, dObjectID;
+		new dBagSize, dObjectID, dObjectExtraVal;
 		//OBJETS
 		dBagSize = GetPlayerBagSize(playerid, true);
 		for(new i = 0; i < dBagSize + 1; i ++)
 		{
 		    dObjectID = GetPlayerSlotObject(playerid, i);
+			dObjectExtraVal = GetPlayerSlotObjectExtraVal(playerid, i);
 		    if(dObjectID != 0)
 		    {
-				PlayerDropObject(playerid, dObjectID, floatdiv(RandomEx(5, 20), 10));
+				PlayerDropObject(playerid, dObjectID, floatdiv(RandomEx(5, 20), 10), dObjectExtraVal);
 				RemovePlayerSlotObject(playerid, i);
 		    }
 		}
@@ -24657,10 +24919,10 @@ public OnPlayerDies(playerid, killerid, reason)
 		//SAC À DOS
 		switch(pPlayerInfos[playerid][pBag])
 		{
-			case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10));
-			case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10));
-			case ALICE_PACK: PlayerDropObject(playerid, 34, floatdiv(RandomEx(5, 20), 10));
-			case COYOTE_PACK: PlayerDropObject(playerid, 35, floatdiv(RandomEx(5, 20), 10));
+			case CZECH_VEST: PlayerDropObject(playerid, 32, floatdiv(RandomEx(5, 20), 10), 1);
+			case ASSAULT_PACK: PlayerDropObject(playerid, 33, floatdiv(RandomEx(5, 20), 10), 1);
+			case ALICE_PACK: PlayerDropObject(playerid, 34, floatdiv(RandomEx(5, 20), 10), 1);
+			case COYOTE_PACK: PlayerDropObject(playerid, 35, floatdiv(RandomEx(5, 20), 10), 1);
 		}
 		//SetTimerEx("RespawnPlayer", 2500, false, "i", playerid);
 		pPlayerInfos[playerid][pBag] = PATROL_PACK;
@@ -24778,7 +25040,7 @@ public FCNPC_OnDeath(npcid, killerid, reason)
 			{
 				if(RandomEx(0, 10) < 3)
 				{
-					PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 				else
 				{
@@ -24787,7 +25049,7 @@ public FCNPC_OnDeath(npcid, killerid, reason)
 				//---
 				if(RandomEx(0, 10) < 5)
 				{
-					PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 			}
 		}
@@ -24834,7 +25096,7 @@ public FCNPC_OnDeath(npcid, killerid, reason)
 		//---
 		if(killerid != INVALID_PLAYER_ID)
 		{
-			//PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10));
+			//PlayerDropObject(npcid, CallRemoteFunction("PickRandomItem", "ddddddd", 30, 5, 10, 15, 30, 10, 0), floatdiv(RandomEx(5, 20), 10), 1);
 		}
 	}
 	return 1;
@@ -25698,7 +25960,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 				UpdatePlayerInventorySlots(playerid);
 				for(new i = 0; i < 5; i ++) UpdatePlayerClothesTexts(playerid, i);
 				for(new i = 0; i < 4; i ++) UpdatePlayerWeaponTexts(playerid, i + 1);
-				for(new i = 0; i < 36; i ++) UpdatePlayerInventory(playerid, i, pPlayerInfos[playerid][BagObject][i]);
+				for(new i = 0; i < 36; i ++) UpdatePlayerInventory(playerid, i, pPlayerInfos[playerid][BagObject][i], pPlayerInfos[playerid][BagObjectExtraVal][i]);
 				//---
 				new vehicleid = GetVehicleID(GetPlayerVehicleID(playerid));
 				if(vehicleid == -1)
@@ -25716,7 +25978,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 					#endif
 					TextDrawShowForPlayer(playerid, tFondHUD[3]);
 					pVehicleInventory[playerid] = vehicleid;
-					for(new i = 0; i < 6; i ++) UpdateVehicleInventory(playerid, vehicleid, i, dVehicleInfos[vehicleid][TrunkObject][i]);
+					for(new i = 0; i < 6; i ++) UpdateVehicleInventory(playerid, vehicleid, i, dVehicleInfos[vehicleid][TrunkObject][i], dVehicleInfos[vehicleid][TrunkObjectExtraVal][i]);
 					UpdateVehicleHUD(playerid);
 					SetVehicleTrunkState(dVehicleInfos[pVehicleInventory[playerid]][dVehicleID], true);
 				}
@@ -25732,7 +25994,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 						#if !defined KEEP_PLAYERTEXT
 						CreatePlayerSafe(playerid);
 						#endif
-						for(new i = 0; i < 12; i ++) UpdateSafe(playerid, pPlayerSafe[playerid], i, safe[dItemContained][i]);
+						for(new i = 0; i < 12; i ++) UpdateSafe(playerid, pPlayerSafe[playerid], i, safe[dItemContained][i], safe[dItemContainedExtraVal][i]);
 					}
 					else
 					{
@@ -27067,205 +27329,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		        switch(pUseInventory[playerid])
 		        {
 		            //---ARMES---//
-		            case 1:
+		            case 1, 2, 3, 4:
 		            {
-		                if(listitem == 0)//
-					  	{
-					        if(GetPlayerWeaponSkill(playerid, 1) == WEAPON_AKIMBO)
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme1][0], floatround(floatdiv(pPlayerInfos[playerid][pArme1][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme1][0], floatround(floatdiv(pPlayerInfos[playerid][pArme1][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-							}
-							else
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme1][0], pPlayerInfos[playerid][pArme1][1], floatdiv(RandomEx(5, 20), 10));
-							}
-							PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
-							SetPlayerWeaponSkill(playerid, 1, WEAPON_SIMPLE);
-							RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme1][0]);
-			                pPlayerInfos[playerid][pArme1][0] = 0;
-			                pPlayerInfos[playerid][pArme1][1] = 0;
-							CloseTextDraws(playerid);
-		                }
-		                else if(listitem == 1)//RANGER
-		                {
-		                    new Pointer:rackid = IsPlayerNearRack(playerid);
-							if(!IsNull(rackid))
-							{
-								new slotid = GetRackNextFreeSlot(rackid);
-								if(slotid != -1)
-								{
-							        if(GetPlayerWeaponSkill(playerid, 1) == WEAPON_AKIMBO)
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme1][0], floatround(floatdiv(pPlayerInfos[playerid][pArme1][1], 2), floatround_round));
-										GivePlayerWeaponEx(playerid, pPlayerInfos[playerid][pArme1][0], -floatround(floatdiv(pPlayerInfos[playerid][pArme1][1], 2), floatround_round));
-										SetPlayerWeaponSkill(playerid, 1, WEAPON_SIMPLE);
-									}
-									else
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme1][0], pPlayerInfos[playerid][pArme1][1]);
-										RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme1][0]);
-						                pPlayerInfos[playerid][pArme1][0] = 0;
-						                pPlayerInfos[playerid][pArme1][1] = 0;
-									}
-								}
-								else
-								{
-									SendClientMessageEx(playerid, ROUGE, "This gunrack cannot contain any extra weapon!", "Cette étagère ne peut contenir plus d'armes !", "Espagnol", "Portugais", "Italien", "Allemand");
-								}
-							}
-							CloseTextDraws(playerid);
-		                }
-		            }
-		            case 2:
-		            {
-		                if(listitem == 0)
-					  	{
-					        if(GetPlayerWeaponSkill(playerid, 2) == WEAPON_AKIMBO)
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme2][0], floatround(floatdiv(pPlayerInfos[playerid][pArme2][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme2][0], floatround(floatdiv(pPlayerInfos[playerid][pArme2][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-							}
-							else
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme2][0], pPlayerInfos[playerid][pArme2][1], floatdiv(RandomEx(5, 20), 10));
-							}
-							PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
-							RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme2][0]);
-							SetPlayerWeaponSkill(playerid, 2, WEAPON_SIMPLE);
-			                pPlayerInfos[playerid][pArme2][0] = 0;
-			                pPlayerInfos[playerid][pArme2][1] = 0;
-							CloseTextDraws(playerid);
-						}
-		                else if(listitem == 1)//RANGER
-		                {
-		                    new Pointer:rackid = IsPlayerNearRack(playerid);
-							if(!IsNull(rackid))
-							{
-								new slotid = GetRackNextFreeSlot(rackid);
-								if(slotid != -1)
-								{
-							        if(GetPlayerWeaponSkill(playerid, 2) == WEAPON_AKIMBO)
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme2][0], floatround(floatdiv(pPlayerInfos[playerid][pArme2][1], 2), floatround_round));
-										GivePlayerWeaponEx(playerid, pPlayerInfos[playerid][pArme2][0], -floatround(floatdiv(pPlayerInfos[playerid][pArme2][1], 2), floatround_round));
-										SetPlayerWeaponSkill(playerid, 2, WEAPON_SIMPLE);
-									}
-									else
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme2][0], pPlayerInfos[playerid][pArme2][1]);
-										RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme2][0]);
-						                pPlayerInfos[playerid][pArme2][0] = 0;
-						                pPlayerInfos[playerid][pArme2][1] = 0;
-									}
-								}
-								else
-								{
-									SendClientMessageEx(playerid, ROUGE, "This gunrack cannot contain any extra weapon!", "Cette étagère ne peut contenir plus d'armes !", "Espagnol", "Portugais", "Italien", "Allemand");
-								}
-							}
-							CloseTextDraws(playerid);
-		                }
-		            }
-		            case 3:
-		            {
-		                if(listitem == 0)
-					  	{
-					        if(GetPlayerWeaponSkill(playerid, 3) == WEAPON_AKIMBO)
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme3][0], floatround(floatdiv(pPlayerInfos[playerid][pArme3][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme3][0], floatround(floatdiv(pPlayerInfos[playerid][pArme3][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-							}
-							else
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme3][0], pPlayerInfos[playerid][pArme3][1], floatdiv(RandomEx(5, 20), 10));
-							}
-							PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
-							RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme3][0]);
-							SetPlayerWeaponSkill(playerid, 3, WEAPON_SIMPLE);
-			                pPlayerInfos[playerid][pArme3][0] = 0;
-			                pPlayerInfos[playerid][pArme3][1] = 0;
-							CloseTextDraws(playerid);
-						}
-		                else if(listitem == 1)//RANGER
-		                {
-		                    new Pointer:rackid = IsPlayerNearRack(playerid);
-							if(!IsNull(rackid))
-							{
-								new slotid = GetRackNextFreeSlot(rackid);
-								if(slotid != -1)
-								{
-							        if(GetPlayerWeaponSkill(playerid, 3) == WEAPON_AKIMBO)
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme3][0], floatround(floatdiv(pPlayerInfos[playerid][pArme3][1], 2), floatround_round));
-										GivePlayerWeaponEx(playerid, pPlayerInfos[playerid][pArme3][0], -floatround(floatdiv(pPlayerInfos[playerid][pArme3][1], 2), floatround_round));
-										SetPlayerWeaponSkill(playerid, 3, WEAPON_SIMPLE);
-									}
-									else
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme3][0], pPlayerInfos[playerid][pArme3][1]);
-										RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme3][0]);
-						                pPlayerInfos[playerid][pArme3][0] = 0;
-						                pPlayerInfos[playerid][pArme3][1] = 0;
-									}
-								}
-								else
-								{
-									SendClientMessageEx(playerid, ROUGE, "This gunrack cannot contain any extra weapon!", "Cette étagère ne peut contenir plus d'armes !", "Espagnol", "Portugais", "Italien", "Allemand");
-								}
-							}
-							CloseTextDraws(playerid);
-		                }
-		            }
-		            case 4:
-		            {
-		                if(listitem == 0)
-					  	{
-					        if(GetPlayerWeaponSkill(playerid, 4) == WEAPON_AKIMBO)
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme4][0], floatround(floatdiv(pPlayerInfos[playerid][pArme4][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme4][0], floatround(floatdiv(pPlayerInfos[playerid][pArme4][1], 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-							}
-							else
-							{
-								PlayerDropWeapon(playerid, pPlayerInfos[playerid][pArme4][0], pPlayerInfos[playerid][pArme4][1], floatdiv(RandomEx(5, 20), 10));
-							}
-							PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
-							RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme4][0]);
-							SetPlayerWeaponSkill(playerid, 4, WEAPON_SIMPLE);
-			                pPlayerInfos[playerid][pArme4][0] = 0;
-			                pPlayerInfos[playerid][pArme4][1] = 0;
-							CloseTextDraws(playerid);
-						}
-		                else if(listitem == 1)//RANGER
-		                {
-		                    new Pointer:rackid = IsPlayerNearRack(playerid);
-							if(!IsNull(rackid))
-							{
-								new slotid = GetRackNextFreeSlot(rackid);
-								if(slotid != -1)
-								{
-							        if(GetPlayerWeaponSkill(playerid, 4) == WEAPON_AKIMBO)
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme4][0], floatround(floatdiv(pPlayerInfos[playerid][pArme4][1], 2), floatround_round));
-										GivePlayerWeaponEx(playerid, pPlayerInfos[playerid][pArme4][0], -floatround(floatdiv(pPlayerInfos[playerid][pArme4][1], 2), floatround_round));
-										SetPlayerWeaponSkill(playerid, 4, WEAPON_SIMPLE);
-									}
-									else
-									{
-										AddGunRackWeapon(rackid, slotid, pPlayerInfos[playerid][pArme4][0], pPlayerInfos[playerid][pArme4][1]);
-										RemovePlayerWeapon(playerid, pPlayerInfos[playerid][pArme4][0]);
-						                pPlayerInfos[playerid][pArme4][0] = 0;
-						                pPlayerInfos[playerid][pArme4][1] = 0;
-									}
-								}
-								else
-								{
-									SendClientMessageEx(playerid, ROUGE, "This gunrack cannot contain any extra weapon!", "Cette étagère ne peut contenir plus d'armes !", "Espagnol", "Portugais", "Italien", "Allemand");
-								}
-							}
-							CloseTextDraws(playerid);
-		                }
+						if(TreatPlayerWeapon(playerid, pUseInventory[playerid], listitem) != -1) CloseTextDraws(playerid);
 		            }
 		            //---VÊTEMENTS---//
 		            case 5://CHAPEAU
@@ -27277,7 +27343,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		                }
 		                else if(listitem == 1)
 		                {
-							PlayerDropObject(playerid, pPlayerInfos[playerid][pChapeau], floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, pPlayerInfos[playerid][pChapeau], floatdiv(RandomEx(5, 20), 10), 1);
 							pPlayerInfos[playerid][pChapeau] = 0;
 							DressPlayer(playerid, 1);
 							CloseTextDraws(playerid);
@@ -27292,7 +27358,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		                }
 		                else if(listitem == 1)
 		                {
-							PlayerDropObject(playerid, pPlayerInfos[playerid][pLunettes], floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, pPlayerInfos[playerid][pLunettes], floatdiv(RandomEx(5, 20), 10), 1);
 							pPlayerInfos[playerid][pLunettes] = 0;
 							DressPlayer(playerid, 2);
 							CloseTextDraws(playerid);
@@ -27307,7 +27373,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		                }
 		                else if(listitem == 1)
 		                {
-							PlayerDropObject(playerid, pPlayerInfos[playerid][pMasque], floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, pPlayerInfos[playerid][pMasque], floatdiv(RandomEx(5, 20), 10), 1);
 							pPlayerInfos[playerid][pMasque] = 0;
 							DressPlayer(playerid, 3);
 							CloseTextDraws(playerid);
@@ -27322,7 +27388,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		                }
 		                else if(listitem == 1)
 		                {
-							PlayerDropObject(playerid, pPlayerInfos[playerid][pTorse], floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, pPlayerInfos[playerid][pTorse], floatdiv(RandomEx(5, 20), 10), 1);
 							//---
 		                    if(pPlayerInfos[playerid][pTorse] == 83) SetArmourForPlayer(playerid, 0);
 		                    //---
@@ -27348,7 +27414,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								return 1;
 							}
 							LogInfo(true, "[JOUEUR]%s depose %s", GetName(playerid), NoNewLineSign(aObjects[GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8)][ObjectFrName]));
-							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, pUseInventory[playerid] - 8), floatdiv(RandomEx(5, 20), 10), GetPlayerSlotObjectExtraVal(playerid, pUseInventory[playerid] - 8));
 							RemovePlayerSlotObject(playerid, pUseInventory[playerid] - 8);
 							SelectTextDraw(playerid, VERT);
 							pUseInventory[playerid] = 0;
@@ -27459,7 +27525,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 								CloseTextDraws(playerid);
 								return 1;
 							}
-							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, 0), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetPlayerSlotObject(playerid, 0), floatdiv(RandomEx(5, 20), 10), GetPlayerSlotObjectExtraVal(playerid, 0));
 							RemovePlayerSlotObject(playerid, 0);
 							SelectTextDraw(playerid, VERT);
 							pUseInventory[playerid] = 0;
@@ -27584,7 +27650,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
-			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
+			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemSaleExtraVal]);
 					if(aObjects[item[ItemID]][bHeavy])
 					{
 						ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -27623,12 +27689,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					        }
 					        else
 					        {
-								PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+								PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 					        }
 				    	}
 				    	else
 				    	{
-							PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 				    	}
 						DestroyWeapon(nodeFound[playerid][listitem]);
 					    return 1;
@@ -27638,7 +27704,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						if(GetWeaponAmmoType(GetPlayerWeapon(playerid)) == GetWeaponAmmoType(gun[WeaponID]) && GetWeaponAmmoType(GetPlayerWeapon(playerid)) != NO_AMMO)
 						{
 							GivePlayerWeaponEx(playerid, GetPlayerWeapon(playerid), gun[WeaponAmmo]);
-							PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetObjectFromWeapon(gun[WeaponID]), floatdiv(RandomEx(5, 20), 10), 1);
 							DestroyWeapon(nodeFound[playerid][listitem]);
 							return 1;
 						}
@@ -30312,7 +30378,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						}
 						else
 						{
-							PlayerDropObject(playerid, GetObjectFromWeapon(gun), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetObjectFromWeapon(gun), floatdiv(RandomEx(5, 20), 10), 1);
 						}
 					    GivePlayerWeaponEx(playerid, gun, ammo);
 						AddGunRackWeapon(pGunRack[playerid], listitem, 0, 0);
@@ -30323,7 +30389,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 						if(GetWeaponAmmoType(GetPlayerWeapon(playerid)) == GetWeaponAmmoType(gun) && GetWeaponAmmoType(gun) != NO_AMMO)
 						{
 							GivePlayerWeaponEx(playerid, GetPlayerWeapon(playerid), ammo);
-							PlayerDropObject(playerid, GetObjectFromWeapon(gun), floatdiv(RandomEx(5, 20), 10));
+							PlayerDropObject(playerid, GetObjectFromWeapon(gun), floatdiv(RandomEx(5, 20), 10), 1);
 							AddGunRackWeapon(pGunRack[playerid], listitem, 0, 0);
 							return 1;
 						}
@@ -31317,7 +31383,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				//---
 		        pPlayerInfos[playerid][pLangue] = listitem;
 		        //---
-				UpdatePlayerHand(playerid, pPlayerInfos[playerid][HandObject]);//On actualise l'objet dans la main
+				UpdatePlayerHand(playerid, pPlayerInfos[playerid][HandObject], pPlayerInfos[playerid][HandObjectExtraVal]);//On actualise l'objet dans la main
 			    UpdateInfo(playerid, 4);//On actualise l'or
 			    UpdateInfo(playerid, 7);//On actualise la température
 				UpdateInfo(playerid, 8);//On actualise l'état de la jambe
@@ -31898,27 +31964,57 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 		    	        }
 		    	        if(GetRackNextFreeSlot(IsPlayerNearRack(playerid)) != -1)
 		    	        {
-							switch(pPlayerInfos[playerid][pLangue])
-					        {
-					            case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop\nStore", "Do", "Cancel");
-					            case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser\nRanger", "Faire", "Annuler");
-					            case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar\nGuardar", "Hacer", "Cancelar");
-					            case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
-								case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
-								case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand\nRäumen" , "Machen", "Schlissen");
-					        }
+							if(IsWeaponFirearm(dArmes[pClicked - 1]))
+							{
+								switch(pPlayerInfos[playerid][pLangue])
+								{
+									case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop\nUnload\nStore", "Do", "Cancel");
+									case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser\nUnload\nRanger", "Faire", "Annuler");
+									case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar\nDescargar\nGuardar", "Hacer", "Cancelar");
+									case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
+									case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
+									case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand\nRäumen" , "Machen", "Schlissen");
+								}
+							}
+							else 
+							{
+								switch(pPlayerInfos[playerid][pLangue])
+								{
+									case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop\nStore", "Do", "Cancel");
+									case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser\nRanger", "Faire", "Annuler");
+									case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar\nGuardar", "Hacer", "Cancelar");
+									case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
+									case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
+									case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand\nRäumen" , "Machen", "Schlissen");
+								}
+							}
 		    	        }
 		    	        else
 		    	        {
-							switch(pPlayerInfos[playerid][pLangue])
-					        {
-					            case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop", "Do", "Cancel");
-					            case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser", "Faire", "Annuler");
-					            case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar", "Hacer", "Cancelar");
-					            case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
-								case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
-								case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand" , "Machen", "Schlissen");
-					        }
+							if(IsWeaponFirearm(dArmes[pClicked - 1]))
+							{
+								switch(pPlayerInfos[playerid][pLangue])
+								{
+									case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop\nUnload", "Do", "Cancel");
+									case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser\nDécharger", "Faire", "Annuler");
+									case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar\nDescargar", "Hacer", "Cancelar");
+									case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
+									case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
+									case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand" , "Machen", "Schlissen");
+								}
+							}
+							else 
+							{
+								switch(pPlayerInfos[playerid][pLangue])
+								{
+									case LANGUAGE_EN: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Drop", "Do", "Cancel");
+									case LANGUAGE_FR: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Poser", "Faire", "Annuler");
+									case LANGUAGE_ES: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Depositar", "Hacer", "Cancelar");
+									case LANGUAGE_PG: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Portugais", "Portugais", "Portugais");
+									case LANGUAGE_IT: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Italien", "Italien", "Italien");
+									case LANGUAGE_DE: ShowPlayerDialog(playerid, 5, DIALOG_STYLE_LIST, GetGunInfo(playerid, pClicked - 1), "Allemand" , "Machen", "Schlissen");
+								}
+							}
 				        }
 				        CancelSelectTextDrawEx(playerid);
 		    	    }
@@ -32405,12 +32501,12 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	            pPlayerInfos[playerid][pArme1][0] = 0;
 	            if(GetPlayerWeaponSkill(playerid, 1) == WEAPON_AKIMBO)
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 	            }
 	            else
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 	            pPlayerInfos[playerid][pArme1][2] = 0;
 	        }
@@ -32423,12 +32519,12 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	            pPlayerInfos[playerid][pArme2][0] = 0;
 	            if(GetPlayerWeaponSkill(playerid, 2) == WEAPON_AKIMBO)
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 	            }
 	            else
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 	            pPlayerInfos[playerid][pArme2][2] = 0;
 	        }
@@ -32441,12 +32537,12 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	            pPlayerInfos[playerid][pArme3][0] = 0;
 	            if(GetPlayerWeaponSkill(playerid, 3) == WEAPON_AKIMBO)
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 	            }
 	            else
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 	            pPlayerInfos[playerid][pArme3][2] = 0;
 	        }
@@ -32459,12 +32555,12 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	            pPlayerInfos[playerid][pArme4][0] = 0;
 	            if(GetPlayerWeaponSkill(playerid, 4) == WEAPON_AKIMBO)
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 	            }
 	            else
 	            {
-					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10));
+					PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 				}
 	            pPlayerInfos[playerid][pArme4][2] = 0;
 	        }
@@ -33464,16 +33560,8 @@ public OnMinutePassed()
 		SaveFiles();
 		#endif
 		SaveGeneralInfos();
-		for(new i = 0; i < MAX_SPAWN_VEHICLES; i++)
-		{
-			new query[512], Float:x, Float:y, Float:z, Float:a, Float:health, content[64];
-			GetVehicleHealth(dVehicleInfos[i][dVehicleID], health);
-			GetVehiclePos(dVehicleInfos[i][dVehicleID], x, y, z);
-			GetVehicleZAngle(dVehicleInfos[i][dVehicleID], a);
-			format(content, sizeof(content), "%d %d %d %d %d %d", dVehicleInfos[i][TrunkObject][0], dVehicleInfos[i][TrunkObject][1], dVehicleInfos[i][TrunkObject][2], dVehicleInfos[i][TrunkObject][3], dVehicleInfos[i][TrunkObject][4], dVehicleInfos[i][TrunkObject][5]);
-			mysql_format(mysqlPool, query, sizeof(query), "UPDATE `vehicles` SET xveh = %f, yveh = %f, zveh = %f, aveh = %f, health = %f, content=\"%s\" WHERE idvehicle = %d", x, y, z, a, health, content, dVehicleInfos[i][dVehID]);
-			mysql_tquery(mysqlPool, query);
-		}
+		SaveVehicles();
+		
 		for(new i = 0; i < GetPlayerPoolSize(); i++)
 		{
 			if(IsPlayerConnected(i) && !IsPlayerNPC(i))
@@ -34049,33 +34137,21 @@ public IsObjectNearToPlayer(Float:radi, playerid, objectid)
 public SwapPlayerObjects(playerid, slotid1, slotid2)//Fonction pour changer de place deux objets à partir des slots
 {
 	new info[2][2];
-	new string[128];
 	info[0][0] = GetPlayerSlotObject(playerid, slotid1);//On récupère l'id de l'objet dans le slot 1
 	info[0][1] = GetPlayerSlotObjectExtraVal(playerid, slotid1);
 
-	format(string, sizeof(string), "slot1: %d | id: %d | ev: %d", slotid1, info[0][0], info[0][1]);
-	SendClientMessage(playerid, 0xCC0000FF, string);
-
 	info[1][0] = GetPlayerSlotObject(playerid, slotid2);//...pareil pour le slot 2
 	info[1][1] = GetPlayerSlotObjectExtraVal(playerid, slotid2);
-
-	format(string, sizeof(string), "slot2: %d | id: %d | ev: %d", slotid2, info[1][0], info[1][1]);
-	SendClientMessage(playerid, 0xCC0000FF, string);
 	//---
 	#if defined TOO_HEAVY_FOR_BAG
 	if((aObjects[info[0]][bHeavy] && 36 > slotid2 > 1) || (aObjects[info[1]][bHeavy] && 36 > slotid1 >= 1)) return 0;
 	#endif
 	//---
-	if(info[0][0] != info[1][0] && info[0][1] != info[1][1])
+	if(info[0][0] != info[1][0] || info[0][1] != info[1][1])
 	{
 		GivePlayerSlotObject(playerid, info[0][0], slotid2, info[0][1]);//Et on give l'objet 1 dans le slot 2 et vice versa
 		GivePlayerSlotObject(playerid, info[1][0], slotid1, info[1][1]);
 	}
-	SendClientMessage(playerid, 0xCC0000FF, "_____________________");
-	format(string, sizeof(string), "slot1: %d | id: %d | ev: %d", slotid1, GetPlayerSlotObject(playerid, slotid1), GetPlayerSlotObjectExtraVal(playerid, slotid1));
-	SendClientMessage(playerid, 0xCC0000FF, string);
-	format(string, sizeof(string), "slot2: %d | id: %d | ev: %d", slotid2, GetPlayerSlotObject(playerid, slotid2), GetPlayerSlotObjectExtraVal(playerid, slotid2));
-	SendClientMessage(playerid, 0xCC0000FF, string);
 	return 1;
 }
 
