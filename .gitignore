@@ -37,3 +37,9 @@ settings.ini
 .history
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pawn,sourcepawn
+/mysql_log.txt
+/server-readme.txt
+/crashinfo.txt
+/fcnpc-crash_2020-08-13_20.49.20.txt
+logs
+/server_log.txt

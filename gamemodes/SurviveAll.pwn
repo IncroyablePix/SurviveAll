@@ -7364,58 +7364,48 @@ stock TreatPlayerWeapon(playerid, weaponslot, option)
 {
 	new string[128];
 	new dChoice = -1;
-	new dWeaponID = GetPlayerSlotWeapon(playerid, weaponslot);
-	new dWeaponAmmo = GetPlayerSlotWeaponAmmo(playerid, weaponslot);
-
-	format(string, sizeof(string), "%d - %d", weaponslot, dWeaponID);
-	SendClientMessage(playerid, 0xCC0000FF, string);
-
-	for(new i = 1; i <= 4; i ++) 
-	{
-		format(string, sizeof(string), "%d -> %d", i, GetPlayerSlotWeapon(playerid, i));
-		SendClientMessage(playerid, 0xCC0000FF, string);
-	}
+	new weaponid = GetPlayerSlotWeapon(playerid, weaponslot);
+	new ammo = GetPlayerSlotWeaponAmmo(playerid, weaponslot);
 	
 	if(option == 0) dChoice = 0;
-	else if(option == 1) dChoice = (IsWeaponFirearm(dWeaponID)) ? 1 : 2;
+	else if(option == 1) dChoice = (IsWeaponFirearm(weaponid)) ? 1 : 2;
 	else if(option == 2) dChoice = 2;
 
 	if(dChoice == 0)//POSER
 	{
 		if(GetPlayerWeaponSkill(playerid, weaponslot) == WEAPON_AKIMBO)
 		{
-			PlayerDropWeapon(playerid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
-			PlayerDropWeapon(playerid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
+			PlayerDropWeapon(playerid, weaponid, floatround(floatdiv(ammo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
+			PlayerDropWeapon(playerid, weaponid, floatround(floatdiv(ammo, 2), floatround_round), floatdiv(RandomEx(5, 20), 10));
 		}
 		else
 		{
-			PlayerDropWeapon(playerid, dWeaponID, dWeaponAmmo, floatdiv(RandomEx(5, 20), 10));
+			PlayerDropWeapon(playerid, weaponid, ammo, floatdiv(RandomEx(5, 20), 10));
 		}
 		PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
 		SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
-		RemovePlayerWeapon(playerid, dWeaponID);
+		RemovePlayerWeapon(playerid, weaponid);
 		ClearPlayerWeaponSlot(playerid, weaponslot);
 	}
 	else if(dChoice == 1)//DÉCHARGER
 	{
-		SendClientMessage(playerid, 0xCC0000FF, "Test unload");
-		new dAmmoItem = GetWeaponAmmoItem(GetWeaponAmmoType(dWeaponID));
+		new dAmmoItem = GetWeaponAmmoItem(GetWeaponAmmoType(weaponid));
 
 		if(GetPlayerWeaponSkill(playerid, weaponslot) == WEAPON_AKIMBO)
 		{
-			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
-			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
+			PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
+			PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 		}
 		else
 		{
-			PlayerDropObject(playerid, GetObjectFromWeapon(dWeaponID), floatdiv(RandomEx(5, 20), 10), 1);
+			PlayerDropObject(playerid, GetObjectFromWeapon(weaponid), floatdiv(RandomEx(5, 20), 10), 1);
 		}
 		
-		PlayerDropObject(playerid, dAmmoItem, floatdiv(RandomEx(5, 20), 10), dWeaponAmmo);
+		PlayerDropObject(playerid, dAmmoItem, floatdiv(RandomEx(5, 20), 10), ammo);
 
 		PlayerPlaySound(playerid, 1131, 0.0, 0.0, 0.0);
 		SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
-		RemovePlayerWeapon(playerid, dWeaponID);
+		RemovePlayerWeapon(playerid, weaponid);
 		ClearPlayerWeaponSlot(playerid, weaponslot);
 	}
 	else if(dChoice == 2)//RANGER
@@ -7428,14 +7418,14 @@ stock TreatPlayerWeapon(playerid, weaponslot, option)
 			{
 				if(GetPlayerWeaponSkill(playerid, 1) == WEAPON_AKIMBO)
 				{
-					AddGunRackWeapon(rackid, slotid, dWeaponID, floatround(floatdiv(dWeaponAmmo, 2), floatround_round));
-					GivePlayerWeaponEx(playerid, dWeaponID, -floatround(floatdiv(dWeaponAmmo, 2), floatround_round));
+					AddGunRackWeapon(rackid, slotid, weaponid, floatround(floatdiv(ammo, 2), floatround_round));
+					GivePlayerWeaponEx(playerid, weaponid, -floatround(floatdiv(ammo, 2), floatround_round));
 					SetPlayerWeaponSkill(playerid, weaponslot, WEAPON_SIMPLE);
 				}
 				else
 				{
-					AddGunRackWeapon(rackid, slotid, dWeaponID, dWeaponAmmo);
-					RemovePlayerWeapon(playerid, dWeaponID);
+					AddGunRackWeapon(rackid, slotid, weaponid, ammo);
+					RemovePlayerWeapon(playerid, weaponid);
 					ClearPlayerWeaponSlot(playerid, weaponslot);
 				}
 			}
@@ -8398,15 +8388,7 @@ UpdatePlayerAuctionHouse(playerid, category, item)
 		PlayerTextDrawSetPreviewModel(playerid, tHDVItem[playerid][0], aObjects[dAuctionInfos[0]][ObjectModelID]);
 		PlayerTextDrawSetPreviewRot(playerid, tHDVItem[playerid][0], aObjects[dAuctionInfos[0]][ObjectRotX], aObjects[dAuctionInfos[0]][ObjectRotY], aObjects[dAuctionInfos[0]][ObjectRotZ], aObjects[dAuctionInfos[0]][ObjectZoom]);
 		//---
-		switch(GetPlayerLanguage(playerid))
-		{
-		    case LANGUAGE_EN: format(string, sizeof(string), "%s~n~Price: %.1fg", aObjects[dAuctionInfos[0]][ObjectEnName], floatdiv(dAuctionInfos[1], 10));
-		    case LANGUAGE_FR: format(string, sizeof(string), "%s~n~Prix: %.1fg", aObjects[dAuctionInfos[0]][ObjectFrName], floatdiv(dAuctionInfos[1], 10));
-		    case LANGUAGE_ES: format(string, sizeof(string), "%s~n~Precio: %.1fg", aObjects[dAuctionInfos[0]][ObjectEsName], floatdiv(dAuctionInfos[1], 10));
-		    case LANGUAGE_PG: format(string, sizeof(string), "%s~n~Portugais: %.1fg", aObjects[dAuctionInfos[0]][ObjectPgName], floatdiv(dAuctionInfos[1], 10));
-		    case LANGUAGE_IT: format(string, sizeof(string), "%s~n~Italien: %.1fg", aObjects[dAuctionInfos[0]][ObjectItName], floatdiv(dAuctionInfos[1], 10));
-		    case LANGUAGE_DE: format(string, sizeof(string), "%s~n~Preis: %.1fg", aObjects[dAuctionInfos[0]][ObjectDeName], floatdiv(dAuctionInfos[1], 10));
-		}
+		format(string, sizeof(string), "%s~n~Price: %.1fg", GetFormattedObjectName(GetPlayerLanguage(playerid), dAuctionInfos[0], dAuctionInfos[2], false), floatdiv(dAuctionInfos[1], 10));
 		PlayerTextDrawSetString(playerid, tHDVItem[playerid][1], string);
 		//---
 		PlayerTextDrawShow(playerid, tHDVItem[playerid][0]);
@@ -10419,7 +10401,7 @@ UpdateSafe(playerid, Pointer:safeid, slotid, objectid, extraval)//Fonction pour 
 		PlayerTextDrawSetSelectable(playerid, tSafe[playerid][slotid][0], true);
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][0]);
 		//---
-		//PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
+		PlayerTextDrawSetString(playerid, tSafe[playerid][slotid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][1]);
 	}
 }
@@ -10568,7 +10550,7 @@ UpdateSafe(playerid, safeid, slotid, objectid, extraval)//Fonction pour update u
 		PlayerTextDrawSetSelectable(playerid, tSafe[playerid][slotid][0], true);
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][0]);
 		//---
-		PlayerTextDrawSetString(playerid, tSafe[playerid][1],  );
+		PlayerTextDrawSetString(playerid, tSafe[playerid][1], GetFormattedObjectName(GetPlayerLanguage(playerid), objectid, extraval, false));
 		PlayerTextDrawShow(playerid, tSafe[playerid][slotid][1]);
 	}
 }
@@ -17951,8 +17933,9 @@ CheckItemsRoundPlayer(playerid)
 			    SendClientMessageEx(playerid, ROUGE, "You cannot carry more items!", "Vous ne pouvez pas porter plus d'objets !", "¡No puede llevar más objetos!", "Não há objetos perto do senhor", "Italien", "Sie können nicht mehr Objekte tragen!");
 			    return 1;
 	        }
-	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemSaleExtraVal]);
-			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemSaleExtraVal], true));
+	        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
+			LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), GetFormattedObjectName(LANGUAGE_FR, item[ItemID], item[dItemExtraVal], true));
+
 			if(aObjects[item[ItemID]][bHeavy])
 			{
 				ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);
@@ -21230,7 +21213,7 @@ public Pointer:CreateItem(objectid, Float:x, Float:y, Float:z, bool:spawned, id,
 		item[xItem] = x;
 		item[yItem] = y;
 		item[zItem] = z;
-		item[dItemSaleExtraVal] = extraVal;
+		item[dItemExtraVal] = extraVal;
 		if(spawned) item[bAutoSpawn] = true, dSpawnedItems ++;
 	    item[ObjectText] = CreateDynamic3DTextLabel(GetFormattedObjectName(LANGUAGE_EN, objectid, extraVal, true), JAUNE, x, y, z - 1.0, 3.0, INVALID_PLAYER_ID, INVALID_VEHICLE_ID, 0, -1, -1, -1, 3.5);
 		item[dItemID] = id;
@@ -27650,7 +27633,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 					    return 1;
 			        }
 					LogInfo(true, "[JOUEUR]%s ramasse %s", GetName(playerid), NoNewLineSign(aObjects[item[ItemID]][ObjectFrName]));
-			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemSaleExtraVal]);
+			        GivePlayerSlotObject(playerid, item[ItemID], dFreeSlot, item[dItemExtraVal]);
 					if(aObjects[item[ItemID]][bHeavy])
 					{
 						ApplyAnimation(playerid, "CARRY", "liftup", 3.0, 0, 0, 0, 0, 0);

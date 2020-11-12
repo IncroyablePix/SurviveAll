@@ -1011,7 +1011,9 @@ public BuyPlayerItem(playerid)
     //---
 	PlayerPlaySound(playerid, 1052, 0.0, 0.0, 0.0);
     CallRemoteFunction("GivePlayerGold", "ii", playerid, -dPrice);
-    CallRemoteFunction("GivePlayerSlotObject", "iiii", playerid, GetShopItemID(dShop[playerid][0], dShop[playerid][1]), dFreeSlot);
+	new objectid = GetShopItemID(dShop[playerid][0], dShop[playerid][1]);
+	new extraVal = CallRemoteFunction("GetObjectDefaultExtraVal", "i", objectid);
+    CallRemoteFunction("GivePlayerSlotObject", "iiiii", playerid, objectid, dFreeSlot, extraVal);
     if(CallRemoteFunction("GetPlayerMission", "i", playerid) == MISSION_HAZING_HARVEST && dShop[playerid][0] == 6 && dShop[playerid][1] == 4)
     {
         if(dFreeSlot != 0) CallRemoteFunction("SwapPlayerObjects", "iii", playerid, 0, dFreeSlot);
