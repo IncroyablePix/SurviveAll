@@ -44,3 +44,4 @@ settings.ini
 logs
 /server_log.txt
 .vscode
+/db_files/insertObjectDB.pwn

@@ -1835,7 +1835,7 @@ new dCheatersBusted = 0;
 #if defined MYSQL_SYSTEM
 public OnDataObjectsLoaded()
 {
-	if(cache_num_rows())
+	/*if(cache_num_rows())
 	{
 		for(new i = 0; i < cache_num_rows(); i++)
 		{
@@ -1869,7 +1869,9 @@ public OnDataObjectsLoaded()
 		mysql_pquery(mysqlPool, "SELECT * FROM `item`", "OnItemsLoaded");
 		mysql_pquery(mysqlPool, "SELECT * FROM `weapon`", "OnWeaponsLoaded");
 	}
-	LogInfo(true, "[INIT] Donnees de %d objets chargees !", cache_num_rows());
+	LogInfo(true, "[INIT] Donnees de %d objets chargees !", cache_num_rows());*/
+	
+	// TODO : Remove
 	return 1;
 }
 public 	OnEnvironmentLoaded()

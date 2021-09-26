@@ -74,7 +74,17 @@ You may obviously feel free to not give a crap about any of this and do whatever
 			=> Punishments		//
 		=> Comptes			//Accounts in French, change it as well
 			=> Offline		//
-		=> General			//
+		=> General			//	
+8. Still in /scriptfiles:
+	vim DB.ini
+	Insert:
+		```
+		mysql_host
+		mysql_user
+		mysql_password
+		mysql_database
+		```
+	(Replacing the mysql_* entries by the actual credentials)
 9. Run the server
 
 ## Post Scriptum
