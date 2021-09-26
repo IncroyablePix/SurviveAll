@@ -32,18 +32,12 @@
 //---
 #if defined MYSQL_SYSTEM
 //--- MYSQL CONFIGURATION
-	#define SQL_HOST							"localhost"
-	#define SQL_USER							"surviveall"
-	#define SQL_PASSWORD 						"surv1v3@ll 4 cr@sh"
-	#define SQL_DB								"surviveall"
+
 #endif
-	/*"localhost"
-	"surviveall"
-	"surv1v3@ll 4 cr@sh"
-	"surviveall"*/
+
 //---
 
-#define MSC_ROOT							"https://www.c4nn4.com/oldies/musicsamp/"
+#define MSC_ROOT							""
 
 #define MAX_ZOMBIES                         (100)
 #define MAX_JOHNS                         	(10)
