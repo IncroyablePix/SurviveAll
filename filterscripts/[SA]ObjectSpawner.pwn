@@ -2408,7 +2408,7 @@ public CreateRandomItem()
 		return 1;*/
     new dItemID = PickRandomItem(neutral, gun, vehicle, medic, clothe, bag, level);
 	//printf("6");
-	new Pointer:pt = Pointer:CallRemoteFunction("CreateItem", "dfffbdd", dItemID, x, y, z, true, -1, dRandomPos);
+	new Pointer:pt = Pointer:CallRemoteFunction("CreateItem", "dfffbddd", dItemID, x, y, z, true, -1, CallRemoteFunction("GetObjectDefaultExtraVal", "d", dItemID), dRandomPos);
 	dSpawnObjects[dRandomPos] = pt;
 	//---
 	//printf("7");

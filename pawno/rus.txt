@@ -1,9 +1,9 @@
-E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(9773) : ïðåäóïðåæäåíèå 208: ôóíêöèÿ ñ òèïîâûì ðåçóëüòàòîì èñïîëüçóåòñÿ ïåðåä îáúÿâëåíèåì, èíèöèèðîâàíà ïåðåîáðàáîòêà
-E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(7365) : èäåíòèôèêàòîðó ïðèñâîåíî çíà÷åíèå, íî îí íå èñïîëüçóåòñÿ: "string"
+E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(9769) : ïðåäóïðåæäåíèå 208: ôóíêöèÿ ñ òèïîâûì ðåçóëüòàòîì èñïîëüçóåòñÿ ïåðåä îáúÿâëåíèåì, èíèöèèðîâàíà ïåðåîáðàáîòêà
+E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(7361) : èäåíòèôèêàòîðó ïðèñâîåíî çíà÷åíèå, íî îí íå èñïîëüçóåòñÿ: "string"
 E:\PRG\Pawn\SurviveAll\pawno\include\YSI\y_amx.inc(294) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â AMX_GetGlobal
-E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3466) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â RemoveGroupMember: âûçîâ ñ DissolveTeam E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3385)
+E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3462) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â RemoveGroupMember: âûçîâ ñ DissolveTeam E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(3381)
 E:\PRG\Pawn\SurviveAll\pawno\include\list.inc(163) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â LIST_remove
-E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(13819) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â SetBossUFOState: âûçîâ ñ SetBossUFOArmState E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(14041)
+E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(13815) : ïðåäóïðåæäåíèå: ðåêóðñèÿ â SetBossUFOState: âûçîâ ñ SetBossUFOArmState E:\PRG\Pawn\SurviveAll\gamemodes\SurviveAll.pwn(14037)
 Äëÿ îòêëþ÷åíèÿ âûâîäà ðåêóðñèé: #pragma disablerecursion èëè #pragma warning disable 238
 Pawn compiler 3.2.3664	 	 	Copyright (c) 1997-2017, ITB CompuPhase
 

@@ -389,6 +389,7 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #include <a_mysql.inc>
 #include <[SA]Defines.inc>
 #include <[SA]Functions.inc>
+#include <[SA]DBConfig.inc>
 #if defined PROFILING
 #include <profiler.inc>
 #endif
@@ -422,11 +423,6 @@ Et si possible, si ça fait pas trop lag ni rien, la possibilité de voir chaque I
 #define VEHICLE_DISEASE
 
 //DATABASE MYSQL
-/*#define SQL_HOST                            "c4nn4.com.mysql:3306"
-#define SQL_USER                            "c4nn4_com"
-#define SQL_PASS                            "105805"
-#define SQL_DB                              "c4nn4_com"
-*/
 new MySQL:mysqlPool;
 
 //---ADMINISTRATION
@@ -23092,17 +23088,30 @@ public OnGameModeInit()
 	zBlackZone = GangZoneCreate(-4500.0, -4500.0, 4500.0, 4500.0);
 	//--- MYSQL DATABASE CONNECTION ---//
 	#if defined MYSQL_SYSTEM
-	new MySQLOpt: options = mysql_init_options();
-	mysql_set_option(options, POOL_SIZE, 4);
-	mysql_log(ERROR | WARNING);
-	mysqlPool = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD, SQL_DB);	
-	if(mysqlPool == MYSQL_INVALID_HANDLE) 
+
+  	new sHost[128], sUser[128], sPassword[128], sDB[128];
+	if(ReadDBConfig("DB.ini", sHost, sUser, sPassword, sDB))
 	{
-		LogInfo(true, "[MYSQL] Unable to connect to MYSQL Database"); 
-		return 0;
+		new MySQLOpt: options = mysql_init_options();
+		mysql_set_option(options, POOL_SIZE, 4);
+		mysql_log(ERROR | WARNING);
+		mysqlPool = mysql_connect(sHost, sUser, sPassword, sDB);
+		if(mysqlPool == MYSQL_INVALID_HANDLE)
+		{
+			LogInfo(true, "[MYSQL] Unable to connect to MYSQL Database");
+			return 0;
+		}
+		LogInfo(true, "[MYSQL] Connected to MYSQL Database !");
+		mysql_set_charset("utf8", mysqlPool);
 	}
-	LogInfo(true, "[MYSQL] Connected to MYSQL Database !");
-	mysql_set_charset("utf8", mysqlPool);
+	else
+	{
+		LogInfo(true, "[MYSQL] Could not connect to MYSQL Database, shutting down...");
+		SendRconCommand("exit");
+		return 1;
+	}
+	
+	
 	#endif
 	//---CHARGEMENT MÉTEO & TEMPS & OBJETS DATA---//
 	#if defined MYSQL_SYSTEM
